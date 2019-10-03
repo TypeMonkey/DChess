@@ -23,14 +23,9 @@ public class GameServer {
   
   private GameServer(){
     playerStore = new Database();
-    
+
     sessionWorkerPool = Executors.newCachedThreadPool();
-    if (System.getProperty("os.name").toLowerCase().contains("linux")) {
-      workerThreadPool = new EpollEventLoopGroup();
-    }
-    else {
-      workerThreadPool = new NioEventLoopGroup();
-    }
+    workerThreadPool = new NioEventLoopGroup();
   }
   
   public void start() throws InterruptedException{
