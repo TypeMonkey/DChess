@@ -27,7 +27,7 @@ public class TestGameClient {
           .channel(NioSocketChannel.class)
           .handler(new GameClientInitializer(this));
       
-      Channel channel = bootstrap.connect("localhost", 9999).sync().channel();
+      Channel channel = bootstrap.connect("35.166.15.181", 9999).sync().channel();
       System.out.println("---CONNECTED!!!!");
       
      

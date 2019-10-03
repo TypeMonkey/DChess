@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -30,10 +28,13 @@ import jg.proj.chess.core.Square;
 import jg.proj.chess.core.TeamInformation;
 import jg.proj.chess.core.units.InvalidMove;
 import jg.proj.chess.core.units.Unit.UnitType;
-import jg.proj.chess.net.server.Database;
 import jg.proj.chess.net.server.GameServer;
-import jg.proj.chess.net.server.StagingHandler;
 
+/**
+ * Represents a game session
+ * @author Jose
+ *
+ */
 @Sharable
 public class Session extends SimpleChannelInboundHandler<String> implements Runnable{
   
@@ -99,8 +100,14 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     if (!running) {
       running = true;
 
+      //wait for at least 1 player per team before the game starts
+      if (teamOne.size() < 1 && teamTwo.size() < 1) {
+        messageEveryone("----> WAITING FOR MORE PLAYERS <----");
+        while (teamOne.size() < 1 && teamTwo.size() < 1);
+      }
+      
       //alert all players that the game has started
-      messageEveryone("started");
+      messageEveryone("----> GAME STARTED! <----");
 
       //play the game
       boolean hasWon = false;
@@ -191,10 +198,15 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             Square square = board.querySquare(mostPopular.vote.getFileOrigin(), mostPopular.vote.getRankOrigin());
             Square destination = board.querySquare(mostPopular.vote.getFileDest(), mostPopular.vote.getRankDest());
 
-            try {
-              square.getUnit().moveTo(destination);
-            } catch (InvalidMove e) {
-              continue;
+            if (!voteQueue.isEmpty() && voteQueue.peek().votes == mostPopular.votes) {
+              messageEveryone(" ----> TEAM "+currentTeamID+" is tied on a move. NO MOVE FROM THEM! <----");
+            }
+            else {
+              try {
+                square.getUnit().moveTo(destination);
+              } catch (InvalidMove e) {
+                System.out.println("----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE FROM THEM! <----");
+              }
             }
 
             messageEveryone(board.toString());
