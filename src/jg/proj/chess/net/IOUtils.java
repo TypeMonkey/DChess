@@ -1,6 +1,7 @@
 package jg.proj.chess.net;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 
 public final class IOUtils {
   
@@ -10,7 +11,15 @@ public final class IOUtils {
    * @param message - the String message to send. A line break "\r\n" is appended to it.
    */
   public static void writeAndFlush(Channel channel, String message) {
-    channel.writeAndFlush(message+"\r\n");
+    ChannelFuture future = channel.writeAndFlush(message+"\r\n");
+    future.syncUninterruptibly();
+    
+    if (!future.isSuccess()) {
+      System.err.println(" write error! "+future.cause());
+    }
+    else {
+      System.out.println("  ---> WROTE: "+message);
+    }
   }
   
 }

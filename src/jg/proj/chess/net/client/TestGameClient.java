@@ -7,6 +7,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import jg.proj.chess.net.IOUtils;
+import jg.proj.chess.net.ServerRequests;
 
 public class TestGameClient {
 
@@ -31,10 +33,11 @@ public class TestGameClient {
      
       Scanner scanner = new Scanner(System.in);
       
-      channel.writeAndFlush("implayer:csess\r\n");      
-      channel.writeAndFlush("~update\r\n");
-      while(true){      
-        channel.writeAndFlush(scanner.nextLine()+"\r\n");
+      IOUtils.writeAndFlush(channel, ServerRequests.CUSER.addArguments("implayer"));
+      IOUtils.writeAndFlush(channel, ServerRequests.CSESS.addArguments(1, 15000));
+      IOUtils.writeAndFlush(channel, ServerRequests.UPDATE.getFormatString());
+      while(true){
+        IOUtils.writeAndFlush(channel, scanner.nextLine());
       }   
     } finally {
       group.shutdownGracefully();

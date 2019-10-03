@@ -14,9 +14,6 @@ public class GameClientHandler extends SimpleChannelInboundHandler<String> {
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
     System.out.println("DA SERVE: "+msg);
-    if (msg.equals("insession")) {
-      System.out.println("SESSION: "+msg);
-    }
   }
 
 }
