@@ -1,0 +1,12 @@
+# Ignore everything
+*
+
+# Whitelist .gitignore
+!.gitignore
+
+# Whitelist subdirectories
+!*/
+
+# Whitelist all src/ files
+!/src/**
+
