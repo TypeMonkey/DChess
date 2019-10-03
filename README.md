@@ -35,7 +35,7 @@ DChess would not be possible without [Netty 4.1](https://github.com/netty/netty)
 DChess requires a Java Runtime Environment of 1.8 or above. 
 
 ## Roadmap and the Future
-I will be releasing the compiled, runnable jars for the client and server versions of DChess on October 6.
+I will be releasing the compiled, runnable jars for the client and server versions of DChess on October 12.
 
 As for the roadmap for DChess, there are still a lot of ideas I'd like to implement to really expand on the voting aspect, as well as ideas to extend classical chess. For now though, I will focus largely on bug fixes and server-side performance adjustments.
 
