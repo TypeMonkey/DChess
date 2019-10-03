@@ -1,4 +1,4 @@
-#DChess
+# DChess
 
 *A modification of the classical game with a sprinkle of good ole' democracy*
 
