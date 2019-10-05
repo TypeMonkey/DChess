@@ -29,7 +29,7 @@ To move a unit per turn, players on each team must vote on a move for a unit. Th
 
 Oh, and there's a time limit per turn (minimum of 15 seconds at default if no time limit is explicitly set when a session is created). If there's no vote from either team that is the plurality vote by the end of the limit, then no move will be implemented at the end of the turn. If no vote has been received by the end of the limit, then no move will be implemented.
 
-##Dependencies and System Requirements
+## Dependencies and System Requirements
 DChess would not be possible without [Netty 4.1](https://github.com/netty/netty) and would not be remotely playable without [JUnit 4](https://junit.org/junit4/)
 
 DChess requires a Java Runtime Environment of 1.8 or above. 
