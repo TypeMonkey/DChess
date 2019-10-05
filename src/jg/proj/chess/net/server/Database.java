@@ -19,6 +19,9 @@ public class Database {
   private final Map<UUID, Player> playerMap;
   private final Map<UUID, Session> sessionMap;
   
+  /**
+   * Constructs a Database
+   */
   public Database() {
     this.playerMap = new ConcurrentHashMap<UUID, Player>();
     this.sessionMap = new ConcurrentHashMap<UUID, Session>();

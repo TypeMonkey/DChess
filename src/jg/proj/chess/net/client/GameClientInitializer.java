@@ -11,9 +11,9 @@ import io.netty.handler.codec.string.StringEncoder;
 
 public class GameClientInitializer extends ChannelInitializer<SocketChannel>{
 
-  private final TestGameClient gameClient;
+  private final GameClient gameClient;
   
-  public GameClientInitializer(TestGameClient gameClient) {
+  public GameClientInitializer(GameClient gameClient) {
     this.gameClient = gameClient;
   }
   

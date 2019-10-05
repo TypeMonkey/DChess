@@ -1,6 +1,11 @@
 package jg.proj.chess.net;
 
-
+/**
+ * A collection of supported requests 
+ * that can be processed by a DChess server
+ * @author Jose
+ *
+ */
 public enum ServerRequests{
   
   /**
@@ -9,7 +14,9 @@ public enum ServerRequests{
    * if the team ID if 1 or 2, then the player will join the respective team ID
    * else, the player will join team 1 or 2 randomly
    * 
-   * Returns: a string of the form: "sessionUUID:isTeamOne"
+   * Returns: a string of the form: "sessionUUID:isTeamOne:CONFIG"
+   *          where CONFIG is the configuration of the session as dictated
+   *          by the original csess request that created it,
    *          or NO_SESSION if a session of the given UUID couldn't be found
    */
   JOIN("~join:%s:%d", 2,"Joins a session with the provided UUID"),
@@ -17,20 +24,26 @@ public enum ServerRequests{
   /**
    * Creates a session
    * 
-   * The first integer argument is the teamID of the player whose creating the session
-   * if the team ID if 1 or 2, then the player will join the respective team ID
-   * else, the player will join team 1 or 2 randomly
+   * Look into jg.proj.chess.net.Properties as each
+   * argument is specified by each enum.
    * 
-   * The second argument is a long and represents the amount of seconds alloted
-   * for voting per team. If this argument is <= 0, the session will use the default 
-   * voting time of 15 seconds
+   * teamID (the first integer argument) should 1 or 2 is player wants to be in Team 1 ("white")
+   * or Team 2 ("black") respectively. If teamID isn't either 1 or 2, their
+   * team designation will be randomly decided
    * 
-   * Returns: a string of the form: "sessionUUID:isTeamOne"
+   * Returns: a string of the form: "sessionUUID:isTeamOne:CONFIG"
+   *          where CONFIG is the argument string provided with csess
    */
-  CSESS("~csess:%d:%d", 2,"Creates a session"),
+  CSESS("~csess:%d"
+      + "PRISON_DILEMMA=%b:"
+      + "VOTING_DURATION=%d:"
+      + "MIN_TEAM_COUNT=%d:"
+      + "ALLOW_INVL_VOTES=%b:"
+      + "ALLOW_JOINS_GAME=%b", 6,"Creates a session"),
   
   /**
-   * Requests the most recent string representation of the current game's board
+   * Requests the most recent string representation of the current game's state
+   * 
    * Returns: the String that represents the board's most current state
    *          or BAD_REQ if not in a session
    */
@@ -77,35 +90,41 @@ public enum ServerRequests{
     this.description = description;
   }
   
+  /**
+   * Returns the formatted string for this request
+   * @return the formatted string for this request
+   */
   public String getFormatString(){
     return formatedString;
   }
   
+  /**
+   * Returns the description of this request
+   * @return the textual description of this request
+   */
   public String getDescription(){
     return description;
   }
   
+  /**
+   * Returns the expected amount of arguments for this request
+   * @return the expected amount of arguments for this request
+   */
   public int argAmount() {
     return argAmnt;
   }
   
+  /**
+   * Adds the provided arguments to this request's formatted string.
+   * @param args - the arguments
+   * @return the string with added arguments, or null if the amount of arguments
+   *         provided and required don't match
+   */
   public String addArguments(Object ... args){
     if (args.length != argAmnt) {
       return null;
     }
     return String.format(formatedString, args);
   }
-    
-  /*
-  public static interface ServerRequests {
-    
-    public static final String UPDATE = "~update";
-    public static final String CUSER = "~cuser:%s";
-    public static final String VOTE = "~vote:%c%d>%c%d";
-    public static final String PLIST = "~plist";
-    public static final String QUIT = "~quit";
-    
-  }
-  */
 }
 
