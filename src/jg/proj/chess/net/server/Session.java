@@ -1,4 +1,4 @@
-package jg.proj.chess.net;
+package jg.proj.chess.net.server;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,8 +29,11 @@ import jg.proj.chess.core.Square;
 import jg.proj.chess.core.TeamInformation;
 import jg.proj.chess.core.units.InvalidMove;
 import jg.proj.chess.core.units.Unit.UnitType;
-import jg.proj.chess.net.SessionRules.Properties;
-import jg.proj.chess.net.server.GameServer;
+import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.ServerResponses;
+import jg.proj.chess.net.StringAndIOUtils;
+import jg.proj.chess.net.Vote;
+import jg.proj.chess.net.server.SessionRules.Properties;
 
 /**
  * Represents a game session.
@@ -104,149 +107,167 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
 
       teamOneTurn = true;
       while (!hasWon) {
-        /*
-         * Per turn, we will allow a voting period of 30 seconds
-         */
-
-        long timeNow = System.currentTimeMillis();
-        long projectedEnd = timeNow + ((long) rules.getProperty(Properties.VOTING_DURATION));
-
-        ConcurrentHashMap<Vote, Set<Player>> voteMap = new ConcurrentHashMap<>();
-
-        //voting time window
-        ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
-        int currentTeamID = teamOneTurn ? 1 : 2;
         
-        System.out.println("---CURRENT TURN: "+currentTeamID);
-        if (teamOneTurn) {
-          messageTeamOne(null, "---->VOTE NOW TEAM 1<----");
+        /*
+         * Check if either team has no players. The team with no players loose 
+         * automatically by desertion
+         */
+        if (teamOne.isEmpty()) {
+          messageEveryone("[SERVER] Team one has deserted the battle. TEAM TWO WINS!");
+          hasWon = true;
+        }
+        else if(teamTwo.isEmpty()){
+          messageEveryone("[SERVER] Team two has deserted the battle. TEAM ONE WINS!");
+          hasWon = true;
         }
         else {
-          messageTeamTwo(null, "---->VOTE NOW TEAM 2<----");
-        }
-        System.out.println(" ---warned them----");
-        
-        currentlyVoting = true;
-        while (System.currentTimeMillis() < projectedEnd) {
-          try {
-            Vote vote = voteQueue.poll(0, TimeUnit.MILLISECONDS);
-            if (vote == null) {
-              continue;
-            }
+          /*
+           * starts a make shift countdown window for voting
+           */
+          long timeNow = System.currentTimeMillis();
+          long projectedEnd = timeNow + ((long) rules.getProperty(Properties.VOTING_DURATION));
 
-            System.out.println("  -> HAS VOTED: "+vote);
-            
-            if (currentTeam.contains(vote.getVoter().getChannel())) {
-              Square square = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
-              Square destination = board.querySquare(vote.getFileDest(), vote.getRankDest());
-              System.out.println("  ---> SOURCE SQUARE??? "+square.getUnit());
+          ConcurrentHashMap<Vote, Set<Player>> voteMap = new ConcurrentHashMap<>();
+
+          //voting time window
+          ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
+          int currentTeamID = teamOneTurn ? 1 : 2;
+          
+          System.out.println("---CURRENT TURN: "+currentTeamID);
+          if (teamOneTurn) {
+            messageTeamOne(null, "---->VOTE NOW TEAM 1<----");
+          }
+          else {
+            messageTeamTwo(null, "---->VOTE NOW TEAM 2<----");
+          }
+          System.out.println(" ---warned them----");
+          
+          currentlyVoting = true;
+          while (System.currentTimeMillis() < projectedEnd) {
+            try {
+              Vote vote = voteQueue.poll(0, TimeUnit.MILLISECONDS);
+              if (vote == null) {
+                continue;
+              }
+
+              System.out.println("  -> HAS VOTED: "+vote);
               
-              if ( (square.getUnit() != null && square.getUnit().getTeamID() == currentTeamID && square.getUnit().possibleDestinations().contains(destination)) || 
-                   (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {
+              if (currentTeam.contains(vote.getVoter().getChannel())) {
+                Square square = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
+                Square destination = board.querySquare(vote.getFileDest(), vote.getRankDest());
+                System.out.println("  ---> SOURCE SQUARE??? "+square.getUnit());
                 
-                //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes
-                
-                if (!voteMap.containsKey(vote)) {
-                  HashSet<Player> votees = new HashSet<>();
-                  votees.add(vote.getVoter());
-                  voteMap.put(vote, votees);
+                if ( (square.getUnit() != null && square.getUnit().getTeamID() == currentTeamID && square.getUnit().possibleDestinations().contains(destination)) || 
+                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {
+                  
+                  //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes
+                  
+                  if (!voteMap.containsKey(vote)) {
+                    HashSet<Player> votees = new HashSet<>();
+                    votees.add(vote.getVoter());
+                    voteMap.put(vote, votees);
+                  }
+                  else if(voteMap.get(vote).contains(vote.getVoter())) {
+                    System.out.println((vote == null)+" | "+(vote.getVoter() == null)+" | "+(vote.getVoter().getChannel() == null));
+                    StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
+                        String.format(ServerResponses.INVALID_VOTE, 
+                            vote.getFileOrigin(), 
+                            vote.getRankOrigin(), 
+                            vote.getFileDest(), 
+                            vote.getRankDest()));
+                  }
+                  else {
+                    voteMap.get(vote).add(vote.getVoter());
+                  }
+
                 }
-                else if(voteMap.get(vote).contains(vote.getVoter())) {
-                  System.out.println((vote == null)+" | "+(vote.getVoter() == null)+" | "+(vote.getVoter().getChannel() == null));
+                else {
+                  System.out.println("   NOT A VALID DESTINATION SQUARE");
                   StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
                       String.format(ServerResponses.INVALID_VOTE, 
                           vote.getFileOrigin(), 
                           vote.getRankOrigin(), 
                           vote.getFileDest(), 
                           vote.getRankDest()));
-                }
-                else {
-                  voteMap.get(vote).add(vote.getVoter());
-                }
-
+                }        
               }
               else {
-                System.out.println("   NOT A VALID DESTINATION SQUARE");
+                System.out.println("   PLAYER: "+vote.getVoter().getName()+" isn't in "+currentTeamID);
                 StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
                     String.format(ServerResponses.INVALID_VOTE, 
                         vote.getFileOrigin(), 
                         vote.getRankOrigin(), 
                         vote.getFileDest(), 
                         vote.getRankDest()));
-              }        
-            }
-            else {
-              System.out.println("   PLAYER: "+vote.getVoter().getName()+" isn't in "+currentTeamID);
-              StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
-                  String.format(ServerResponses.INVALID_VOTE, 
-                      vote.getFileOrigin(), 
-                      vote.getRankOrigin(), 
-                      vote.getFileDest(), 
-                      vote.getRankDest()));
-            }
-          } catch (InterruptedException e) {
-            System.out.println("---INTERRUPTED");
-          }
-        }
-        currentlyVoting = false;
-        voteQueue.clear();
-        
-        //tell all players that voting has ended
-        System.out.println("    > voting done");
-        messageEveryone("----> !VOTING HAS ENDED FOR TEAM "+currentTeamID+"! <---- ");
-
-        //decide on move based on plurality
-        if (!voteMap.isEmpty()) {
-          PriorityQueue<VoteCounter> voteQueue = new PriorityQueue<VoteCounter>((x,y) -> y.votes - x.votes);
-          voteMap.entrySet().stream().map(x -> new VoteCounter(x.getKey(), x.getValue().size())).collect(Collectors.toCollection(() -> voteQueue));
-          
-          VoteCounter mostPopular = voteQueue.poll();
-          System.out.println(" MOST POPULAR: "+mostPopular.vote.getVoter().getName()+" | "+mostPopular.vote);
-          if (mostPopular != null) {
-            Square square = board.querySquare(mostPopular.vote.getFileOrigin(), mostPopular.vote.getRankOrigin());
-            Square destination = board.querySquare(mostPopular.vote.getFileDest(), mostPopular.vote.getRankDest());
-
-            if (!voteQueue.isEmpty() && voteQueue.peek().votes == mostPopular.votes) {
-              messageEveryone(" ----> TEAM "+currentTeamID+" is tied on a move. NO MOVE FROM THEM! <----");
-            }
-            else if(square.getUnit() == null){
-              messageEveryone(" ----> TEAM "+currentTeamID+" has voted to move a none existant unit. NO MOVE MADE! <---- ");
-            }
-            else if (square.getUnit().getTeamID() == currentTeamID) {
-              messageEveryone(" ----> TEAM "+currentTeamID+" has voted to move a unit THAT'S NOT THEIRS!. NO MOVE MADE! <---- ");
-            }
-            else {
-              try {
-                square.getUnit().moveTo(destination);
-              } catch (InvalidMove e) {
-                messageEveryone(" ----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE MADE! <---- ");
-                System.out.println("----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE FROM THEM! <----");
               }
+            } catch (InterruptedException e) {
+              System.out.println("---INTERRUPTED");
             }
-
-            messageEveryone(board.toString());
           }
-        }
-        else if(teamOneTurn){
-          messageTeamOne(null, "[SERVER] No vote has been made. No movement will be made for this turn....");
-        }
-        else {
-          messageTeamOne(null, "[SERVER] No vote has been made. No movement will be made for this turn....");
-        }
+          currentlyVoting = false;
+          voteQueue.clear();
+          
+          //tell all players that voting has ended
+          System.out.println("    > voting done");
+          messageEveryone("----> !VOTING HAS ENDED FOR TEAM "+currentTeamID+"! <---- ");
 
-        if (teams.getTeamOne().get(UnitType.KING).get(0).getCurrentSquare() == null) {
-          hasWon = true;
-          messageEveryone("[SERVER] TEAM ONE WON!");
-        }
-        else if (teams.getTeamOne().get(UnitType.KING).get(0).getCurrentSquare() == null) {
-          hasWon = true;
-          messageEveryone("[SERVER] TEAM TWO WON!");
+          //decide on move based on plurality
+          if (!voteMap.isEmpty()) {
+            PriorityQueue<VoteCounter> voteQueue = new PriorityQueue<VoteCounter>((x,y) -> y.votes - x.votes);
+            voteMap.entrySet().stream().map(x -> new VoteCounter(x.getKey(), x.getValue().size())).collect(Collectors.toCollection(() -> voteQueue));
+            
+            VoteCounter mostPopular = voteQueue.poll();
+            System.out.println(" MOST POPULAR: "+mostPopular.vote.getVoter().getName()+" | "+mostPopular.vote);
+            if (mostPopular != null) {
+              Square square = board.querySquare(mostPopular.vote.getFileOrigin(), mostPopular.vote.getRankOrigin());
+              Square destination = board.querySquare(mostPopular.vote.getFileDest(), mostPopular.vote.getRankDest());
+
+              if (!voteQueue.isEmpty() && voteQueue.peek().votes == mostPopular.votes) {
+                messageEveryone(" ----> TEAM "+currentTeamID+" is tied on a move. NO MOVE FROM THEM! <----");
+              }
+              else if(square.getUnit() == null){
+                messageEveryone(" ----> TEAM "+currentTeamID+" has voted to move a none existant unit. NO MOVE MADE! <---- ");
+              }
+              else if (square.getUnit().getTeamID() == currentTeamID) {
+                messageEveryone(" ----> TEAM "+currentTeamID+" has voted to move a unit THAT'S NOT THEIRS!. NO MOVE MADE! <---- ");
+              }
+              else {
+                try {
+                  square.getUnit().moveTo(destination);
+                } catch (InvalidMove e) {
+                  messageEveryone(" ----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE MADE! <---- ");
+                  System.out.println("----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE FROM THEM! <----");
+                }
+              }
+
+              messageEveryone(board.toString());
+            }
+          }
+          else if(teamOneTurn){
+            messageTeamOne(null, "[SERVER] No vote has been made. No movement will be made for this turn....");
+          }
+          else {
+            messageTeamOne(null, "[SERVER] No vote has been made. No movement will be made for this turn....");
+          }
+
+          if (teams.getTeamOne().get(UnitType.KING).get(0).getCurrentSquare() == null) {
+            hasWon = true;
+            messageEveryone("[SERVER] TEAM ONE WON!");
+          }
+          else if (teams.getTeamOne().get(UnitType.KING).get(0).getCurrentSquare() == null) {
+            hasWon = true;
+            messageEveryone("[SERVER] TEAM TWO WON!");
+          }
         }
 
         //switch turns
         teamOneTurn = teamOneTurn ? false : true;
       }
 
+      //clear both teams of members
+      teamOne.clear();
+      teamTwo.clear();
+      
       running = false;  
     }
   }
@@ -339,7 +360,12 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
     
     playerChannel.close().sync();
-    messageEveryone("[SERVER] "+player.getName()+" has left the session!");
+    
+    if (server.getDatabase().findPlayer(player.getID()) != null) {
+      //player dropped off unexpectedly. No quit request sent
+      messageEveryone("[SERVER] "+player.getName()+" has left the session!");
+      server.getDatabase().removePlayer(player.getID());
+    }
   }
   
   @Override
@@ -354,41 +380,39 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     System.out.println("   IS COMMAND! "+first);
          
     if (first.equals("~cuser")) {
-      if (arguments.size() == ServerRequests.CUSER.argAmount()) {
+      if (arguments.size() == ServerRequest.CUSER.argAmount()) {
         player.setName(arguments.get(0));
-        StringAndIOUtils.writeAndFlush(sender, arguments.get(0));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.getName()+":"+arguments.get(0)+":"+player.getID().toString());
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-            ServerRequests.CUSER, 
-            ServerRequests.CUSER.argAmount(), 
-            arguments.size()));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.CUSER, 
+            ServerRequest.CUSER.argAmount(), 
+            arguments.size())));
       }
     }
     else if (first.equals("~vote")) {
-      Vote vote = Vote.parseVote(arguments.stream().collect(Collectors.joining()), player);
+      String rawVote = arguments.stream().collect(Collectors.joining());
+      Vote vote = Vote.parseVote(rawVote, player);
       if (vote != null) {
         if (currentlyVoting) {
           voteQueue.put(vote);
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.getName()+":"+vote.toString());
         }
         else {
-          StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.NOT_VOTING, 
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.createErrorString(String.format(ServerResponses.NOT_VOTING, 
               vote.getFileOrigin(),
               vote.getRankOrigin(),
               vote.getFileDest(),
-              vote.getRankDest()));
+              vote.getRankDest())));
         }
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.INVALID_VOTE, 
-            vote.getFileOrigin(),
-            vote.getRankOrigin(),
-            vote.getFileDest(),
-            vote.getRankDest()));
+        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, rawVote));
       }
     }
     else if (first.equals("plist")) {
-      if (arguments.size() == ServerRequests.PLIST.argAmount()) {
+      if (arguments.size() == ServerRequest.PLIST.argAmount()) {
         boolean includeUUID = Boolean.parseBoolean(arguments.get(0).toLowerCase());
         AttributeKey<Player> playerKey = AttributeKey.valueOf("player");
         AttributeKey<Boolean> teamKey = AttributeKey.valueOf("teamone");
@@ -416,15 +440,15 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         StringAndIOUtils.writeAndFlush(sender, mess);
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-            ServerRequests.PLIST, 
-            ServerRequests.PLIST.argAmount(), 
-            arguments.size()));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.PLIST, 
+            ServerRequest.PLIST.argAmount(), 
+            arguments.size())));
       }
     }
     else if (first.equals("~update")) {
       System.out.println("  ---UPDATING");
-      StringAndIOUtils.writeAndFlush(sender, board.toString());
+      StringAndIOUtils.writeAndFlush(sender, ServerRequest.UPDATE.getName()+":"+board.toString());
       System.out.println(" ---SENT BOARD");
     }
     else if (first.equals("~quit")) {
@@ -448,10 +472,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         StringAndIOUtils.writeAndFlush(sender, " ----> SESSION IS ENFORCING PRISON_DILEMMA <--- ");
       }
       else if (teamOne.contains(sender)) {
-        messageTeamOne(sender, msg);
+        messageTeamOne(sender, "["+player.getName()+"]"+msg);
       }
       else if (teamTwo.contains(sender)){
-        messageTeamTwo(sender, msg);
+        messageTeamTwo(sender, "["+player.getName()+"]"+msg);
       }
     }  
   }

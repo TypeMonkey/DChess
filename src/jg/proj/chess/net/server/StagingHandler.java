@@ -14,12 +14,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.AttributeKey;
 import jg.proj.chess.net.StringAndIOUtils;
-import jg.proj.chess.net.Player;
-import jg.proj.chess.net.ServerRequests;
+import jg.proj.chess.net.server.SessionRules.Properties;
+import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
-import jg.proj.chess.net.Session;
-import jg.proj.chess.net.SessionRules;
-import jg.proj.chess.net.SessionRules.Properties;
 
 /**
  * ChannelHandler meant for Players that have yet to join or create a Session
@@ -74,19 +71,19 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
 
     String first = arguments.remove(0);
     if (first.equals("~cuser")) {
-      if (arguments.size() == ServerRequests.CUSER.argAmount()) {
+      if (arguments.size() == ServerRequest.CUSER.argAmount()) {
         player.setName(arguments.get(0));
-        StringAndIOUtils.writeAndFlush(sender, arguments.get(0));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.getName()+":"+arguments.get(0)+":"+player.getID().toString());
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-            ServerRequests.CUSER, 
-            ServerRequests.CUSER.argAmount(), 
-            arguments.size()));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.CUSER, 
+            ServerRequest.CUSER.argAmount(), 
+            arguments.size())));
       }
     }
     else if (first.equals("~join")) {
-      if (arguments.size() == ServerRequests.JOIN.argAmount()) {
+      if (arguments.size() == ServerRequest.JOIN.argAmount()) {
         try {
           //parse sessionID and teamID       
           UUID sessionID = UUID.fromString(arguments.get(0));
@@ -94,32 +91,32 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           
           Session session = database.findSession(sessionID);
           if (session == null) {
-            StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.NO_SESSION, sessionID.toString()));
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.NO_SESSION, sessionID.toString())));
           }
           else {          
             sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
             sender.pipeline().removeLast();
             sender.pipeline().addLast("shandler", session);
             
-            StringAndIOUtils.writeAndFlush(sender, sessionID.toString()+":"+sender.attr(teamAttribute).get()+":"+session.getRules());
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.getName()+":"+sessionID.toString()+":"+sender.attr(teamAttribute).get()+":"+session.getRules());
           }
           
         } catch (IllegalArgumentException e) {
-          StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-              ServerRequests.JOIN.toString(),
-              ServerRequests.JOIN.argAmount(),
-              arguments.size()));
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+              ServerRequest.JOIN.toString(),
+              ServerRequest.JOIN.argAmount(),
+              arguments.size())));
         }
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-            ServerRequests.JOIN.toString(),
-            ServerRequests.JOIN.argAmount(),
-            arguments.size()));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.JOIN.toString(),
+            ServerRequest.JOIN.argAmount(),
+            arguments.size())));
       }
     }
     else if (first.equals("~csess")) {
-      if (arguments.size() == ServerRequests.CSESS.argAmount()) {
+      if (arguments.size() == ServerRequest.CSESS.argAmount()) {
         boolean teamIDParsingFailed = false;
         int teamID = -1;
         try {
@@ -129,88 +126,49 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         }
         
         if (teamIDParsingFailed) {
-          StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-              ServerRequests.CSESS.toString(),
-              ServerRequests.CSESS.argAmount(),
-              arguments.size()));
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+              ServerRequest.CSESS.toString(),
+              ServerRequest.CSESS.argAmount(),
+              arguments.size())));
         }
-        else {
-        //parse configuration arguments       
-          String [][] rawStrings = new String[ServerRequests.CSESS.argAmount()][2];
-          for (int i = 0; i < arguments.size(); i++) {
-            rawStrings[i] = StringAndIOUtils.parseAssignment(arguments.get(i));
-          }
+        else {         
+          SessionRules rules = SessionRules.parseFromString(arguments.stream().collect(Collectors.joining(":")));
           
-          //flag to indicate successful parsing
-          boolean parseSuccessful = false;
-          
-          //create default rules
-          SessionRules rules = new SessionRules();
-          for(String [] assgn : rawStrings){
-            try {
-              Properties property = Properties.valueOf(assgn[0]);
-              Object value = null;
-              switch (property) {
-              case PRISON_DILEMMA:
-                value = Boolean.parseBoolean(assgn[1].toLowerCase());
-                break;
-              case VOTING_DURATION:
-                value = Long.parseLong(assgn[1]);
-                break;
-              case MIN_TEAM_COUNT:
-                value = Integer.parseInt(assgn[1]);
-                break;
-              case ALLOW_INVL_VOTES:
-                value = Boolean.parseBoolean(assgn[1].toLowerCase());
-                break;
-              case ALLOW_JOINS_GAME:
-                value = Boolean.parseBoolean(assgn[1].toLowerCase());
-                break;
-              }
-              
-              //set the property
-              rules.setProperty(property, value);
-            } catch (IllegalArgumentException e) {
-              parseSuccessful = false;
-              break;
-            }
-          }
-          
-          if (parseSuccessful) {
+          if (rules != null) {            
             Session newSession = new Session(server, rules);        
             database.addSession(newSession);
-            
+
             System.out.println(" USER: "+player.getID()+" created a session with ID: "+newSession.getSessionID());
-                  
+
             sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
-            StringAndIOUtils.writeAndFlush(sender, newSession.getSessionID().toString()+":"+
-                                                   sender.attr(teamAttribute).get()+":"+
-                                                   rules.toString());
-            
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.getName()+":"+newSession.getSessionID().toString()+":"+
+                sender.attr(teamAttribute).get()+":"+
+                rules.toString());
+
             sender.pipeline().removeLast();
             sender.pipeline().addLast("shandler", newSession);
 
             System.out.println(" USER: "+player.getID()+" created a session with ID: "+newSession.getSessionID()+" and has been moved");
-            
+
             server.runSession(newSession);
           }
           else {
-            StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-                ServerRequests.CSESS.toString(),
-                ServerRequests.CSESS.argAmount(),
-                arguments.size()));
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+                ServerRequest.CSESS.toString(),
+                ServerRequest.CSESS.argAmount(),
+                arguments.size())));
           }
         }       
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_ARGS, 
-            ServerRequests.CSESS.toString(),
-            ServerRequests.CSESS.argAmount(),
-            arguments.size()));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.CSESS.toString(),
+            ServerRequest.CSESS.argAmount(),
+            arguments.size())));
       }
     }
     else {
-      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "unknown reqest for staging"));
+      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "unknown request while staging"));
     }
   }  
 }

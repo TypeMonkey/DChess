@@ -1,4 +1,4 @@
-package jg.proj.chess.net;
+package jg.proj.chess.net.server;
 
 import java.util.UUID;
 

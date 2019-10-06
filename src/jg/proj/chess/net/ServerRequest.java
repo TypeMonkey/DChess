@@ -2,11 +2,17 @@ package jg.proj.chess.net;
 
 /**
  * A collection of supported requests 
- * that can be processed by a DChess server
+ * that can be processed by a DChess server.
+ * 
+ * Note: All responses are prepended with their request name (even when an error occurs)
+ *       ex: If a csess request was sent, the server will respond with "csess:RESULTS_SUBSTRING".
+ *           If a join request was sent with an invalid UUID, the server will send back: "join:ERROR:ERROR_MESSAGE"
+ *           
+ *       This note doesn't apply to QUIT.
  * @author Jose
  *
  */
-public enum ServerRequests{
+public enum ServerRequest{
   
   /**
    * Joins a session with the provided UUID and team ID
@@ -19,7 +25,7 @@ public enum ServerRequests{
    *          by the original csess request that created it,
    *          or NO_SESSION if a session of the given UUID couldn't be found
    */
-  JOIN("~join:%s:%d", 2,"Joins a session with the provided UUID"),
+  JOIN("join","~join:%s:%d", 2,"Joins a session with the provided UUID"),
   
   /**
    * Creates a session
@@ -34,7 +40,7 @@ public enum ServerRequests{
    * Returns: a string of the form: "sessionUUID:isTeamOne:CONFIG"
    *          where CONFIG is the argument string provided with csess
    */
-  CSESS("~csess:%d"
+  CSESS("csess", "~csess:%d:"
       + "PRISON_DILEMMA=%b:"
       + "VOTING_DURATION=%d:"
       + "MIN_TEAM_COUNT=%d:"
@@ -47,13 +53,13 @@ public enum ServerRequests{
    * Returns: the String that represents the board's most current state
    *          or BAD_REQ if not in a session
    */
-  UPDATE("~update", 0,"Requests the most recent string representation of the current game's board"),
+  UPDATE("update","~update", 0,"Requests the most recent string representation of the current game's board"),
   
   /**
    * Changes the username of the player
-   * Returns: the new username as confirmation
+   * Returns: the string "NEW_USER_NAME:UUID_OF_PLAYER"
    */
-  CUSER("~cuser:%s", 1,"Changes the username of the player"),
+  CUSER("cuser", "~cuser:%s", 1,"Changes the username of the player"),
   
   /**
    * Votes for a move
@@ -62,7 +68,7 @@ public enum ServerRequests{
    * or NOT_VOTING team isn't voting at the moment, 
    * or BAD_REQ user isn't in a session
    */
-  VOTE("~vote:%c%d>%c%d", 4, "Votes for a move"),
+  VOTE("vote", "~vote:%c%d>%c%d", 4, "Votes for a move"),
   
   /**
    * Requests the name, their current team - and optionally their UUIDs - of all players in the session
@@ -72,22 +78,32 @@ public enum ServerRequests{
    *           
    *      If client isn't in a session, then BAD_REQ is returned
    */
-  PLIST("~plist:%b", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session"),
+  PLIST("plist", "~plist:%b", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session"),
   
   /**
    * Quits the current session
    * Returns: nothing. Assume that once this request is sent, the player is disconnected from the server
    */
-  QUIT("~quit", 0 ,"Quits the current session");
+  QUIT("quit", "~quit", 0 ,"Quits the current session");
   
+  private final String requestName;
   private final String formatedString;
   private final int argAmnt;
   private final String description;
   
-  private ServerRequests(String formattedString, int argAmnt, String description){
+  private ServerRequest(String requestName, String formattedString, int argAmnt, String description){
+    this.requestName = requestName;
     this.formatedString = formattedString;
     this.argAmnt = argAmnt;
     this.description = description;
+  }
+  
+  /**
+   * Returns the name of this request, without the '~'
+   * @return the name of this request, without the '~'
+   */
+  public String getName() {
+    return requestName;
   }
   
   /**
@@ -112,6 +128,10 @@ public enum ServerRequests{
    */
   public int argAmount() {
     return argAmnt;
+  }
+  
+  public String createErrorString(String message){
+    return String.format(ServerResponses.ERROR_REQ, requestName, message);
   }
   
   /**

@@ -1,5 +1,7 @@
 package jg.proj.chess.net;
 
+import jg.proj.chess.net.server.Player;
+
 public class Vote {
 
   private final Player voter;

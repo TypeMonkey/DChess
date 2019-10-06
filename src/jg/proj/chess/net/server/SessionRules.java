@@ -1,7 +1,13 @@
-package jg.proj.chess.net;
+package jg.proj.chess.net.server;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.StringAndIOUtils;
+import jg.proj.chess.net.server.SessionRules.Properties;
 
 public final class SessionRules {
 
@@ -96,5 +102,61 @@ public final class SessionRules {
     return defaultMap;
   }
   
-  
+  /**
+   * Parses from a string a SessionRules object
+   * Note: The string to parse must be in the format:
+   *     PROPERTY1=VALUE1:PROPERTY2=VALUE2: .... etc.
+   * 
+   * @param toparse
+   * @return a SessionRules object, or null if string was incorrectly formatted
+   */
+  public static SessionRules parseFromString(String toparse){
+    SessionRules sessionRules = new SessionRules();
+    ArrayList<String> arguments = new ArrayList<String>(Arrays.asList(toparse.split(":")));
+    
+    String [][] rawStrings = new String[ServerRequest.CSESS.argAmount()][2];
+    for (int i = 0; i < arguments.size(); i++) {
+      rawStrings[i] = StringAndIOUtils.parseAssignment(arguments.get(i));
+      if (rawStrings[i] == null) {
+        sessionRules = null;
+        break;
+      }
+    }
+    
+    if (sessionRules != null) {
+      //create default rules
+      SessionRules rules = new SessionRules();
+      for(String [] assgn : rawStrings){
+        try {
+          Properties property = Properties.valueOf(assgn[0]);
+          Object value = null;
+          switch (property) {
+          case PRISON_DILEMMA:
+            value = Boolean.parseBoolean(assgn[1].toLowerCase());
+            break;
+          case VOTING_DURATION:
+            value = Long.parseLong(assgn[1]);
+            break;
+          case MIN_TEAM_COUNT:
+            value = Integer.parseInt(assgn[1]);
+            break;
+          case ALLOW_INVL_VOTES:
+            value = Boolean.parseBoolean(assgn[1].toLowerCase());
+            break;
+          case ALLOW_JOINS_GAME:
+            value = Boolean.parseBoolean(assgn[1].toLowerCase());
+            break;
+          }
+
+          //set the property
+          rules.setProperty(property, value);
+        } catch (IllegalArgumentException e) {
+          sessionRules = null;
+          break;
+        }
+      }
+    }  
+    
+    return sessionRules;
+  }
 }

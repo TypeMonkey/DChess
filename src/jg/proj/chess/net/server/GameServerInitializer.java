@@ -8,7 +8,6 @@ import io.netty.handler.codec.Delimiters;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.AttributeKey;
-import jg.proj.chess.net.Player;
 
 /**
  * Initializer for connecting clients.

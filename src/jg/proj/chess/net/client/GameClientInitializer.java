@@ -1,6 +1,5 @@
 package jg.proj.chess.net.client;
 
-
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -10,11 +9,11 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
 public class GameClientInitializer extends ChannelInitializer<SocketChannel>{
-
-  private final GameClient gameClient;
   
-  public GameClientInitializer(GameClient gameClient) {
-    this.gameClient = gameClient;
+  private final GameClient client;
+  
+  public GameClientInitializer(GameClient client) {
+    this.client = client;
   }
   
   @Override
@@ -25,7 +24,8 @@ public class GameClientInitializer extends ChannelInitializer<SocketChannel>{
     pipeline.addLast("encoder", new StringEncoder());
     pipeline.addLast("decoder", new StringDecoder());
 
-    pipeline.addLast("handler", new GameClientHandler(gameClient));
+    pipeline.addLast("handler", client); 
+    System.out.println("ADDED handler");
   }
 
 }

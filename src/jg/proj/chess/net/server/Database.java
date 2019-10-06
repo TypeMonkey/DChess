@@ -5,9 +5,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import jg.proj.chess.net.Player;
-import jg.proj.chess.net.Session;
-
 /**
  * Acts as a simple "database" of all connected Players and active sessions
  * 
