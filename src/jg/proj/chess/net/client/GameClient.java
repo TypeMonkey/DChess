@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,6 +22,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.channel.ChannelHandler.Sharable;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.StringAndIOUtils;
+import jg.proj.chess.net.client.uis.MainFrame;
+import jg.proj.chess.net.client.uis.UsernameDialog;
 import jg.proj.chess.net.server.SessionRules;
 
 @Sharable
@@ -29,30 +33,26 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   
   private final EventLoopGroup workerGroup;  
   private final Map<ServerRequest, Queue<RequestFuture>> pendingFutures;
+  private final MainFrame mainUI;
   
   private Channel channel; 
-  
+ 
   private volatile String userName;
-  
-  private volatile UUID uuid;
-  
+  private volatile UUID uuid;  
   private volatile boolean isConnected;
-  
   private volatile SessionInfo sessionInfo;
   
   public GameClient(String userName) {
     this.workerGroup = new NioEventLoopGroup();
     this.pendingFutures = new ConcurrentHashMap<>();
     this.userName = userName;
+    this.mainUI = new MainFrame(this);
   }
   
   public void initAndConnect(String ipAddress) throws InterruptedException{
     Bootstrap bootstrap = new Bootstrap()
         .group(workerGroup)
         .channel(NioSocketChannel.class)
-        //.handler(new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()))
-        //.handler(new StringEncoder())
-        //.handler(new StringDecoder())
         .handler(new GameClientInitializer(this));
 
     channel = bootstrap.connect(ipAddress, PORT).sync().channel();
@@ -67,6 +67,16 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
 
     while(userName == null);
     System.out.println("changed! "+userName+" | "+uuid);
+  }
+  
+  public void appearUI() {
+    mainUI.updateDislay("<html>Connect to a session by typing '~join:SESSION_ID' . <br>Replace SESSION_ID with the UUID of the session you want to join</html>");
+    
+    SwingUtilities.invokeLater(new Runnable() {
+      public void run() {
+        mainUI.setVisible(true);
+      }
+    });
   }
   
   public void disconnect() throws InterruptedException{
@@ -101,13 +111,6 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       return future;
     }
     return null;
-  }
-  
-  
-  
-  @Override
-  public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-    System.out.println(" ---> client handler added <--- ");
   }
   
   @Override
@@ -173,6 +176,10 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       System.out.println(msg);
     }  
   }
+  
+  public void parseInput(String input) {
+    
+  }
 
   public boolean isConnected(){
     return isConnected;
@@ -187,6 +194,29 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   }
 
   public static void main(String [] args) throws Exception{
+    UsernameDialog dialog = new UsernameDialog();
+    
+    SwingUtilities.invokeLater(new Runnable() {
+      public void run() {
+        dialog.setVisible(true);
+      }
+    });
+    
+    String userName = dialog.blockUntilUsername();
+    if (userName != null) {
+      System.out.println("----user disposed");
+      
+      GameClient gameClient = new GameClient(userName);
+      gameClient.initAndConnect("localhost");
+      gameClient.appearUI();
+      
+      System.out.println("----main frame up");
+    }
+    
+    return;
+
+    
+    /*
     GameClient gameClient = new GameClient("sample");
     System.out.println(" ----> DChess Client v1.0 <---- ");
     gameClient.initAndConnect("localhost");
@@ -199,5 +229,6 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
         false,
         true);
     gameClient.submitRequest(pendingRequest);
+    */
   }
 }

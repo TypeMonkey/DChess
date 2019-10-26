@@ -38,6 +38,7 @@ public class Board {
   }
   
   public String toString(){
+    /*
     String header = "  | a | b | c | d | e | f | g | h |"+System.lineSeparator();
     header       += "-----------------------------------"+System.lineSeparator();
     for(int i = 0; i < rankWidth; i++){
@@ -47,6 +48,22 @@ public class Board {
         header += (square.getUnit() != null ? square.getUnit().toString() : "   ")+"|";
       }
       header += System.lineSeparator();
+    }
+    return header;
+    */
+    return parsableToString().replace("~", System.lineSeparator());
+  }
+  
+  public String parsableToString(){
+    String header = "  | a | b | c | d | e | f | g | h |~";
+    header       += "-----------------------------------~";
+    for(int i = 0; i < rankWidth; i++){
+      Square [] row = squares[i];
+      header += (i+1)+" |"; 
+      for(Square square : row){
+        header += (square.getUnit() != null ? square.getUnit().toString() : "   ")+"|";
+      }
+      header += "~";
     }
     return header;
   }

@@ -93,6 +93,10 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           if (session == null) {
             StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.NO_SESSION, sessionID.toString())));
           }
+          else if (session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) &&
+                   !session.isAcceptingPlayers()) {
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.NO_SESSION, sessionID.toString())));
+          }
           else {          
             sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
             sender.pipeline().removeLast();
@@ -167,8 +171,33 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             arguments.size())));
       }
     }
+    else if (first.equals("~quit")) {
+      server.getDatabase().removePlayer(player.getID());
+      sender.pipeline().remove(this);
+      sender.close();
+      System.out.println("     -> Player: "+player.getName()+" has quit during staging....");
+    }
+    else if (first.equals("~ses")) {
+      if (arguments.size() == ServerRequest.SES.argAmount()) {        
+        String whole = "";
+        for(UUID uuid : database.getAllSessionIDS()) {
+          Session session = database.findSession(uuid);
+          if (session != null && session.isAcceptingPlayers()) {
+            whole += uuid.toString()+","+session.totalPlayers()+","+session.getRules().getProperty(Properties.PRISON_DILEMMA)+":";
+          }
+        }
+        
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
+      }
+      else {
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.SES.toString(),
+            ServerRequest.SES.argAmount(),
+            arguments.size())));
+      }
+    }
     else {
-      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "unknown request while staging"));
+      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "!", "Unknown request for staging"));
     }
   }  
 }

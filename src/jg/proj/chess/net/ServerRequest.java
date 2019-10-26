@@ -84,7 +84,30 @@ public enum ServerRequest{
    * Quits the current session
    * Returns: nothing. Assume that once this request is sent, the player is disconnected from the server
    */
-  QUIT("quit", "~quit", 0 ,"Quits the current session");
+  QUIT("quit", "~quit", 0 ,"Quits the current session"),
+  
+  /**
+   * Sends a message to all players in the session
+   * 
+   * Returns: The exact same request: "all:MESSAGE" 
+   *          or BAD_REQ if sender isn't in a session, or Prisoner's Dilemma is in session
+   */
+  ALL("all", "~all:%s", 1, "Sends a message to all players in the session"),
+  
+  /**
+   * Sends a message to all players in the sender's team
+   * 
+   * Returns: The exact same request: "team:MESSAGE"
+   *          or BAD_REQ if sender isn't in a session, or Prisoner's Dilemma is in session
+   */
+  TEAM("team", "~team:%s", 1, "Sends a message to all players in the sender's team"),
+  
+  /**
+   * Requests the current list of active sessions the server is hosting
+   * 
+   * Returns: ses:session1UUID,session1PlayerAmnt,session1PrisonersDilemma:session2UUID,session2PlayerAmnt,session2PrisonersDilemma
+   */
+  SES("ses", "~ses", 0 , "Requests the current list of active sessions the server is hosting");
   
   private final String requestName;
   private final String formatedString;
@@ -131,7 +154,7 @@ public enum ServerRequest{
   }
   
   public String createErrorString(String message){
-    return String.format(ServerResponses.ERROR_REQ, requestName, message);
+    return String.format(ServerResponses.BAD_REQ, requestName, message);
   }
   
   /**

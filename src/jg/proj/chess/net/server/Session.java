@@ -60,6 +60,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   private volatile boolean teamOneTurn;
   private volatile boolean currentlyVoting;
   
+  private volatile boolean acceptingPlayers;
+  
   public Session(GameServer server, SessionRules rules){
     this.server = server;
     this.rules = rules;
@@ -96,7 +98,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       int minTeamSize = (int) rules.getProperty(Properties.MIN_TEAM_COUNT);
       if (teamOne.size() < minTeamSize && teamTwo.size() < minTeamSize) {
         messageEveryone("----> WAITING FOR MORE PLAYERS <----");
+        acceptingPlayers = true;
         while (teamOne.size() < minTeamSize && teamTwo.size() < minTeamSize);
+        acceptingPlayers = false;
       }
       
       //alert all players that the game has started
@@ -125,9 +129,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
            * starts a make shift countdown window for voting
            */
           long timeNow = System.currentTimeMillis();
-          long projectedEnd = timeNow + ((long) rules.getProperty(Properties.VOTING_DURATION));
+          long projectedEnd = timeNow + TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
 
           ConcurrentHashMap<Vote, Set<Player>> voteMap = new ConcurrentHashMap<>();
+          ConcurrentHashMap<Player, Vote> votedPlayers = new ConcurrentHashMap<>();
 
           //voting time window
           ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
@@ -135,10 +140,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           
           System.out.println("---CURRENT TURN: "+currentTeamID);
           if (teamOneTurn) {
-            messageTeamOne(null, "---->VOTE NOW TEAM 1<----");
+            messageTeamOne(null, ServerResponses.VOTE_NOW);
           }
           else {
-            messageTeamTwo(null, "---->VOTE NOW TEAM 2<----");
+            messageTeamTwo(null, ServerResponses.VOTE_NOW);
           }
           System.out.println(" ---warned them----");
           
@@ -157,27 +162,24 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                 Square destination = board.querySquare(vote.getFileDest(), vote.getRankDest());
                 System.out.println("  ---> SOURCE SQUARE??? "+square.getUnit());
                 
+                //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes              
                 if ( (square.getUnit() != null && square.getUnit().getTeamID() == currentTeamID && square.getUnit().possibleDestinations().contains(destination)) || 
-                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {
-                  
-                  //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes
-                  
+                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {                  
                   if (!voteMap.containsKey(vote)) {
                     HashSet<Player> votees = new HashSet<>();
                     votees.add(vote.getVoter());
                     voteMap.put(vote, votees);
                   }
-                  else if(voteMap.get(vote).contains(vote.getVoter())) {
-                    System.out.println((vote == null)+" | "+(vote.getVoter() == null)+" | "+(vote.getVoter().getChannel() == null));
-                    StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
-                        String.format(ServerResponses.INVALID_VOTE, 
-                            vote.getFileOrigin(), 
-                            vote.getRankOrigin(), 
-                            vote.getFileDest(), 
-                            vote.getRankDest()));
-                  }
                   else {
                     voteMap.get(vote).add(vote.getVoter());
+                  }
+                  
+                  //if player already voted, then update the votemap to discount double counting
+                  if (votedPlayers.contains(vote.getVoter())) {
+                    voteMap.get(vote).remove(vote.getVoter());
+                  }
+                  else {
+                    votedPlayers.put(vote.getVoter(), vote);
                   }
 
                 }
@@ -209,7 +211,12 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           
           //tell all players that voting has ended
           System.out.println("    > voting done");
-          messageEveryone("----> !VOTING HAS ENDED FOR TEAM "+currentTeamID+"! <---- ");
+          if (teamOneTurn) {
+            messageTeamOne(null, ServerResponses.VOTE_DONE);
+          }
+          else {
+            messageTeamTwo(null, ServerResponses.VOTE_DONE);
+          }
 
           //decide on move based on plurality
           if (!voteMap.isEmpty()) {
@@ -408,10 +415,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         }
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, rawVote));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.createErrorString("Can't parse vote '"+rawVote+"'"));
       }
     }
-    else if (first.equals("plist")) {
+    else if (first.equals("~plist")) {
       if (arguments.size() == ServerRequest.PLIST.argAmount()) {
         boolean includeUUID = Boolean.parseBoolean(arguments.get(0).toLowerCase());
         AttributeKey<Player> playerKey = AttributeKey.valueOf("player");
@@ -448,7 +455,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
     else if (first.equals("~update")) {
       System.out.println("  ---UPDATING");
-      StringAndIOUtils.writeAndFlush(sender, ServerRequest.UPDATE.getName()+":"+board.toString());
+      StringAndIOUtils.writeAndFlush(sender, ServerRequest.UPDATE.getName()+":"+board.parsableToString());
       System.out.println(" ---SENT BOARD");
     }
     else if (first.equals("~quit")) {
@@ -465,23 +472,81 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       
       server.getDatabase().removePlayer(player.getID());
       sender.pipeline().remove(this);
+      sender.close();
+    }
+    else if (first.equals("~ses")) {
+      if (arguments.size() == ServerRequest.SES.argAmount()) {        
+        String whole = "";
+        for(UUID uuid : server.getDatabase().getAllSessionIDS()) {
+          Session session = server.getDatabase().findSession(uuid);
+          if (session != null && session.isAcceptingPlayers()) {
+            whole += uuid.toString()+","+session.totalPlayers()+","+session.getRules().getProperty(Properties.PRISON_DILEMMA)+":";
+          }
+        }
+        
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
+      }
+      else {
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.SES.toString(),
+            ServerRequest.SES.argAmount(),
+            arguments.size())));
+      }
+    }
+    else if (first.equals("~all")) {
+      if (arguments.size() == ServerRequest.ALL.argAmount()) {
+        if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.ALL.createErrorString("Prisoner's Dilemmas enforced!"));
+        }
+        else {
+          String message = arguments.get(0);
+          messageEveryone(message);
+          
+          StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.ALL_MESS, player.getName(), message));
+        }
+      }
+      else {
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.ALL.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.ALL, 
+            ServerRequest.ALL.argAmount(), 
+            arguments.size())));
+      }
+    }
+    else if (first.equals("~team")) {
+      if (arguments.size() == ServerRequest.TEAM.argAmount()) {
+        if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.TEAM.createErrorString("Prisoner's Dilemmas enforced!"));
+        }
+        else {
+          String message = arguments.get(0);
+          StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.TEAM_MESS, player.getName(), message));
+          
+          if (teamOne.contains(sender)) {
+            messageTeamOne(sender, message);
+          }
+          else {
+            messageTeamTwo(sender, message);
+          }          
+        }
+      }
+      else {
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.TEAM.createErrorString(String.format(ServerResponses.BAD_ARGS, 
+            ServerRequest.TEAM, 
+            ServerRequest.TEAM.argAmount(), 
+            arguments.size())));
+      }
     }
     else {
-      //this is a normal message. If session is in PRISON_DILEMMA=true, then disallow messages
-      if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
-        StringAndIOUtils.writeAndFlush(sender, " ----> SESSION IS ENFORCING PRISON_DILEMMA <--- ");
-      }
-      else if (teamOne.contains(sender)) {
-        messageTeamOne(sender, "["+player.getName()+"]"+msg);
-      }
-      else if (teamTwo.contains(sender)){
-        messageTeamTwo(sender, "["+player.getName()+"]"+msg);
-      }
+      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "!", "Unknown request for session"));
     }  
   }
   
   public boolean isRunning(){
     return running;
+  }
+  
+  public boolean isAcceptingPlayers() {
+    return acceptingPlayers;
   }
   
   protected Board getBoard(){
