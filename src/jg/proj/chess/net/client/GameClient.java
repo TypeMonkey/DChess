@@ -22,6 +22,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.channel.ChannelHandler.Sharable;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.StringAndIOUtils;
+import jg.proj.chess.net.client.uis.IntroScreen;
 import jg.proj.chess.net.client.uis.MainFrame;
 import jg.proj.chess.net.client.uis.UsernameDialog;
 import jg.proj.chess.net.server.SessionRules;
@@ -69,9 +70,8 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
     System.out.println("changed! "+userName+" | "+uuid);
   }
   
-  public void appearUI() {
-    mainUI.updateDislay("<html>Connect to a session by typing '~join:SESSION_ID' . <br>Replace SESSION_ID with the UUID of the session you want to join</html>");
-    
+  public void appearUI() {    
+    mainUI.updateDislay("Click 'Connect' to join or create a session.");
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         mainUI.setVisible(true);
@@ -177,8 +177,44 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
     }  
   }
   
-  public void parseInput(String input) {
-    
+  public PendingRequest parseInput(String input){
+    if (input.startsWith("~")) {
+      //then this is a command
+      String wholeCommand = input.substring(1, input.length());
+      String [] segments = wholeCommand.split(":");
+      String commandName = segments[0];
+
+      try {
+        ServerRequest actualRequest = ServerRequest.valueOf(commandName.toUpperCase());
+
+        if (actualRequest == ServerRequest.ALL || actualRequest == ServerRequest.TEAM) {
+          PendingRequest request = new PendingRequest(actualRequest, 
+              Arrays.stream(segments, 1, segments.length).collect(Collectors.joining()));
+          submitRequest(request);
+
+          return request;
+        }
+        else if (wholeCommand.length() - 1 == actualRequest.argAmount()) {
+          PendingRequest request = new PendingRequest(actualRequest, 
+              Arrays.copyOfRange(segments, 1, segments.length));
+          submitRequest(request);
+
+          return request;
+        }
+        else {
+          return null;
+        }
+
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+    }
+    else {
+      //default to team chat
+      PendingRequest request = new PendingRequest(ServerRequest.TEAM, input);
+      submitRequest(request);
+      return request;
+    }
   }
 
   public boolean isConnected(){
@@ -192,6 +228,10 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   public boolean inSession() {
     return sessionInfo != null;
   }
+  
+  public String getUserName() {
+    return userName;
+  }
 
   public static void main(String [] args) throws Exception{
     UsernameDialog dialog = new UsernameDialog();
@@ -203,32 +243,21 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
     });
     
     String userName = dialog.blockUntilUsername();
+    dialog.dispose();
     if (userName != null) {
       System.out.println("----user disposed");
       
+      IntroScreen screen = new IntroScreen("imgs/intro/wigand.jpg");
+      screen.setVisible(true);
+      
       GameClient gameClient = new GameClient(userName);
       gameClient.initAndConnect("localhost");
+      screen.dispose();
+      
       gameClient.appearUI();
       
       System.out.println("----main frame up");
     }
     
-    return;
-
-    
-    /*
-    GameClient gameClient = new GameClient("sample");
-    System.out.println(" ----> DChess Client v1.0 <---- ");
-    gameClient.initAndConnect("localhost");
-    
-    PendingRequest pendingRequest = new PendingRequest(ServerRequest.CSESS, 
-        2, 
-        false,
-        15000,
-        1,
-        false,
-        true);
-    gameClient.submitRequest(pendingRequest);
-    */
   }
 }

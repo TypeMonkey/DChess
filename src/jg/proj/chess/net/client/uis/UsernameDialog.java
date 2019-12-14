@@ -3,11 +3,13 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JLabel;
+import javax.swing.AbstractAction;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.SwingConstants;
@@ -21,6 +23,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 public class UsernameDialog extends JFrame {
@@ -75,18 +78,15 @@ public class UsernameDialog extends JFrame {
     userNameField.addFocusListener(new FocusListener() {
       
       @Override
-      public void focusLost(FocusEvent e) {
-        // TODO Auto-generated method stub
-        
-      }
-      
-      @Override
       public void focusGained(FocusEvent e) {
         if (demandedValidUserName) {
           userNameField.setText("");
           demandedValidUserName = false;
         }
       }
+
+      @Override
+      public void focusLost(FocusEvent arg0) {}
     });
     
     JButton cancelButton = new JButton("Cancel");
@@ -114,6 +114,8 @@ public class UsernameDialog extends JFrame {
         }
       }
     });
+    
+    
     
     GroupLayout gl_contentPanel = new GroupLayout(contentPanel);
     gl_contentPanel.setHorizontalGroup(

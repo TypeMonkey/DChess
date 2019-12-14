@@ -13,10 +13,13 @@ import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.GameClient;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.uis.CSessDialog.CSessForm;
+import jg.proj.chess.net.client.uis.JoinDialog.JoinForm;
 
+import javax.swing.AbstractAction;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JTextPane;
+import javax.swing.KeyStroke;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.JScrollPane;
@@ -36,6 +39,7 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
@@ -85,9 +89,11 @@ public class MainFrame extends JFrame {
   private JLabel teamOnePost = new JLabel("Team One");
   private JMenuBar menuBar = new JMenuBar();
   private JMenu connectMenuItem = new JMenu("Connect");
-  private final JMenuItem connectPortal = new JMenuItem("Connect to A Session");
+  private final JMenuItem createPortal = new JMenuItem("Create A Session");
+  private final JMenuItem joinPortal = new JMenuItem("Join A Session");
 
 
+  private volatile boolean threwCommandError;
   /**
    * Launch the application.
    */
@@ -155,6 +161,11 @@ public class MainFrame extends JFrame {
       @Override
       public void windowClosing(WindowEvent e) {
         client.submitRequest(new PendingRequest(ServerRequest.QUIT, new Object[0]));
+        try {
+          client.disconnect();
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
         super.windowClosing(e);
       }
     });
@@ -164,7 +175,9 @@ public class MainFrame extends JFrame {
     
     menuBar.add(connectMenuItem);
     
-    connectMenuItem.add(connectPortal);
+    connectMenuItem.add(createPortal);
+    
+    connectMenuItem.add(joinPortal);
     setContentPane(contentPane);
     
     initComponents();
@@ -187,10 +200,27 @@ public class MainFrame extends JFrame {
     
     btnSend.setFont(new Font("Segoe UI", Font.BOLD, 18)); 
     btnSend.addActionListener(new ActionListener() {
-      
+            
       @Override
       public void actionPerformed(ActionEvent e) {
-        client.parseInput(textArea.getText());
+        String inputText = textArea.getText();
+        
+        PendingRequest parsedRequest = client.parseInput(inputText);
+        if (parsedRequest == null) {
+          //bad request
+          threwCommandError = true;
+          
+          textArea.setForeground(Color.RED);
+          textArea.setText("ERROR: Cannot parse command '"+parsedRequest+"'");
+        }       
+        else if (parsedRequest.getRequest() == ServerRequest.TEAM) {
+          chatList.append("["+client.getUserName()+" (TEAM)] "+parsedRequest.getArguments()[0]+"\n");
+          textArea.setText("");
+        }
+        else if (parsedRequest.getRequest() == ServerRequest.ALL) {
+          chatList.append("["+client.getUserName()+" (ALL)] "+parsedRequest.getArguments()[0]+"\n");
+          textArea.setText("");
+        }
       }
     });
     
@@ -205,17 +235,34 @@ public class MainFrame extends JFrame {
     
     chatScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
     
-    connectPortal.addActionListener(new ActionListener() {
+    createPortal.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
         CSessDialog dialog = new CSessDialog();
-        dialog.setModal(true);
-        
+        dialog.setModal(true);       
         dialog.setVisible(true);
         
         CSessForm form = dialog.blockUntilFinished();
+        dialog.dispose();
+        
+        System.out.println("--CSESS GAVE: "+form);
         if (form != null) {
           client.submitRequest(form.asCsessRequest());
         }        
+      }
+    });
+    
+    joinPortal.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent e) {
+        JoinDialog dialog = new JoinDialog();        
+        dialog.setModal(true);
+        dialog.setVisible(true);
+        
+        JoinForm form = dialog.blockUntilIDAndTeam();
+        dialog.dispose();
+        
+        if (form != null) {
+          client.submitRequest(new PendingRequest(ServerRequest.JOIN, form.getUuid().toString() , form.getTeam()));
+        }
       }
     });
     
@@ -252,6 +299,31 @@ public class MainFrame extends JFrame {
     textArea.setFont(UIManager.getFont("Label.font"));
     textArea.setBorder(UIManager.getBorder("Label.border"));
     textArea.setBackground(Color.WHITE);
+    textArea.addFocusListener(new FocusListener() {
+      
+      @Override
+      public void focusLost(FocusEvent e) {}
+      
+      @Override
+      public void focusGained(FocusEvent e) {
+        if (threwCommandError) {
+          threwCommandError = false;
+          textArea.setForeground(Color.BLACK);
+          textArea.setText("");
+        }
+      }
+    });
+    
+    //setup enter button listener for textArea
+    KeyStroke stroke = KeyStroke.getKeyStroke("ENTER");
+    Object action = textArea.getInputMap(JComponent.WHEN_FOCUSED).get(stroke);
+    textArea.getActionMap().put(action, new AbstractAction() {
+      
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        btnSend.doClick();
+      }
+    });
     
     //DefaultCaret caret = (DefaultCaret) chatList.getCaret();
     //caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);

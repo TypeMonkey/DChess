@@ -119,21 +119,6 @@ public class CSessDialog extends JDialog {
           allowLateJoins);
     }
   }
-
-  /**
-   * Launch the application.
-   */
-  public static void main(String[] args) {
-    try {
-      CSessDialog dialog = new CSessDialog();
-      dialog.setVisible(true);
-      
-      CSessForm form = dialog.blockUntilFinished();
-      System.out.println(form.asCsessRequest());
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
   
   /**
    * Create the dialog.
@@ -146,9 +131,9 @@ public class CSessDialog extends JDialog {
     setResizable(true);
     addWindowListener(new WindowAdapter() {
       @Override
-      public void windowClosed(WindowEvent e) {
+      public void windowClosing(WindowEvent e) {
         userCancelled = true;
-        super.windowClosed(e);
+        System.out.println("----CSESS CANCELLED!!!!");
       }
     });
     setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -440,7 +425,13 @@ public class CSessDialog extends JDialog {
    * @return the csess form or null if user cancelled
    */
   public CSessForm blockUntilFinished() {
-    while (!finishedForm && !userCancelled);
+    while (true) {
+      if (userCancelled || finishedForm) {
+        break;
+      }
+    }
+    
+    System.out.println("----BLOCK FINISHED!!! "+finishedForm+"  "+userCancelled);
     if (userCancelled) {
       return null;
     }
