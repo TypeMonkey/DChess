@@ -33,7 +33,6 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   public static final int PORT = 9999;
   
   private final EventLoopGroup workerGroup;  
-  private final Map<ServerRequest, Queue<RequestFuture>> pendingFutures;
   private final MainFrame mainUI;
   
   private Channel channel; 
@@ -45,29 +44,42 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   
   public GameClient(String userName) {
     this.workerGroup = new NioEventLoopGroup();
-    this.pendingFutures = new ConcurrentHashMap<>();
     this.userName = userName;
     this.mainUI = new MainFrame(this);
   }
   
-  public void initAndConnect(String ipAddress) throws InterruptedException{
+  public UUID initAndConnect(String ipAddress){
     Bootstrap bootstrap = new Bootstrap()
         .group(workerGroup)
         .channel(NioSocketChannel.class)
         .handler(new GameClientInitializer(this));
 
-    channel = bootstrap.connect(ipAddress, PORT).sync().channel();
-    isConnected = true;
-    System.out.println("*Connected to server at "+ipAddress+":"+PORT);
+    try {
+      channel = bootstrap.connect(ipAddress, PORT).sync().channel();
+      
+      isConnected = true;
+      System.out.println("*Connected to server at "+ipAddress+":"+PORT);
 
-    //send a cuser request
-    Object [] name = {userName};      
-    PendingRequest cuserFuture = new PendingRequest(ServerRequest.CUSER, name);
-    submitRequest(cuserFuture);
-    System.out.println("*Requesting username change to '"+userName+"'. Waiting for response.....");     
+      //send a cuser request
+      Object [] name = {userName};      
+      PendingRequest cuserFuture = new PendingRequest(ServerRequest.CUSER, name);
+      submitRequest(cuserFuture);
+      System.out.println("*Requesting username change to '"+userName+"'. Waiting for response.....");     
 
-    while(userName == null);
-    System.out.println("changed! "+userName+" | "+uuid);
+      while(uuid == null);
+      System.out.println("changed! "+userName+" | "+uuid);
+      
+      return uuid;
+    } catch (Exception e) {
+      System.out.println("** ENCOUNTERED ERROR AT SERVER CONNECTION!!");
+      e.printStackTrace();
+      
+      System.out.println("** RESETTING!!!");
+      channel = null;
+      isConnected = false;
+      
+      return uuid;
+    } 
   }
   
   public void appearUI() {    
@@ -83,7 +95,6 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
     if (isConnected) {
       channel.close().sync();
     }
-    pendingFutures.clear();
     workerGroup.shutdownGracefully();
     isConnected = false;
   }
@@ -93,24 +104,11 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
    * @param request - the PendingRequest to make
    * @return A Future, or null if this client is not yet connected to a DChess server
    */
-  public Future<Object []> submitRequest(PendingRequest request){
-    if (isConnected) {
-      RequestFuture future = new RequestFuture(request);
-      if (pendingFutures.containsKey(request.getRequest())) {
-        pendingFutures.get(request.getRequest()).add(future);
-      }
-      else {
-        ConcurrentLinkedQueue<RequestFuture> futures = new ConcurrentLinkedQueue<>();
-        futures.add(future);
-        pendingFutures.put(request.getRequest(), futures);
-      }
-      
+  public void submitRequest(PendingRequest request){
+    if (isConnected) { 
       String toSend = request.getRequest().addArguments(request.getArguments());
-      StringAndIOUtils.writeAndFlush(channel, toSend);
-      
-      return future;
+      StringAndIOUtils.writeAndFlush(channel, toSend);    
     }
-    return null;
   }
   
   @Override
@@ -119,24 +117,27 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
     
     ArrayList<String> arguments = new ArrayList<String>(Arrays.asList(msg.split(":")));
     String reqName = arguments.remove(0);
-    ServerRequest matching = ServerRequest.valueOf(reqName.toUpperCase());
-    if (matching != null && pendingFutures.containsKey(matching) && !pendingFutures.get(matching).isEmpty()) {
-      RequestFuture pendingRequest = pendingFutures.get(matching).poll();
-      
+    if (reqName.startsWith("!")) {
+      System.out.println("Command '"+reqName.substring(1)+"' unavailable!");
+    }
+    else {
+      ServerRequest matching = ServerRequest.valueOf(reqName.toUpperCase());
+
       String potentialError = arguments.remove(0);
       if (potentialError.equals("ERROR")) {
-        System.out.println("* GOT ERROR: "+arguments.stream().collect(Collectors.joining()));
+        String errorArgs = arguments.stream().collect(Collectors.joining());
+        mainUI.updateMessages("**GOT ERROR FOR: "+errorArgs, false, "SERVER");
       }
       else {
         arguments.add(0, potentialError);
-        
+
         if (matching == ServerRequest.JOIN || matching == ServerRequest.CSESS) {
           UUID sessionID = UUID.fromString(arguments.remove(0));
           boolean isTeamOne = Boolean.parseBoolean(arguments.remove(0));
-          
+
           String rulesToParse = arguments.stream().collect(Collectors.joining());
           SessionRules rules = SessionRules.parseFromString(rulesToParse);
-          
+
           sessionInfo = new SessionInfo(rules, sessionID, isTeamOne);
         }
         else if (matching == ServerRequest.UPDATE) {
@@ -144,25 +145,32 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
         }
         else if(matching == ServerRequest.CUSER){
           String echoName = arguments.remove(0);
-          String originalRequest = pendingRequest.getOriginalRequest().getArguments()[0].toString();
-          if (echoName.equals(originalRequest)) {
-            uuid = UUID.fromString(arguments.remove(0));
-            userName = echoName;
-            System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
-          }
-          else {
-            System.err.println("* CRITICAL ERROR: Requested name '"+originalRequest+"' isn't the same as echo '"+echoName+"'");
-          }
+          uuid = UUID.fromString(arguments.remove(0));
+          userName = echoName;
+          System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
         }
         else if(matching == ServerRequest.VOTE){
           System.out.println("*Vote '"+arguments.remove(0)+" has been casted!");
         }
         else if(matching == ServerRequest.PLIST){
           //print the list
+          ArrayList<String> teamOnePlayers = new ArrayList<String>();
+          ArrayList<String> teamTwoPlayers = new ArrayList<String>();
+          
           for (String string : arguments) {
-            String [] split = string.split(",");
-            System.out.println(Arrays.toString(split));
+            //there should only be at least two infos: name, isTeamOne
+            //if we have UUID, then UUID should be the last piece of info
+            String [] playerInfo = string.split(",");
+            if (playerInfo[1].equals("true")) {
+              teamOnePlayers.add(playerInfo[0]);
+            }
+            else {
+              teamTwoPlayers.add(playerInfo[0]);
+            }
           }
+          
+          mainUI.updateTeam1Roster(teamOnePlayers);
+          mainUI.updateTeam2Roster(teamTwoPlayers);
         }
         else if(matching == ServerRequest.QUIT){
           //A DChess server doesn't respond back to a QUIT request
@@ -170,11 +178,22 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
           disconnect();
           System.out.println("****DONE****");
         }
+        else if (matching == ServerRequest.ALL) {
+          String sender = arguments.remove(0);
+          String message = arguments.remove(0);
+          boolean toAll = true;
+          
+          mainUI.updateMessages(message, toAll, sender);
+        }
+        else if (matching == ServerRequest.TEAM) {
+          String sender = arguments.remove(0);
+          String message = arguments.remove(0);
+          boolean toAll = false;
+
+          mainUI.updateMessages(message, toAll, sender);
+        }
       }      
     }
-    else {
-      System.out.println(msg);
-    }  
   }
   
   public PendingRequest parseInput(String input){
@@ -251,12 +270,15 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       screen.setVisible(true);
       
       GameClient gameClient = new GameClient(userName);
-      gameClient.initAndConnect("localhost");
-      screen.dispose();
-      
-      gameClient.appearUI();
-      
-      System.out.println("----main frame up");
+      UUID recievedUUID = gameClient.initAndConnect("localhost");
+      if (recievedUUID != null) {
+        screen.dispose();        
+        gameClient.appearUI();      
+        System.out.println("----main frame up");
+      }
+      else {
+        System.err.println("------> CONNECTION ERROR <------");
+      }
     }
     
   }

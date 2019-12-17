@@ -280,19 +280,37 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   }
   
   private void messageTeamOne(Channel sender, String message){
+    Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
+    
     //message team 1 first
     for(Channel team1Player : teamOne){
-      if (sender != null || team1Player != sender){
-        StringAndIOUtils.writeAndFlush(team1Player, message);
+      if (team1Player != sender){
+        if (sender == null) {
+          StringAndIOUtils.writeAndFlush(team1Player, 
+              String.format(ServerResponses.ALL_MESS, "SERVER", message));
+        }
+        else {
+          StringAndIOUtils.writeAndFlush(team1Player, 
+              String.format(ServerResponses.TEAM_MESS, player.getName(), message));
+        }
       }
     }
   }
   
   private void messageTeamTwo(Channel sender, String message){
+    Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
+    
     //message team 1 first
     for(Channel team2Player : teamTwo){
-      if (sender != null || team2Player != sender) {
-        StringAndIOUtils.writeAndFlush(team2Player, message);
+      if (team2Player != sender){
+        if (sender == null) {
+          StringAndIOUtils.writeAndFlush(team2Player, 
+              String.format(ServerResponses.ALL_MESS, "SERVER", message));
+        }
+        else {
+          StringAndIOUtils.writeAndFlush(team2Player, 
+              String.format(ServerResponses.TEAM_MESS, player.getName(), message));
+        }
       }
     }
   }
@@ -428,15 +446,13 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         String mess = "";
         for (Channel channel : teamOne) {
           Player attachedPlayer = channel.attr(playerKey).get();
-          boolean isTeamOne = channel.attr(teamKey).get();
-          mess += attachedPlayer.getName()+","+isTeamOne+(includeUUID ? ","+attachedPlayer.getID() : "");
+          mess += attachedPlayer.getName()+",true"+(includeUUID ? ","+attachedPlayer.getID() : "");
           mess += ":";
         }
         
         for (Channel channel : teamTwo) {
           Player attachedPlayer = channel.attr(playerKey).get();
-          boolean isTeamOne = channel.attr(teamKey).get();
-          mess += attachedPlayer.getName()+","+isTeamOne+(includeUUID ? ","+attachedPlayer.getID() : "");
+          mess += attachedPlayer.getName()+",false"+(includeUUID ? ","+attachedPlayer.getID() : "");
           mess += ":";
         }
         
@@ -444,7 +460,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         if (!mess.isEmpty()) {
           mess = mess.substring(0, mess.length() - 1);
         }
-        StringAndIOUtils.writeAndFlush(sender, mess);
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.getName()+":"+msg);
       }
       else {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.createErrorString(String.format(ServerResponses.BAD_ARGS, 

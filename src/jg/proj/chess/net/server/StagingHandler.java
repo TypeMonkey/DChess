@@ -120,6 +120,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
       }
     }
     else if (first.equals("~csess")) {
+      System.out.println("---IN CSESS");
       if (arguments.size() == ServerRequest.CSESS.argAmount()) {
         boolean teamIDParsingFailed = false;
         int teamID = -1;
@@ -130,17 +131,22 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         }
         
         if (teamIDParsingFailed) {
+          System.out.println("---FAILED TO PARSE ID");
           StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
               ServerRequest.CSESS.toString(),
               ServerRequest.CSESS.argAmount(),
               arguments.size())));
         }
-        else {         
+        else {    
+          System.out.println("----parsing----");
           SessionRules rules = SessionRules.parseFromString(arguments.stream().collect(Collectors.joining(":")));
-          
+          System.out.println("----parsing done!!!----");
+
           if (rules != null) {            
             Session newSession = new Session(server, rules);        
             database.addSession(newSession);
+            
+            System.out.println("---SESSION CREATED AND ADDED");
 
             System.out.println(" USER: "+player.getID()+" created a session with ID: "+newSession.getSessionID());
 
@@ -157,6 +163,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             server.runSession(newSession);
           }
           else {
+            System.out.println("---FAILED TO PARSE RULES");
             StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
                 ServerRequest.CSESS.toString(),
                 ServerRequest.CSESS.argAmount(),
@@ -165,6 +172,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         }       
       }
       else {
+        System.out.println("mismatch aargs! "+arguments.size());
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
             ServerRequest.CSESS.toString(),
             ServerRequest.CSESS.argAmount(),
@@ -197,7 +205,18 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
       }
     }
     else {
-      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "!", "Unknown request for staging"));
+      String isolatedCommandName = first.substring(1).toUpperCase();
+      /*
+       * check if command prefix is an actual valid command in the first place
+       */
+      try {
+        ServerRequest request = ServerRequest.valueOf(isolatedCommandName);
+        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, request.getName(), ServerResponses.NOT_IN_SESSION));
+      } catch (IllegalArgumentException e) {
+        // Not a valid command....
+        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "!"+first, "Unknown request for staging"));
+
+      }
     }
   }  
 }

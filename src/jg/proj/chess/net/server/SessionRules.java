@@ -111,22 +111,26 @@ public final class SessionRules {
    * @return a SessionRules object, or null if string was incorrectly formatted
    */
   public static SessionRules parseFromString(String toparse){
+    System.out.println("TARGET: "+toparse);
     SessionRules sessionRules = new SessionRules();
     ArrayList<String> arguments = new ArrayList<String>(Arrays.asList(toparse.split(":")));
     
-    String [][] rawStrings = new String[ServerRequest.CSESS.argAmount()][2];
+    String [][] rawStrings = new String[ServerRequest.CSESS.argAmount() - 1][2];
     for (int i = 0; i < arguments.size(); i++) {
+      System.out.println("--> "+arguments.get(i));
       rawStrings[i] = StringAndIOUtils.parseAssignment(arguments.get(i));
       if (rawStrings[i] == null) {
         sessionRules = null;
         break;
       }
     }
+    System.out.println("==========");
     
     if (sessionRules != null) {
       //create default rules
       SessionRules rules = new SessionRules();
       for(String [] assgn : rawStrings){
+        System.out.println("CYCLING!!! "+Arrays.toString(assgn));
         try {
           Properties property = Properties.valueOf(assgn[0]);
           Object value = null;
@@ -155,8 +159,11 @@ public final class SessionRules {
           break;
         }
       }
+      
+      System.out.println("~~~~~~~~~~~~~~~");
     }  
     
+    System.out.println("done!!!!!!");
     return sessionRules;
   }
 }
