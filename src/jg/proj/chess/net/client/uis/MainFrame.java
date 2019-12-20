@@ -55,9 +55,10 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
 
-public class MainFrame extends JFrame {
+public class MainFrame extends JFrame implements Reactor{
 
   private final GameClient client;
+  private final BoardDisplay display;
 
   private JPanel contentPane = new JPanel();
 
@@ -162,6 +163,7 @@ public class MainFrame extends JFrame {
    */
   public MainFrame(GameClient gameClient) {
     this.client = gameClient;
+    this.display = new BoardDisplay("", "");
 
     setTitle("DChess Client 1.0");
     setResizable(false);
@@ -197,6 +199,7 @@ public class MainFrame extends JFrame {
     contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
     boardDisplay.setEditable(false);
+    boardDisplay.setFont(new Font("Consolas", Font.PLAIN, 20));
 
     teamOnePost.setHorizontalAlignment(SwingConstants.CENTER);
     teamOnePost.setFont(new Font("Segoe UI", Font.PLAIN, 25));
@@ -208,95 +211,15 @@ public class MainFrame extends JFrame {
     teamTwoPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 
     btnSend.setFont(new Font("Segoe UI", Font.BOLD, 18)); 
+    
+    final MainFrame mainFrame = this;
     btnSend.addActionListener(new ActionListener() {
 
       @Override
       public void actionPerformed(ActionEvent e) {
         String inputText = textArea.getText();
 
-        RequestFuture parsedRequest = client.parseInput(inputText, new Reactor() {
-          
-          @Override
-          public void react(PendingRequest req, String... results) {
-            ServerRequest request = req.getRequest();
-            if (request == ServerRequest.JOIN || request == ServerRequest.CSESS) {
-              UUID sessionID = UUID.fromString(results[0]);
-              boolean isTeamOne = Boolean.parseBoolean(results[1]);
-
-              String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
-              SessionRules rules = SessionRules.parseFromString(rulesToParse);
-
-              client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
-              
-              resetAll();
-              
-              client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
-                public void react(PendingRequest request, String... results) {
-                  updateBoard(results[0]);
-                }
-                
-                @Override
-                public void error(PendingRequest request, int errorCode) {
-                  System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
-                }
-              }));
-            }
-            else if (request == ServerRequest.UPDATE) {
-              updateBoard(results[0]);
-            }
-            else if (request == ServerRequest.CUSER) {
-              String echoName = results[0];
-              UUID uuid = UUID.fromString(results[1]);
-              
-              client.setName(echoName);
-              client.setUUID(uuid);
-              System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
-            }
-            else if (request == ServerRequest.VOTE) {
-              chatList.append("----> VOTE ACCEPTED <---");
-            }
-            else if (request == ServerRequest.PLIST) {
-              //print the list
-              ArrayList<String> teamOnePlayers = new ArrayList<String>();
-              ArrayList<String> teamTwoPlayers = new ArrayList<String>();
-              
-              for (String string : results) {
-                //there should only be at least two infos: name, isTeamOne
-                //if we have UUID, then UUID should be the last piece of info
-                String [] playerInfo = string.split(",");
-                if (playerInfo[1].equals("true")) {
-                  teamOnePlayers.add(playerInfo[0]);
-                }
-                else {
-                  teamTwoPlayers.add(playerInfo[0]);
-                }
-              }
-              
-              updateTeam1Roster(teamOnePlayers);
-              updateTeam2Roster(teamTwoPlayers);
-            }
-            else if (request == ServerRequest.QUIT) {
-              resetAll();
-            }
-            else if (request == ServerRequest.DISC) {
-              
-            }
-            else if (request == ServerRequest.ALL) {
-              updateMessages(results[1], true, results[0]);
-            }
-            else if (request == ServerRequest.TEAM) {
-              updateMessages(results[1], false, results[0]);
-            }
-            else if (request == ServerRequest.SES) {
-              //TODO: how to display all sessions??? New dialog? or append to chat?
-            }
-          }
-          
-          @Override
-          public void error(PendingRequest req, int errorCode) {
-            chatList.append("-----> ERROR WITH REQ '"+req.toString()+"' <-----");
-          }
-        });
+        RequestFuture parsedRequest = client.parseInput(inputText, mainFrame);
         
         if (parsedRequest == null) {
           //bad request
@@ -544,6 +467,87 @@ public class MainFrame extends JFrame {
     scrollPane.setViewportView(textArea);
     contentPane.setLayout(gl_contentPane);
   }
+  
+  @Override
+  public void react(PendingRequest req, String... results) {
+    ServerRequest request = req.getRequest();
+    if (request == ServerRequest.JOIN || request == ServerRequest.CSESS) {
+      UUID sessionID = UUID.fromString(results[0]);
+      boolean isTeamOne = Boolean.parseBoolean(results[1]);
+
+      String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
+      SessionRules rules = SessionRules.parseFromString(rulesToParse);
+
+      client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
+      
+      resetAll();
+      
+      client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
+        public void react(PendingRequest request, String... results) {
+          updateBoard(results[0]);
+        }
+        
+        @Override
+        public void error(PendingRequest request, int errorCode) {
+          System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
+        }
+      }));
+    }
+    else if (request == ServerRequest.UPDATE) {
+      updateBoard(results[0]);
+    }
+    else if (request == ServerRequest.CUSER) {
+      String echoName = results[0];
+      UUID uuid = UUID.fromString(results[1]);
+      
+      client.setName(echoName);
+      client.setUUID(uuid);
+      System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
+    }
+    else if (request == ServerRequest.VOTE) {
+      chatList.append("----> VOTE ACCEPTED <---");
+    }
+    else if (request == ServerRequest.PLIST) {
+      //print the list
+      ArrayList<String> teamOnePlayers = new ArrayList<String>();
+      ArrayList<String> teamTwoPlayers = new ArrayList<String>();
+      
+      for (String string : results) {
+        //there should only be at least two infos: name, isTeamOne
+        //if we have UUID, then UUID should be the last piece of info
+        String [] playerInfo = string.split(",");
+        if (playerInfo[1].equals("true")) {
+          teamOnePlayers.add(playerInfo[0]);
+        }
+        else {
+          teamTwoPlayers.add(playerInfo[0]);
+        }
+      }
+      
+      updateTeam1Roster(teamOnePlayers);
+      updateTeam2Roster(teamTwoPlayers);
+    }
+    else if (request == ServerRequest.QUIT) {
+      resetAll();
+    }
+    else if (request == ServerRequest.DISC) {
+      
+    }
+    else if (request == ServerRequest.ALL) {
+      updateMessages(results[1], true, results[0]);
+    }
+    else if (request == ServerRequest.TEAM) {
+      updateMessages(results[1], false, results[0]);
+    }
+    else if (request == ServerRequest.SES) {
+      //TODO: how to display all sessions??? New dialog? or append to chat?
+    }
+  }
+  
+  @Override
+  public void error(PendingRequest req, int errorCode) {
+    chatList.append("-----> ERROR WITH REQ '"+req.toString()+"' <-----");
+  }
 
   public void resetAll() {
     chatList.setText("");
@@ -553,15 +557,15 @@ public class MainFrame extends JFrame {
   }
   
   public void updateDislay(String text) {
-    boardDisplay.setText(text);
-    boardDisplay.setFont(new Font("Consolas", Font.PLAIN, 20));
+    boardDisplay.setText(display.getBoard());
+  }
+  
+  public void updateWarningLine(String text) {
+    display.setWarningLine(text);
   }
 
   public void updateBoard(String repr) {
-    String string = repr.replace("~", "<br>");
-    string = string.replace(" ", "&nbsp;");
-
-    updateDislay("<html>"+string+"</html>");
+    display.setBoard(repr);
   }
 
   public void updateTeam1Roster(List<String> teamOne) {

@@ -12,6 +12,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.StringAndIOUtils;
 import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.net.client.uis.MainFrame;
@@ -54,6 +55,63 @@ public class RequestHandler extends SimpleChannelInboundHandler<String>{
       StringAndIOUtils.writeAndFlush(channel, toSend);    
     }
   }
+  
+  private void processSignal(int signalCode) {
+    if (signalCode == ServerResponses.VOTE_START) {
+      mainUI.updateWarningLine("<font color=\"green\">YOUR TEAM IS VOTING!!!</font> ");
+      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
+    }
+    else if (signalCode == ServerResponses.VOTE_END) {
+      mainUI.updateWarningLine("<font color=\"red\">STOP VOTING!!!</font> ");
+      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
+    }
+    else if (signalCode == ServerResponses.TEAM1_WON) {
+      mainUI.updateMessages("TEAM 1 HAS WON!!!", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_WON) {
+      mainUI.updateMessages("TEAM 2 HAS WON!!!", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM1_DESS) {
+      mainUI.updateMessages("TEAM 1 has deserted the battle. TEAM 2 WINS!!!", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_DESS) {
+      mainUI.updateMessages("TEAM 2 has deserted the battle. TEAM 1 WINS!!!", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM1_TIED) {
+      mainUI.updateMessages("TEAM 1 is tied on a vote and thus has made no moves....", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_TIED) {
+      mainUI.updateMessages("TEAM 2 is tied on a vote and thus has made no moves....", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM1_NO_UNIT) {
+      mainUI.updateMessages("TEAM 1 has decided to move a unit .. that doesn't exist. Idiots...", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_NO_UNIT) {
+      mainUI.updateMessages("TEAM 2 has decided to move a unit .. that doesn't exist. Idiots...", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM1_OTHER_UNIT) {
+      mainUI.updateMessages("TEAM 1 has decided to move a unit that doesn't belong to them! Idiots....", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_OTHER_UNIT) {
+      mainUI.updateMessages("TEAM 2 has decided to move a unit that doesn't belong to them! Idiots....", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM1_IDIOT_VOTE) {
+      mainUI.updateMessages("TEAM 1 has decided to do an illegal move! No move from them!", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_IDIOT_VOTE) {
+      mainUI.updateMessages("TEAM 2 has decided to do an illegal move! No move from them!", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM1_NO_VOTE) {
+      mainUI.updateMessages("No one from TEAM 1 voted! So, no move has been made. Idiots....", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.TEAM2_NO_VOTE) {
+      mainUI.updateMessages("No one from TEAM 2 voted! So, no move has been made. Idiots....", true, "SERVER");
+    }
+    else if (signalCode == ServerResponses.PLAYER_JOINED ||
+             signalCode == ServerResponses.PLAYER_LEFT) {
+      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.PLIST, false), mainUI));
+    }
+  }
 
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
@@ -69,6 +127,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<String>{
     else if (reqName.equals("signal")) {
       int signalCode = Integer.parseInt(arguments.remove(0));
       //TODO: Check for vote start, vote end, team x won, etc....
+      processSignal(signalCode);
     }
     else if (reqName.equals("serv")) {
       //general server messages

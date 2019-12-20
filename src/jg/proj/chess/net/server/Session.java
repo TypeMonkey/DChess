@@ -381,6 +381,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     if (server.getDatabase().findPlayer(player.getID()) != null) {
       //player dropped off unexpectedly. No quit request sent
       sendSignalAll(ServerResponses.PLAYER_LEFT);
+      msgEveryone(String.format(ServerResponses.SERVER_MSG, player.getName()+" has left the session!"));
       System.out.println("[SERVER] "+player.getName()+" has left the session!");
       server.getDatabase().removePlayer(player.getID());
     }
