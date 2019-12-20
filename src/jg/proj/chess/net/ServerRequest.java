@@ -9,8 +9,21 @@ package jg.proj.chess.net;
  *           If a join request was sent with an invalid UUID, the server will send back: "join:ERROR:ERROR_MESSAGE"
  *           
  *       This note doesn't apply to QUIT.
+ *       
+ * Note: The server will send to clients server responses that it never requested.
+ *       These requests are called "Voluntary".
+ *       
+ *       Such requests are TEAM and ALL. They are sent when a new message is sent by a 
+ *       team member or someone in session , respectively.
+ *       
+ *       Say Player A is connected to a session and is in Team 1. They then send a TEAM/ALL request.
+ *       Naturally, the server responds with the same TEAM/ALL request to Player A to acknowledge that 
+ *       the Player A's message was received. 
+ *       
+ *       Then, the Server sends a TEAM/ALL response to all members of the A's team/session containing
+ *       A's message - include A themself. This means that A receives their own message twice. It's important to filter
+ *       appropriately for this.
  * @author Jose
- *
  */
 public enum ServerRequest{
   
@@ -82,9 +95,15 @@ public enum ServerRequest{
   
   /**
    * Quits the current session
-   * Returns: nothing. Assume that once this request is sent, the player is disconnected from the server
+   * Returns: The same request, or error if the player isn't in a session
    */
   QUIT("quit", "~quit", 0 ,"Quits the current session"),
+  
+  /**
+   * Disconnects from the server
+   * Returns: nothing. List "quit", assume that once this request is sent, the player is disconnected from the server
+   */
+  DISC("disc", "~disc", 0 , "Disconnects from the server"),
   
   /**
    * Sends a message to all players in the session
@@ -153,8 +172,8 @@ public enum ServerRequest{
     return argAmnt;
   }
   
-  public String createErrorString(String message){
-    return String.format(ServerResponses.BAD_REQ, requestName, message);
+  public String createErrorString(int errorCode){
+    return String.format(ServerResponses.BAD_REQUEST, requestName, errorCode);
   }
   
   /**

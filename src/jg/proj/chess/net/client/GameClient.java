@@ -35,6 +35,7 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   private final EventLoopGroup workerGroup;  
   private final MainFrame mainUI;
   
+  private RequestHandler requestHandler;  
   private Channel channel; 
  
   private volatile String userName;
@@ -56,19 +57,26 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
 
     try {
       channel = bootstrap.connect(ipAddress, PORT).sync().channel();
-      
       isConnected = true;
+
       System.out.println("*Connected to server at "+ipAddress+":"+PORT);
+      
+      requestHandler = new RequestHandler(this, mainUI, channel);
 
       //send a cuser request
-      Object [] name = {userName};      
-      PendingRequest cuserFuture = new PendingRequest(ServerRequest.CUSER, name);
+      PendingRequest pendingRequest = new PendingRequest(ServerRequest.CUSER, userName);     
+      RequestFuture cuserFuture = new RequestFuture(pendingRequest, Reactor.BLANK_REACTOR);
+      
       submitRequest(cuserFuture);
       System.out.println("*Requesting username change to '"+userName+"'. Waiting for response.....");     
 
       while(uuid == null);
       System.out.println("changed! "+userName+" | "+uuid);
       
+      //change handler
+      channel.pipeline().remove(this);
+      channel.pipeline().addLast("handler",requestHandler);
+            
       return uuid;
     } catch (Exception e) {
       System.out.println("** ENCOUNTERED ERROR AT SERVER CONNECTION!!");
@@ -80,6 +88,18 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       
       return uuid;
     } 
+  }
+  
+  public void setName(String newName) {
+    userName = newName;
+  }
+  
+  public void setUUID(UUID newUUID) {
+    uuid = newUUID;
+  }
+  
+  public void setSession(SessionInfo newSessionInfo) {
+    sessionInfo = newSessionInfo;
   }
   
   public void appearUI() {    
@@ -104,104 +124,33 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
    * @param request - the PendingRequest to make
    * @return A Future, or null if this client is not yet connected to a DChess server
    */
-  public void submitRequest(PendingRequest request){
-    if (isConnected) { 
-      String toSend = request.getRequest().addArguments(request.getArguments());
-      StringAndIOUtils.writeAndFlush(channel, toSend);    
-    }
+  public void submitRequest(RequestFuture request){
+    requestHandler.submitRequest(request);
   }
   
   @Override
-  protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
-    System.out.println("!!!!!!FROM SERVER: "+msg);
-    
+  protected void channelRead0(ChannelHandlerContext ctx, String msg){
     ArrayList<String> arguments = new ArrayList<String>(Arrays.asList(msg.split(":")));
     String reqName = arguments.remove(0);
-    if (reqName.startsWith("!")) {
-      System.out.println("Command '"+reqName.substring(1)+"' unavailable!");
+    
+    if (reqName.equalsIgnoreCase(ServerRequest.CUSER.getName())) {
+      userName = arguments.remove(0);
+      uuid = UUID.fromString(arguments.remove(0));
+      System.out.println(" **** GOT NAME: "+userName+" "+uuid);
     }
     else {
-      ServerRequest matching = ServerRequest.valueOf(reqName.toUpperCase());
-
-      String potentialError = arguments.remove(0);
-      if (potentialError.equals("ERROR")) {
-        String errorArgs = arguments.stream().collect(Collectors.joining());
-        mainUI.updateMessages("**GOT ERROR FOR: "+errorArgs, false, "SERVER");
-      }
-      else {
-        arguments.add(0, potentialError);
-
-        if (matching == ServerRequest.JOIN || matching == ServerRequest.CSESS) {
-          UUID sessionID = UUID.fromString(arguments.remove(0));
-          boolean isTeamOne = Boolean.parseBoolean(arguments.remove(0));
-
-          String rulesToParse = arguments.stream().collect(Collectors.joining());
-          SessionRules rules = SessionRules.parseFromString(rulesToParse);
-
-          sessionInfo = new SessionInfo(rules, sessionID, isTeamOne);
-        }
-        else if (matching == ServerRequest.UPDATE) {
-          System.out.println(arguments.remove(0));
-        }
-        else if(matching == ServerRequest.CUSER){
-          String echoName = arguments.remove(0);
-          uuid = UUID.fromString(arguments.remove(0));
-          userName = echoName;
-          System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
-        }
-        else if(matching == ServerRequest.VOTE){
-          System.out.println("*Vote '"+arguments.remove(0)+" has been casted!");
-        }
-        else if(matching == ServerRequest.PLIST){
-          //print the list
-          ArrayList<String> teamOnePlayers = new ArrayList<String>();
-          ArrayList<String> teamTwoPlayers = new ArrayList<String>();
-          
-          for (String string : arguments) {
-            //there should only be at least two infos: name, isTeamOne
-            //if we have UUID, then UUID should be the last piece of info
-            String [] playerInfo = string.split(",");
-            if (playerInfo[1].equals("true")) {
-              teamOnePlayers.add(playerInfo[0]);
-            }
-            else {
-              teamTwoPlayers.add(playerInfo[0]);
-            }
-          }
-          
-          mainUI.updateTeam1Roster(teamOnePlayers);
-          mainUI.updateTeam2Roster(teamTwoPlayers);
-        }
-        else if(matching == ServerRequest.QUIT){
-          //A DChess server doesn't respond back to a QUIT request
-          System.out.println("****DISCONNECTING****");
-          disconnect();
-          System.out.println("****DONE****");
-        }
-        else if (matching == ServerRequest.ALL) {
-          String sender = arguments.remove(0);
-          String message = arguments.remove(0);
-          boolean toAll = true;
-          
-          mainUI.updateMessages(message, toAll, sender);
-        }
-        else if (matching == ServerRequest.TEAM) {
-          String sender = arguments.remove(0);
-          String message = arguments.remove(0);
-          boolean toAll = false;
-
-          mainUI.updateMessages(message, toAll, sender);
-        }
-      }      
+      System.err.println("UNKNOWN INITIAL SERVER RESPONSE!!!: "+msg);
     }
   }
   
-  public PendingRequest parseInput(String input){
+  public RequestFuture parseInput(String input, Reactor reactor){
     if (input.startsWith("~")) {
       //then this is a command
       String wholeCommand = input.substring(1, input.length());
       String [] segments = wholeCommand.split(":");
       String commandName = segments[0];
+      
+      System.out.println("----> PARSED: |"+commandName+"| "+Arrays.toString(segments));
 
       try {
         ServerRequest actualRequest = ServerRequest.valueOf(commandName.toUpperCase());
@@ -209,31 +158,41 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
         if (actualRequest == ServerRequest.ALL || actualRequest == ServerRequest.TEAM) {
           PendingRequest request = new PendingRequest(actualRequest, 
               Arrays.stream(segments, 1, segments.length).collect(Collectors.joining()));
-          submitRequest(request);
+          
+          RequestFuture future = new RequestFuture(request, reactor);
+          submitRequest(future);
 
-          return request;
+          return future;
         }
-        else if (wholeCommand.length() - 1 == actualRequest.argAmount()) {
+        else if (segments.length - 1 == actualRequest.argAmount()) {
           PendingRequest request = new PendingRequest(actualRequest, 
               Arrays.copyOfRange(segments, 1, segments.length));
-          submitRequest(request);
+          
+          RequestFuture future = new RequestFuture(request, reactor);
+          submitRequest(future);
 
-          return request;
+          return future;
         }
         else {
           return null;
         }
 
       } catch (IllegalArgumentException e) {
+        System.out.println("!!!! BAD REQUEST: "+commandName.toUpperCase());
         return null;
       }
     }
     else {
       //default to team chat
       PendingRequest request = new PendingRequest(ServerRequest.TEAM, input);
-      submitRequest(request);
-      return request;
+      RequestFuture future = new RequestFuture(request, reactor);
+      submitRequest(future);
+      return future;
     }
+  }
+  
+  public SessionInfo getCurrentSessionInfo() {
+    return sessionInfo;
   }
 
   public boolean isConnected(){

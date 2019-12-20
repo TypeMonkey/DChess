@@ -161,9 +161,10 @@ public final class SessionRules {
       }
       
       System.out.println("~~~~~~~~~~~~~~~");
+      return rules;
     }  
     
-    System.out.println("done!!!!!!");
+    System.out.println("done!!!!!! "+sessionRules);
     return sessionRules;
   }
 }

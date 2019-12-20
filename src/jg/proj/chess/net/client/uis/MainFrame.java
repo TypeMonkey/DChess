@@ -12,8 +12,13 @@ import jg.proj.chess.core.DefaultBoardPreparer;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.GameClient;
 import jg.proj.chess.net.client.PendingRequest;
+import jg.proj.chess.net.client.Reactor;
+import jg.proj.chess.net.client.RequestFuture;
+import jg.proj.chess.net.client.SessionInfo;
+import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.net.client.uis.CSessDialog.CSessForm;
 import jg.proj.chess.net.client.uis.JoinDialog.JoinForm;
+import jg.proj.chess.net.server.SessionRules;
 
 import javax.swing.AbstractAction;
 import javax.swing.GroupLayout;
@@ -33,8 +38,11 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
@@ -161,7 +169,7 @@ public class MainFrame extends JFrame {
     addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosing(WindowEvent e) {
-        client.submitRequest(new PendingRequest(ServerRequest.QUIT, new Object[0]));
+        client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.DISC), Reactor.BLANK_REACTOR));
         try {
           client.disconnect();
         } catch (InterruptedException e1) {
@@ -206,13 +214,96 @@ public class MainFrame extends JFrame {
       public void actionPerformed(ActionEvent e) {
         String inputText = textArea.getText();
 
-        PendingRequest parsedRequest = client.parseInput(inputText);
+        RequestFuture parsedRequest = client.parseInput(inputText, new Reactor() {
+          
+          @Override
+          public void react(PendingRequest req, String... results) {
+            ServerRequest request = req.getRequest();
+            if (request == ServerRequest.JOIN || request == ServerRequest.CSESS) {
+              UUID sessionID = UUID.fromString(results[0]);
+              boolean isTeamOne = Boolean.parseBoolean(results[1]);
+
+              String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
+              SessionRules rules = SessionRules.parseFromString(rulesToParse);
+
+              client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
+              
+              resetAll();
+              
+              client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
+                public void react(PendingRequest request, String... results) {
+                  updateBoard(results[0]);
+                }
+                
+                @Override
+                public void error(PendingRequest request, int errorCode) {
+                  System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
+                }
+              }));
+            }
+            else if (request == ServerRequest.UPDATE) {
+              updateBoard(results[0]);
+            }
+            else if (request == ServerRequest.CUSER) {
+              String echoName = results[0];
+              UUID uuid = UUID.fromString(results[1]);
+              
+              client.setName(echoName);
+              client.setUUID(uuid);
+              System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
+            }
+            else if (request == ServerRequest.VOTE) {
+              chatList.append("----> VOTE ACCEPTED <---");
+            }
+            else if (request == ServerRequest.PLIST) {
+              //print the list
+              ArrayList<String> teamOnePlayers = new ArrayList<String>();
+              ArrayList<String> teamTwoPlayers = new ArrayList<String>();
+              
+              for (String string : results) {
+                //there should only be at least two infos: name, isTeamOne
+                //if we have UUID, then UUID should be the last piece of info
+                String [] playerInfo = string.split(",");
+                if (playerInfo[1].equals("true")) {
+                  teamOnePlayers.add(playerInfo[0]);
+                }
+                else {
+                  teamTwoPlayers.add(playerInfo[0]);
+                }
+              }
+              
+              updateTeam1Roster(teamOnePlayers);
+              updateTeam2Roster(teamTwoPlayers);
+            }
+            else if (request == ServerRequest.QUIT) {
+              resetAll();
+            }
+            else if (request == ServerRequest.DISC) {
+              
+            }
+            else if (request == ServerRequest.ALL) {
+              updateMessages(results[1], true, results[0]);
+            }
+            else if (request == ServerRequest.TEAM) {
+              updateMessages(results[1], false, results[0]);
+            }
+            else if (request == ServerRequest.SES) {
+              //TODO: how to display all sessions??? New dialog? or append to chat?
+            }
+          }
+          
+          @Override
+          public void error(PendingRequest req, int errorCode) {
+            chatList.append("-----> ERROR WITH REQ '"+req.toString()+"' <-----");
+          }
+        });
+        
         if (parsedRequest == null) {
           //bad request
           threwCommandError = true;
 
           textArea.setForeground(Color.RED);
-          textArea.setText("ERROR: Cannot parse command '"+parsedRequest+"'");
+          textArea.setText("ERROR: Cannot parse command '"+inputText+"'");
         }
       }
     });
@@ -239,7 +330,37 @@ public class MainFrame extends JFrame {
 
         System.out.println("--CSESS GAVE: "+form);
         if (form != null) {
-          client.submitRequest(form.asCsessRequest());
+          client.submitRequest(new RequestFuture(form.asCsessRequest(), new Reactor() {
+            
+            @Override
+            public void react(PendingRequest request, String... results) {
+              UUID sessionID = UUID.fromString(results[0]);
+              boolean isTeamOne = Boolean.parseBoolean(results[1]);
+
+              String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
+              SessionRules rules = SessionRules.parseFromString(rulesToParse);
+
+              client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
+              
+              resetAll();
+              
+              client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
+                public void react(PendingRequest request, String... results) {
+                  updateBoard(results[0]);
+                }
+                
+                @Override
+                public void error(PendingRequest request, int errorCode) {
+                  System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
+                }
+              }));           
+            }
+            
+            @Override
+            public void error(PendingRequest request, int errorCode) {
+              chatList.append("-----> COULDN'T CREATE SESSION <-----");
+            }
+          }));
         }        
       }
     });
@@ -254,7 +375,38 @@ public class MainFrame extends JFrame {
         dialog.dispose();
 
         if (form != null) {
-          client.submitRequest(new PendingRequest(ServerRequest.JOIN, form.getUuid().toString() , form.getTeam()));
+          client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.JOIN, form.getUuid(), form.getTeam()), 
+          new Reactor() {
+            
+            @Override
+            public void react(PendingRequest request, String... results) {
+              UUID sessionID = UUID.fromString(results[0]);
+              boolean isTeamOne = Boolean.parseBoolean(results[1]);
+
+              String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
+              SessionRules rules = SessionRules.parseFromString(rulesToParse);
+
+              client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
+              
+              resetAll();
+              
+              client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
+                public void react(PendingRequest request, String... results) {
+                  updateBoard(results[0]);
+                }
+                
+                @Override
+                public void error(PendingRequest request, int errorCode) {
+                  System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
+                }
+              }));           
+            }
+            
+            @Override
+            public void error(PendingRequest request, int errorCode) {
+              chatList.append("-----> COULDN'T JOIN SESSION OF "+form.getUuid()+" <-----");
+            }
+          }));
         }
       }
     });
@@ -393,6 +545,13 @@ public class MainFrame extends JFrame {
     contentPane.setLayout(gl_contentPane);
   }
 
+  public void resetAll() {
+    chatList.setText("");
+    t1PlayList.setText("");
+    t2PlayList.setText("");
+    boardDisplay.setText("");
+  }
+  
   public void updateDislay(String text) {
     boardDisplay.setText(text);
     boardDisplay.setFont(new Font("Consolas", Font.PLAIN, 20));

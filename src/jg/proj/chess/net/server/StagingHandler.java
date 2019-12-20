@@ -76,10 +76,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.getName()+":"+arguments.get(0)+":"+player.getID().toString());
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-            ServerRequest.CUSER, 
-            ServerRequest.CUSER.argAmount(), 
-            arguments.size())));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
     else if (first.equals("~join")) {
@@ -91,11 +88,11 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           
           Session session = database.findSession(sessionID);
           if (session == null) {
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.NO_SESSION, sessionID.toString())));
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.NO_SESS));
           }
-          else if (session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) &&
+          else if (session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
                    !session.isAcceptingPlayers()) {
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.NO_SESSION, sessionID.toString())));
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.NO_JOIN));
           }
           else {          
             sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
@@ -106,17 +103,11 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           }
           
         } catch (IllegalArgumentException e) {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-              ServerRequest.JOIN.toString(),
-              ServerRequest.JOIN.argAmount(),
-              arguments.size())));
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.WRONG_ARGS));
         }
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-            ServerRequest.JOIN.toString(),
-            ServerRequest.JOIN.argAmount(),
-            arguments.size())));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
     else if (first.equals("~csess")) {
@@ -132,10 +123,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         
         if (teamIDParsingFailed) {
           System.out.println("---FAILED TO PARSE ID");
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-              ServerRequest.CSESS.toString(),
-              ServerRequest.CSESS.argAmount(),
-              arguments.size())));
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
         }
         else {    
           System.out.println("----parsing----");
@@ -164,26 +152,14 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           }
           else {
             System.out.println("---FAILED TO PARSE RULES");
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-                ServerRequest.CSESS.toString(),
-                ServerRequest.CSESS.argAmount(),
-                arguments.size())));
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
           }
         }       
       }
       else {
         System.out.println("mismatch aargs! "+arguments.size());
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-            ServerRequest.CSESS.toString(),
-            ServerRequest.CSESS.argAmount(),
-            arguments.size())));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
       }
-    }
-    else if (first.equals("~quit")) {
-      server.getDatabase().removePlayer(player.getID());
-      sender.pipeline().remove(this);
-      sender.close();
-      System.out.println("     -> Player: "+player.getName()+" has quit during staging....");
     }
     else if (first.equals("~ses")) {
       if (arguments.size() == ServerRequest.SES.argAmount()) {        
@@ -198,11 +174,15 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(String.format(ServerResponses.BAD_ARGS, 
-            ServerRequest.SES.toString(),
-            ServerRequest.SES.argAmount(),
-            arguments.size())));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.WRONG_ARGS));
       }
+    }
+    else if (first.equals("~disc")) {
+      System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
+      
+      server.getDatabase().removePlayer(player.getID());
+      sender.pipeline().remove(this);
+      sender.close();
     }
     else {
       String isolatedCommandName = first.substring(1).toUpperCase();
@@ -211,11 +191,10 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
        */
       try {
         ServerRequest request = ServerRequest.valueOf(isolatedCommandName);
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, request.getName(), ServerResponses.NOT_IN_SESSION));
+        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, request.getName(), ServerResponses.NOT_IN_SESS));
       } catch (IllegalArgumentException e) {
         // Not a valid command....
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQ, "!"+first, "Unknown request for staging"));
-
+        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, "!"+first, ServerResponses.UNKNOWN));
       }
     }
   }  

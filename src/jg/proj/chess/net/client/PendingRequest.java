@@ -7,6 +7,10 @@ public class PendingRequest {
   private final ServerRequest baseRequest;
   private final Object [] arguments;
 
+  public PendingRequest(ServerRequest baseRequest){
+    this(baseRequest, new Object[0]);
+  }
+  
   public PendingRequest(ServerRequest baseRequest, Object ... arguments){
     if (baseRequest.argAmount() != arguments.length) {
       throw new IllegalArgumentException("Argument provides doesnt match requried argument amount!");
