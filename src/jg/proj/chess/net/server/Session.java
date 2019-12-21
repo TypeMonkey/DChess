@@ -173,7 +173,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
           int currentTeamID = teamOneTurn ? 1 : 2;
           
-          System.out.println("---CURRENT TURN: "+currentTeamID);
+          System.out.println("---CURRENT TURN: "+currentTeamID+" | "+teamOneTurn);
           if (teamOneTurn) {
             sendSignallTeam1(ServerResponses.VOTE_START);
           }
@@ -453,7 +453,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       }
     }
     else if (first.equals("~update")) {
-      System.out.println("  ---UPDATING -- >  "+board.parsableToString());
+      System.out.println("  ---UPDATING TEAMS!!! ");
       StringAndIOUtils.writeAndFlush(sender, ServerRequest.UPDATE.getName()+":"+board.parsableToString());
       System.out.println(" ---SENT BOARD");
     }

@@ -260,7 +260,7 @@ public class MainFrame extends JFrame implements Reactor{
         JoinForm form = dialog.getForm();
         dialog.dispose();
         
-        System.out.println("---ATTEMPTING TO JOIN!!!! "+form.getUuid().toString());
+        System.out.println("---ATTEMPTING TO JOIN!!!! "+(form == null ? "user cancelled" : form.getUuid().toString()));
         if (form != null) {
           client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.JOIN, form.getUuid().toString(), form.getTeam()), mainFrame));
         }

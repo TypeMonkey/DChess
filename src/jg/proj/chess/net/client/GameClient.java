@@ -169,6 +169,8 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
            * OOOHH, user is attentive and may have entered the "vote" command in it's full form, 
            * as in "~vote:%c:%d:%c:%d"
            */
+          System.out.println("--> USER ENTERED POTENTIAL FULL FORM!");
+          
           String [] voteComponents = Arrays.copyOfRange(segments, 1, segments.length);
           PendingRequest pendingRequest = new PendingRequest(ServerRequest.VOTE, voteComponents);
 
@@ -177,10 +179,13 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
         }
         else if (segments.length - 1 == 1) {
           //user entered shortform. Must parse ):
+          System.out.println("--> USER ENTERED POTENTIAL short FORM!");
+          
           final String VOTE_REGEX = "[a-zA-Z][0-9]>[a-zA-Z][0-9]";
 
           String actualVote = segments[1];
           if (actualVote.matches(VOTE_REGEX)) {
+            System.out.println("---IT MATCHES, YAY!!!");
             char [] chars = actualVote.toCharArray();
             
             //guarantees: actualVote is of length 5. char 0 -> char , char 1 -> int , char 2 -> '>', char 3 -> char , char 4 -> int
@@ -196,6 +201,7 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
             submitRequest(requestFuture);
           }
           else {
+            System.out.println("--- IT doesn't match. Trigerring error!!");
             reactor.error(new PendingRequest(actualRequest, Arrays.copyOfRange(segments, 1, segments.length)), ServerResponses.WRONG_ARGS);
           }
         }
@@ -237,7 +243,6 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   }
 
   public static void main(String [] args) throws Exception{
-    System.out.println(ServerRequest.valueOf("JOIN"));
     UsernameDialog dialog = new UsernameDialog();
     
     SwingUtilities.invokeLater(new Runnable() {
