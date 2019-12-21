@@ -38,6 +38,7 @@ public class JoinDialog extends JDialog {
   public JoinDialog() {
     final JoinDialog current = this;
     
+    setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     setBounds(100, 100, 508, 292);
     getContentPane().setLayout(new BorderLayout());
     contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -121,6 +122,7 @@ public class JoinDialog extends JDialog {
       public void actionPerformed(ActionEvent e) {
         userFinished = true;
         joinForm = null;
+        current.dispose();
       }
     });
     
@@ -131,6 +133,7 @@ public class JoinDialog extends JDialog {
           joinForm = new JoinForm(UUID.fromString(entered), team);
           userFinished = true;
           System.out.println("---JOIN FORM DONE!!! "+userFinished);
+          current.dispose();
         } catch (IllegalArgumentException e2) {
           idField.setText("ENTER A VALID ID!!!");
         }
@@ -175,9 +178,7 @@ public class JoinDialog extends JDialog {
     });
   }
   
-  public JoinForm blockUntilIDAndTeam() {
-    while (userFinished == false);
-    System.out.println("-----JOIN FORM DONE!!!!");
+  public JoinForm getForm() {
     return joinForm;
   }
   

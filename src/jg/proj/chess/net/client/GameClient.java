@@ -103,7 +103,7 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   }
   
   public void appearUI() {    
-    mainUI.updateDislay("Click 'Connect' to join or create a session.");
+    //mainUI.updateDislay("Click 'Connect' to join or create a session.");
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         mainUI.setVisible(true);

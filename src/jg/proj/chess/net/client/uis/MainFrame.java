@@ -266,7 +266,7 @@ public class MainFrame extends JFrame implements Reactor{
         dialog.setVisible(true);
 
         System.out.println("---OPENED JOIN FORM!!!");
-        JoinForm form = dialog.blockUntilIDAndTeam();
+        JoinForm form = dialog.getForm();
         dialog.dispose();
         
         System.out.println("---ATTEMPTING TO JOIN!!!! "+form.getUuid().toString());
@@ -424,18 +424,10 @@ public class MainFrame extends JFrame implements Reactor{
       
       resetAll();
       
-      client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
-        public void react(PendingRequest request, String... results) {
-          updateBoard(results[0]);
-        }
-        
-        @Override
-        public void error(PendingRequest request, int errorCode) {
-          System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
-        }
-      }));
+      client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), this));
     }
     else if (request == ServerRequest.UPDATE) {
+      System.out.println("-----> UPDATE RECIEVED");
       updateBoard(results[0]);
     }
     else if (request == ServerRequest.CUSER) {
@@ -498,18 +490,22 @@ public class MainFrame extends JFrame implements Reactor{
     t1PlayList.setText("");
     t2PlayList.setText("");
     boardDisplay.setText("");
+    repaint();
   }
   
-  public void updateDislay(String text) {
+  public void updateDislay() {
     boardDisplay.setText(display.getBoard());
+    repaint();
   }
   
   public void updateWarningLine(String text) {
     display.setWarningLine(text);
+    updateDislay();
   }
 
   public void updateBoard(String repr) {
     display.setBoard(repr);
+    updateDislay();
   }
 
   public void updateTeam1Roster(List<String> teamOne) {
@@ -518,6 +514,8 @@ public class MainFrame extends JFrame implements Reactor{
     for (String string : teamOne) {
       t1PlayList.append(string);
     }   
+    
+    repaint();
   }
 
   public void updateTeam2Roster(List<String> teamTwo) {
@@ -526,17 +524,22 @@ public class MainFrame extends JFrame implements Reactor{
     for (String string : teamTwo) {
       t2PlayList.append(string);
     }   
+    
+    repaint();
   }
 
   public void clearTeam1Roster() {
     t1PlayList.setText("");
+    repaint();
   }
 
   public void clearTeam2Roster() {
     t2PlayList.setText("");
+    repaint();
   }
 
   public void updateMessages(String message, boolean toAll, String sender) {
-    chatList.append("["+sender+" ("+(toAll ? "ALL" : "TEAM")+")] "+message+"\n");  
+    chatList.append("["+sender+" ("+(toAll ? "ALL" : "TEAM")+")] "+message+"\n"); 
+    repaint();
   }
 }

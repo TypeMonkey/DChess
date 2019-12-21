@@ -453,7 +453,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       }
     }
     else if (first.equals("~update")) {
-      System.out.println("  ---UPDATING");
+      System.out.println("  ---UPDATING -- >  "+board.parsableToString());
       StringAndIOUtils.writeAndFlush(sender, ServerRequest.UPDATE.getName()+":"+board.parsableToString());
       System.out.println(" ---SENT BOARD");
     }
