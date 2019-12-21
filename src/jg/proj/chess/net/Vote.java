@@ -60,35 +60,4 @@ public class Vote {
   public Player getVoter(){
     return voter;
   }
-  
-  public static Vote parseVote(String message, Player voter){
-    String [] split = message.split(">");
-    if (split.length == 2) {
-      String origin = split[0];
-      String dest = split[1];
-      
-      if (origin.length() == 2 && dest.length() == 2) {
-        char fileOrigin;
-        int rankOrigin; 
-        
-        char fileDest; 
-        int rankDest;
-        
-        try {
-          fileOrigin = origin.charAt(0);
-          rankOrigin = Integer.parseInt(String.valueOf(origin.charAt(1)));
-          
-          fileDest = dest.charAt(0);
-          rankDest = Integer.parseInt(String.valueOf(dest.charAt(1)));
-          
-          return new Vote(fileOrigin, rankOrigin, fileDest, rankDest, voter);
-        } catch (NumberFormatException e) {
-          return null;
-        }
-      }      
-    }
-    
-    System.out.println("INVALID VOTE!!!: "+message);
-    return null;
-  }
 }
