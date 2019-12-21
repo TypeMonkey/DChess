@@ -60,6 +60,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   private volatile boolean teamOneTurn;
   private volatile boolean currentlyVoting;
   
+  private volatile boolean hasStarted;
+  
   private volatile boolean acceptingPlayers;
   
   public Session(GameServer server, SessionRules rules){
@@ -75,6 +77,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     
     teamOne = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     teamTwo = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+    
   }
   
   public boolean equals(Object obj) {
@@ -138,6 +141,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         acceptingPlayers = false;
       }
       
+      hasStarted = true;
       //alert all players that the game has started
       msgEveryone(String.format(ServerResponses.SERVER_MSG, "----> GAME STARTED! <----"));
 
@@ -389,7 +393,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       sendSignalAll(ServerResponses.PLAYER_LEFT);
       msgEveryone(String.format(ServerResponses.SERVER_MSG, player.getName()+" has left the session!"));
       System.out.println("[SERVER] "+player.getName()+" has left the session!");
-      server.getDatabase().removePlayer(player.getID());
     }
   }
   
@@ -481,7 +484,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       
       sendSignalAll(ServerResponses.PLAYER_LEFT);
       server.getDatabase().removePlayer(player.getID());
-      sender.pipeline().remove(this);
       sender.close();
     }
     else if (first.equals("~quit")) {
@@ -569,6 +571,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     return acceptingPlayers;
   }
   
+  public boolean hasStarted() {
+    return hasStarted;
+  }
+  
   protected Board getBoard(){
     return board;
   }
@@ -583,6 +589,14 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   public int totalPlayers(){
     return teamOne.size() + teamTwo.size();
+  }
+  
+  public int teamOneSize() {
+    return teamOne.size();
+  }
+  
+  public int teamTwoSize() {
+    return teamTwo.size();
   }
   
   public SessionRules getRules(){

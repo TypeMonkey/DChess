@@ -535,7 +535,8 @@ public class MainFrame extends JFrame implements Reactor{
   }
 
   public void updateMessages(String message, boolean toAll, String sender) {
-    chatList.append("["+sender+" ("+(toAll ? "ALL" : "TEAM")+")] "+message); 
+    String newMsg = "["+sender+" ("+(toAll ? "ALL" : "TEAM")+")] "+message;
+    chatList.setText( (chatList.getText() == null || chatList.getText().isEmpty()) ? newMsg : (chatList.getText()+"\n"+newMsg));
     repaint();
   }
 }
