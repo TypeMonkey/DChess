@@ -171,7 +171,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
 
           //voting time window
           ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
-          int currentTeamID = teamOneTurn ? 1 : 2;
+          final int currentTeamID = teamOneTurn ? 1 : 2;
           
           System.out.println("---CURRENT TURN: "+currentTeamID+" | "+teamOneTurn);
           if (teamOneTurn) {
@@ -264,7 +264,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                 sendSignalAll( currentTeamID == 1 ? ServerResponses.TEAM1_NO_UNIT : ServerResponses.TEAM2_NO_UNIT);
                 System.out.println(" ----> TEAM "+currentTeamID+" has voted to move a none existant unit. NO MOVE MADE! <---- ");
               }
-              else if (square.getUnit().getTeamID() == currentTeamID) {
+              else if (square.getUnit().getTeamID() != currentTeamID) {
                 sendSignalAll( currentTeamID == 1 ? ServerResponses.TEAM1_OTHER_UNIT : ServerResponses.TEAM2_OTHER_UNIT);
                 System.out.println(" ----> TEAM "+currentTeamID+" has voted to move a unit THAT'S NOT THEIRS!. NO MOVE MADE! <---- ");
               }
