@@ -164,7 +164,7 @@ public class MainFrame extends JFrame implements Reactor{
     this.client = gameClient;
     this.display = new BoardDisplay("", "");
 
-    setTitle("DChess Client 1.0");
+    setTitle("DChess Client 1.0 | "+gameClient.getUserName());
     setResizable(false);
     setLocationRelativeTo(null);
     addWindowListener(new WindowAdapter() {
@@ -430,6 +430,8 @@ public class MainFrame extends JFrame implements Reactor{
       
       client.setName(echoName);
       client.setUUID(uuid);
+      
+      setTitle("DChess Client 1.0 | "+echoName);
       System.out.println(" **** GOT NAME: "+echoName+" "+uuid);
     }
     else if (request == ServerRequest.VOTE) {
