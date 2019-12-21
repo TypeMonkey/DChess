@@ -253,37 +253,7 @@ public class MainFrame extends JFrame implements Reactor{
 
         System.out.println("--CSESS GAVE: "+form);
         if (form != null) {
-          client.submitRequest(new RequestFuture(form.asCsessRequest(), new Reactor() {
-            
-            @Override
-            public void react(PendingRequest request, String... results) {
-              UUID sessionID = UUID.fromString(results[0]);
-              boolean isTeamOne = Boolean.parseBoolean(results[1]);
-
-              String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
-              SessionRules rules = SessionRules.parseFromString(rulesToParse);
-
-              client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
-              
-              resetAll();
-              
-              client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
-                public void react(PendingRequest request, String... results) {
-                  updateBoard(results[0]);
-                }
-                
-                @Override
-                public void error(PendingRequest request, int errorCode) {
-                  System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
-                }
-              }));           
-            }
-            
-            @Override
-            public void error(PendingRequest request, int errorCode) {
-              chatList.append("-----> COULDN'T CREATE SESSION <-----");
-            }
-          }));
+          client.submitRequest(new RequestFuture(form.asCsessRequest(), mainFrame));
         }        
       }
     });
@@ -298,38 +268,7 @@ public class MainFrame extends JFrame implements Reactor{
         dialog.dispose();
 
         if (form != null) {
-          client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.JOIN, form.getUuid(), form.getTeam()), 
-          new Reactor() {
-            
-            @Override
-            public void react(PendingRequest request, String... results) {
-              UUID sessionID = UUID.fromString(results[0]);
-              boolean isTeamOne = Boolean.parseBoolean(results[1]);
-
-              String rulesToParse = Arrays.stream(results).collect(Collectors.joining());
-              SessionRules rules = SessionRules.parseFromString(rulesToParse);
-
-              client.setSession(new SessionInfo(rules, sessionID, isTeamOne));
-              
-              resetAll();
-              
-              client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), new Reactor() {
-                public void react(PendingRequest request, String... results) {
-                  updateBoard(results[0]);
-                }
-                
-                @Override
-                public void error(PendingRequest request, int errorCode) {
-                  System.err.println("WEIRD ERROR FOR "+request+" with code: "+errorCode);
-                }
-              }));           
-            }
-            
-            @Override
-            public void error(PendingRequest request, int errorCode) {
-              chatList.append("-----> COULDN'T JOIN SESSION OF "+form.getUuid()+" <-----");
-            }
-          }));
+          client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.JOIN, form.getUuid(), form.getTeam()), mainFrame));
         }
       }
     });
@@ -511,6 +450,8 @@ public class MainFrame extends JFrame implements Reactor{
       //print the list
       ArrayList<String> teamOnePlayers = new ArrayList<String>();
       ArrayList<String> teamTwoPlayers = new ArrayList<String>();
+      
+      System.out.println("---> PLIST RESULT: "+Arrays.toString(results));
       
       for (String string : results) {
         //there should only be at least two infos: name, isTeamOne

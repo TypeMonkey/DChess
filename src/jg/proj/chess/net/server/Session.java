@@ -427,7 +427,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       if (arguments.size() == ServerRequest.PLIST.argAmount()) {
         boolean includeUUID = Boolean.parseBoolean(arguments.get(0).toLowerCase());
         AttributeKey<Player> playerKey = AttributeKey.valueOf("player");
-        AttributeKey<Boolean> teamKey = AttributeKey.valueOf("teamone");
         
         //get team one first, then team two
         String mess = "";
@@ -447,7 +446,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         if (!mess.isEmpty()) {
           mess = mess.substring(0, mess.length() - 1);
         }
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.getName()+":"+msg);
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.getName()+":"+mess);
       }
       else {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.createErrorString(ServerResponses.WRONG_ARGS));

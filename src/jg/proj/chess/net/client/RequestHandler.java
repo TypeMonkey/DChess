@@ -109,7 +109,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<String>{
     }
     else if (signalCode == ServerResponses.PLAYER_JOINED ||
              signalCode == ServerResponses.PLAYER_LEFT) {
-      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.PLIST, false), mainUI));
+      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.PLIST, true), mainUI));
     }
   }
 

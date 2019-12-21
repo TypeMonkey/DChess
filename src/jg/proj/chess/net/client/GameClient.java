@@ -229,7 +229,7 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       screen.setVisible(true);
       
       GameClient gameClient = new GameClient(userName);
-      UUID recievedUUID = gameClient.initAndConnect("localhost");
+      UUID recievedUUID = gameClient.initAndConnect("35.166.15.181");
       if (recievedUUID != null) {
         screen.dispose();        
         gameClient.appearUI();      
