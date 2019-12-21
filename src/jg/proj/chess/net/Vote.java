@@ -74,13 +74,17 @@ public class Vote {
         char fileDest; 
         int rankDest;
         
-        fileOrigin = origin.charAt(0);
-        rankOrigin = Integer.parseInt(String.valueOf(origin.charAt(1)));
-        
-        fileDest = dest.charAt(0);
-        rankDest = Integer.parseInt(String.valueOf(dest.charAt(1)));
-        
-        return new Vote(fileOrigin, rankOrigin, fileDest, rankDest, voter);
+        try {
+          fileOrigin = origin.charAt(0);
+          rankOrigin = Integer.parseInt(String.valueOf(origin.charAt(1)));
+          
+          fileDest = dest.charAt(0);
+          rankDest = Integer.parseInt(String.valueOf(dest.charAt(1)));
+          
+          return new Vote(fileOrigin, rankOrigin, fileDest, rankDest, voter);
+        } catch (NumberFormatException e) {
+          return null;
+        }
       }      
     }
     

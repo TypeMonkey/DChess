@@ -10,7 +10,7 @@ public interface ServerResponses {
   public static final int NO_ACCPT = -3; //session not accepting players
   public static final int BAD_VOTE = -4; //Vote is invalid
   public static final int NO_VOTE = -5; //voting for player's team isn't allowed at the moment
-  public static final int WRONG_ARGS = -6; //given an insufficient amount of args
+  public static final int WRONG_ARGS = -6; //given an insufficient amount of args, or args don't match
   public static final int NOT_IN_SESS = -7; //player not in session  
   public static final int NO_JOIN = -8; //player can't join session
   public static final int PRISON_DIL = -9; //all and team msgs are forbidden due to prison dillemma

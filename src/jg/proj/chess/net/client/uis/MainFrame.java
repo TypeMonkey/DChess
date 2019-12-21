@@ -103,7 +103,6 @@ public class MainFrame extends JFrame implements Reactor{
   private final JMenuItem joinPortal = new JMenuItem("Join A Session");
 
 
-  private volatile boolean threwCommandError;
   /**
    * Launch the application.
    */
@@ -219,16 +218,8 @@ public class MainFrame extends JFrame implements Reactor{
       public void actionPerformed(ActionEvent e) {
         String inputText = textArea.getText();
 
-        RequestFuture parsedRequest = client.parseInput(inputText, mainFrame);
+        client.parseInput(inputText, mainFrame);
         textArea.setText("");
-        
-        if (parsedRequest == null) {
-          //bad request
-          threwCommandError = true;
-
-          textArea.setForeground(Color.RED);
-          textArea.setText("ERROR: Cannot parse command '"+inputText+"'");
-        }
       }
     });
 
@@ -309,6 +300,8 @@ public class MainFrame extends JFrame implements Reactor{
     textArea.setFont(UIManager.getFont("Label.font"));
     textArea.setBorder(UIManager.getBorder("Label.border"));
     textArea.setBackground(Color.WHITE);
+    
+    /*
     textArea.addFocusListener(new FocusListener() {
 
       @Override
@@ -323,6 +316,7 @@ public class MainFrame extends JFrame implements Reactor{
         }
       }
     });
+    */
 
     //setup enter button listener for textArea
     KeyStroke stroke = KeyStroke.getKeyStroke("ENTER");
@@ -482,7 +476,7 @@ public class MainFrame extends JFrame implements Reactor{
   
   @Override
   public void error(PendingRequest req, int errorCode) {
-    chatList.append("-----> ERROR WITH REQ '"+req.toString()+"' <-----");
+    chatList.append("-----> ERROR WITH REQ '"+req.toString()+"' with code "+errorCode+"<-----");
   }
 
   public void resetAll() {

@@ -43,6 +43,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<String>{
     if (gameClient.isConnected()) { 
       String toSend = original.getRequest().addArguments(original.getArguments());
            
+      if (toSend == null) {
+        //Trigger error now
+        request.reactor.error(original, ServerResponses.WRONG_ARGS);
+      }
       if (reqMap.containsKey(original.getRequest())) {
         reqMap.get(original.getRequest()).add(request);
       }

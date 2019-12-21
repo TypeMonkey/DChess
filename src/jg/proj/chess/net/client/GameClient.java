@@ -21,6 +21,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.channel.ChannelHandler.Sharable;
 import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.StringAndIOUtils;
 import jg.proj.chess.net.client.uis.IntroScreen;
 import jg.proj.chess.net.client.uis.MainFrame;
@@ -143,44 +144,68 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
     }
   }
   
-  public RequestFuture parseInput(String input, Reactor reactor){
+  public void parseInput(String input, Reactor reactor){
     if (input.startsWith("~")) {
       //then this is a command
       String wholeCommand = input.substring(1, input.length());
       String [] segments = wholeCommand.split(":");
       String commandName = segments[0];
-      
+
       System.out.println("----> PARSED: |"+commandName+"| "+Arrays.toString(segments)+" | command length "+commandName.length());
 
-      try {
-        ServerRequest actualRequest = ServerRequest.valueOf(commandName.toUpperCase().trim());
 
-        if (actualRequest == ServerRequest.ALL || actualRequest == ServerRequest.TEAM) {
-          PendingRequest request = new PendingRequest(actualRequest, 
-              Arrays.stream(segments, 1, segments.length).collect(Collectors.joining()));
-          
-          RequestFuture future = new RequestFuture(request, reactor);
+      ServerRequest actualRequest = ServerRequest.valueOf(commandName.toUpperCase().trim());
+
+      if (actualRequest == ServerRequest.ALL || actualRequest == ServerRequest.TEAM) {
+        PendingRequest request = new PendingRequest(actualRequest, 
+            Arrays.stream(segments, 1, segments.length).collect(Collectors.joining()));
+
+        RequestFuture future = new RequestFuture(request, reactor);
+        submitRequest(future);
+      }
+      else if (actualRequest == ServerRequest.VOTE) {
+        if (segments.length - 1 == ServerRequest.VOTE.argAmount()) {
+          /*
+           * OOOHH, user is attentive and may have entered the "vote" command in it's full form, 
+           * as in "~vote:%c:%d:%c:%d"
+           */
+          String [] voteComponents = Arrays.copyOfRange(segments, 1, segments.length);
+          PendingRequest pendingRequest = new PendingRequest(ServerRequest.VOTE, voteComponents);
+
+          RequestFuture future = new RequestFuture(pendingRequest, reactor);
           submitRequest(future);
-
-          return future;
         }
-        else if (segments.length - 1 == actualRequest.argAmount()) {
-          PendingRequest request = new PendingRequest(actualRequest, 
-              Arrays.copyOfRange(segments, 1, segments.length));
-          
-          RequestFuture future = new RequestFuture(request, reactor);
-          submitRequest(future);
+        else if (segments.length - 1 == 1) {
+          //user entered shortform. Must parse ):
+          final String VOTE_REGEX = "[a-zA-Z][0-9]>[a-zA-Z][0-9]";
 
-          return future;
+          String actualVote = segments[1];
+          if (actualVote.matches(VOTE_REGEX)) {
+            char [] chars = actualVote.toCharArray();
+            
+            //guarantees: actualVote is of length 5. char 0 -> char , char 1 -> int , char 2 -> '>', char 3 -> char , char 4 -> int
+            char fromChar = chars[0];
+            int fromInt = Integer.parseInt(String.valueOf(chars[1]));
+            char destChar = chars[3];
+            int destInt = Integer.parseInt(String.valueOf(chars[4]));
+            
+            Object [] voteComponents = {fromChar, fromInt, destChar, destInt};
+            PendingRequest pendingRequest = new PendingRequest(actualRequest, voteComponents);
+            
+            RequestFuture requestFuture = new RequestFuture(pendingRequest, mainUI);
+            submitRequest(requestFuture);
+          }
+          else {
+            reactor.error(new PendingRequest(actualRequest, Arrays.copyOfRange(segments, 1, segments.length)), ServerResponses.WRONG_ARGS);
+          }
         }
-        else {
-          return null;
-        }
+      }
+      else if (segments.length - 1 == actualRequest.argAmount()) {
+        PendingRequest request = new PendingRequest(actualRequest, 
+            Arrays.copyOfRange(segments, 1, segments.length));
 
-      } catch (IllegalArgumentException e) {
-        System.out.println("!!!! BAD REQUEST: "+commandName.toUpperCase());
-        e.printStackTrace();
-        return null;
+        RequestFuture future = new RequestFuture(request, reactor);
+        submitRequest(future);
       }
     }
     else {
@@ -188,7 +213,6 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       PendingRequest request = new PendingRequest(ServerRequest.TEAM, input);
       RequestFuture future = new RequestFuture(request, reactor);
       submitRequest(future);
-      return future;
     }
   }
   

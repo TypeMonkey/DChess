@@ -85,7 +85,7 @@ public enum ServerRequest{
    * or NOT_VOTING team isn't voting at the moment, 
    * or BAD_REQ user isn't in a session
    */
-  VOTE("vote", "~vote:%c%d>%c%d", 4, "Votes for a move",
+  VOTE("vote", "~vote:%c:%d:%c:%d", 4, "Votes for a move",
       ArgType.CHAR, ArgType.INTEGER, ArgType.CHAR, ArgType.INTEGER),
   
   /**
@@ -207,7 +207,7 @@ public enum ServerRequest{
    * Adds the provided arguments to this request's formatted string.
    * @param args - the arguments
    * @return the string with added arguments, or null if the amount of arguments
-   *         provided and required don't match
+   *         provided and required don't match or don't match the expected types
    */
   public String addArguments(Object ... args){
     if (args.length != argAmnt) {
@@ -215,6 +215,9 @@ public enum ServerRequest{
     }
     else {
       args = ArgType.convertStringArgs(ArgType.getStringRep(args), argTypes);
+      if (args == null) {
+        return null;
+      }
       return String.format(formatedString, args);
     }
   }
