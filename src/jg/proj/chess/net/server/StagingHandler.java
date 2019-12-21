@@ -88,6 +88,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           
           Session session = database.findSession(sessionID);
           if (session == null) {
+            System.out.println("----FROM: "+player.getName()+" attempt to join SESSION: |"+sessionID+"| , AVAILS: "+database.getAllSessionIDS());
             StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.NO_SESS));
           }
           else if (session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
