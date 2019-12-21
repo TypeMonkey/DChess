@@ -150,10 +150,10 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
       String [] segments = wholeCommand.split(":");
       String commandName = segments[0];
       
-      System.out.println("----> PARSED: |"+commandName+"| "+Arrays.toString(segments));
+      System.out.println("----> PARSED: |"+commandName+"| "+Arrays.toString(segments)+" | command length "+commandName.length());
 
       try {
-        ServerRequest actualRequest = ServerRequest.valueOf(commandName.toUpperCase());
+        ServerRequest actualRequest = ServerRequest.valueOf(commandName.toUpperCase().trim());
 
         if (actualRequest == ServerRequest.ALL || actualRequest == ServerRequest.TEAM) {
           PendingRequest request = new PendingRequest(actualRequest, 
@@ -179,6 +179,7 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
 
       } catch (IllegalArgumentException e) {
         System.out.println("!!!! BAD REQUEST: "+commandName.toUpperCase());
+        e.printStackTrace();
         return null;
       }
     }
@@ -212,6 +213,7 @@ public class GameClient extends SimpleChannelInboundHandler<String>{
   }
 
   public static void main(String [] args) throws Exception{
+    System.out.println(ServerRequest.valueOf("JOIN"));
     UsernameDialog dialog = new UsernameDialog();
     
     SwingUtilities.invokeLater(new Runnable() {

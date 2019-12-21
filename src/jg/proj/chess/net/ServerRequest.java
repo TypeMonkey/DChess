@@ -1,5 +1,7 @@
 package jg.proj.chess.net;
 
+import java.util.Arrays;
+
 /**
  * A collection of supported requests 
  * that can be processed by a DChess server.
@@ -24,6 +26,8 @@ package jg.proj.chess.net;
  */
 public enum ServerRequest{
   
+  
+  
   /**
    * Joins a session with the provided UUID and team ID
    * 
@@ -35,7 +39,8 @@ public enum ServerRequest{
    *          by the original csess request that created it,
    *          or NO_SESSION if a session of the given UUID couldn't be found
    */
-  JOIN("join","~join:%s:%d", 2,"Joins a session with the provided UUID"),
+  JOIN("join","~join:%s:%d", 2,"Joins a session with the provided UUID",
+        ArgType.STRING, ArgType.INTEGER),
   
   /**
    * Creates a session
@@ -55,7 +60,8 @@ public enum ServerRequest{
       + "VOTING_DURATION=%d:"
       + "MIN_TEAM_COUNT=%d:"
       + "ALLOW_INVL_VOTES=%b:"
-      + "ALLOW_JOINS_GAME=%b", 6,"Creates a session"),
+      + "ALLOW_JOINS_GAME=%b", 6,"Creates a session",
+      ArgType.INTEGER, ArgType.BOOLEAN, ArgType.INTEGER, ArgType.INTEGER, ArgType.BOOLEAN, ArgType.BOOLEAN),
   
   /**
    * Requests the most recent string representation of the current game's state
@@ -69,7 +75,8 @@ public enum ServerRequest{
    * Changes the username of the player
    * Returns: the string "NEW_USER_NAME:UUID_OF_PLAYER"
    */
-  CUSER("cuser", "~cuser:%s", 1,"Changes the username of the player"),
+  CUSER("cuser", "~cuser:%s", 1,"Changes the username of the player", 
+      ArgType.STRING),
   
   /**
    * Votes for a move
@@ -78,7 +85,8 @@ public enum ServerRequest{
    * or NOT_VOTING team isn't voting at the moment, 
    * or BAD_REQ user isn't in a session
    */
-  VOTE("vote", "~vote:%c%d>%c%d", 4, "Votes for a move"),
+  VOTE("vote", "~vote:%c%d>%c%d", 4, "Votes for a move",
+      ArgType.CHAR, ArgType.INTEGER, ArgType.CHAR, ArgType.INTEGER),
   
   /**
    * Requests the name, their current team - and optionally their UUIDs - of all players in the session
@@ -88,7 +96,8 @@ public enum ServerRequest{
    *           
    *      If client isn't in a session, then BAD_REQ is returned
    */
-  PLIST("plist", "~plist:%b", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session"),
+  PLIST("plist", "~plist:%b", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session",
+      ArgType.BOOLEAN),
   
   /**
    * Quits the current session
@@ -108,7 +117,8 @@ public enum ServerRequest{
    * Returns: The exact same request: "all:MESSAGE" 
    *          or BAD_REQ if sender isn't in a session, or Prisoner's Dilemma is in session
    */
-  ALL("all", "~all:%s", 1, "Sends a message to all players in the session"),
+  ALL("all", "~all:%s", 1, "Sends a message to all players in the session",
+      ArgType.STRING),
   
   /**
    * Sends a message to all players in the sender's team
@@ -116,7 +126,8 @@ public enum ServerRequest{
    * Returns: The exact same request: "team:MESSAGE"
    *          or BAD_REQ if sender isn't in a session, or Prisoner's Dilemma is in session
    */
-  TEAM("team", "~team:%s", 1, "Sends a message to all players in the sender's team"),
+  TEAM("team", "~team:%s", 1, "Sends a message to all players in the sender's team",
+      ArgType.STRING),
   
   /**
    * Requests the current list of active sessions the server is hosting
@@ -129,12 +140,23 @@ public enum ServerRequest{
   private final String formatedString;
   private final int argAmnt;
   private final String description;
+  private final ArgType [] argTypes;
   
   private ServerRequest(String requestName, String formattedString, int argAmnt, String description){
+    this(requestName, formattedString, argAmnt, description, new ArgType[0]);
+  }
+  
+  private ServerRequest(String requestName, String formattedString, int argAmnt, String description, ArgType ... types){
     this.requestName = requestName;
     this.formatedString = formattedString;
     this.argAmnt = argAmnt;
     this.description = description;
+    this.argTypes = types;
+    
+    if (argAmnt != argTypes.length) {
+      //sanity check
+      throw new IllegalArgumentException("Argument types not matching type expected");
+    }
   }
   
   /**
@@ -169,6 +191,14 @@ public enum ServerRequest{
     return argAmnt;
   }
   
+  /**
+   * Returns the expected argument types of this server request
+   * @return
+   */
+  public ArgType[] getArgTypes() {
+    return argTypes.clone();
+  }
+  
   public String createErrorString(int errorCode){
     return String.format(ServerResponses.BAD_REQUEST, requestName, errorCode);
   }
@@ -183,7 +213,10 @@ public enum ServerRequest{
     if (args.length != argAmnt) {
       return null;
     }
-    return String.format(formatedString, args);
+    else {
+      args = ArgType.convertStringArgs(ArgType.getStringRep(args), argTypes);
+      return String.format(formatedString, args);
+    }
   }
 }
 

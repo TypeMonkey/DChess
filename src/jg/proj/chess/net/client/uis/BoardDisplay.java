@@ -27,11 +27,14 @@ public class BoardDisplay {
   }
   
   public String toString() {
-    String actualBoard = board.replace("~", "<br>");
-    actualBoard = actualBoard.replace(" ", "&nbsp;");
+    String actualBoard = board.replace(" ", "&nbsp;");
+    actualBoard = actualBoard.replace("~", "<br>");
     
     actualBoard += "-----------------------------------<br>";
     actualBoard += warningLine + "<br>";
+    
+    
+    System.out.println("----> NEW DISPLAY!!! "+actualBoard);
     
     return "<html>"+actualBoard+"</html>";
   }

@@ -494,7 +494,7 @@ public class MainFrame extends JFrame implements Reactor{
   }
   
   public void updateDislay() {
-    boardDisplay.setText(display.getBoard());
+    boardDisplay.setText(display.toString());
     repaint();
   }
   

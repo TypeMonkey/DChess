@@ -30,7 +30,7 @@ public class DefaultBoardTests {
     board = new Board(8, 8);
     info = board.initialize(new DefaultBoardPreparer());
     
-    System.out.println(board);
+    System.out.println(board.parsableToString());
     System.out.println("-----------------");
   }
   
