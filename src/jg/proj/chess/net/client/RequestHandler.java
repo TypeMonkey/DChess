@@ -63,11 +63,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<String>{
   private void processSignal(int signalCode) {
     if (signalCode == ServerResponses.VOTE_START) {
       mainUI.updateWarningLine("<font color=\"green\">YOUR TEAM IS VOTING!!!</font> ");
-      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
+      submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
     }
     else if (signalCode == ServerResponses.VOTE_END) {
       mainUI.updateWarningLine("<font color=\"red\">STOP VOTING!!!</font> ");
-      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
+      submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
     }
     else if (signalCode == ServerResponses.TEAM1_WON) {
       mainUI.updateMessages("TEAM 1 HAS WON!!!", true, "SERVER");
@@ -113,7 +113,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<String>{
     }
     else if (signalCode == ServerResponses.PLAYER_JOINED ||
              signalCode == ServerResponses.PLAYER_LEFT) {
-      gameClient.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.PLIST, true), mainUI));
+      submitRequest(new RequestFuture(new PendingRequest(ServerRequest.PLIST, true), mainUI));
+    }
+    else if (signalCode == ServerResponses.TURN_END) {
+      submitRequest(new RequestFuture(new PendingRequest(ServerRequest.UPDATE), mainUI));
     }
   }
 

@@ -275,9 +275,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                   sendSignalAll( currentTeamID == 1 ? ServerResponses.TEAM1_IDIOT_VOTE : ServerResponses.TEAM2_IDIOT_VOTE);
                   System.out.println("----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE FROM THEM! <----");
                 }
+                
+                sendSignalAll(ServerResponses.TURN_END);
               }
 
-              msgEveryone(ServerRequest.UPDATE.getName()+":"+board.toString());
             }
           }
           else if(teamOneTurn){

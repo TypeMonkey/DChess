@@ -45,6 +45,8 @@ public interface ServerResponses {
   public static final int PLAYER_JOINED = 17; //player has joined the session
   public static final int PLAYER_LEFT = 18; //player has left the session
   
+  public static final int TURN_END = 19; //a team's turn has ended
+  
   //first string argument -> user-name , second string argument -> message
   public static final String ALL_MSG = "all:%s:%s";
   
