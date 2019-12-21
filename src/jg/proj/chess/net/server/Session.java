@@ -333,13 +333,18 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
     
     sendSignalAll(ServerResponses.PLAYER_JOINED);
-    if (teamOneTurn && isTeamOne) {      
-      StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_START));
-      System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
+    if (currentlyVoting) {
+      if (teamOneTurn && isTeamOne) {      
+        StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_START));
+        System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
+      }
+      else if (!teamOneTurn && !isTeamOne) {
+        StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_START));    
+        System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
+      }
     }
-    else if (!teamOneTurn && !isTeamOne) {
-      StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_START));    
-      System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
+    else {
+      StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_END));
     }
     System.out.println("---sent newbie welcom---");
   }
