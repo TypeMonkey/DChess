@@ -220,6 +220,7 @@ public class MainFrame extends JFrame implements Reactor{
         String inputText = textArea.getText();
 
         RequestFuture parsedRequest = client.parseInput(inputText, mainFrame);
+        textArea.setText("");
         
         if (parsedRequest == null) {
           //bad request
@@ -264,11 +265,13 @@ public class MainFrame extends JFrame implements Reactor{
         dialog.setModal(true);
         dialog.setVisible(true);
 
+        System.out.println("---OPENED JOIN FORM!!!");
         JoinForm form = dialog.blockUntilIDAndTeam();
         dialog.dispose();
-
+        
+        System.out.println("---ATTEMPTING TO JOIN!!!! "+form.getUuid().toString());
         if (form != null) {
-          client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.JOIN, form.getUuid(), form.getTeam()), mainFrame));
+          client.submitRequest(new RequestFuture(new PendingRequest(ServerRequest.JOIN, form.getUuid().toString(), form.getTeam()), mainFrame));
         }
       }
     });
@@ -512,25 +515,17 @@ public class MainFrame extends JFrame implements Reactor{
   public void updateTeam1Roster(List<String> teamOne) {
     clearTeam1Roster();
     
-    String newDisplay = "<html>";
     for (String string : teamOne) {
-      newDisplay += string + "<br>";
-    }
-    newDisplay += "</html>";
-    
-    t1PlayList.setText(newDisplay);
+      t1PlayList.append(string);
+    }   
   }
 
   public void updateTeam2Roster(List<String> teamTwo) {
     clearTeam2Roster();
     
-    String newDisplay = "<html>";
     for (String string : teamTwo) {
-      newDisplay += string + "<br>";
-    }
-    newDisplay += "</html>";
-    
-    t2PlayList.setText(newDisplay);
+      t2PlayList.append(string);
+    }   
   }
 
   public void clearTeam1Roster() {

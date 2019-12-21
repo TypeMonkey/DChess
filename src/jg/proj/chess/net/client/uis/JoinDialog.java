@@ -121,7 +121,6 @@ public class JoinDialog extends JDialog {
       public void actionPerformed(ActionEvent e) {
         userFinished = true;
         joinForm = null;
-        current.dispose();
       }
     });
     
@@ -131,6 +130,7 @@ public class JoinDialog extends JDialog {
         try {
           joinForm = new JoinForm(UUID.fromString(entered), team);
           userFinished = true;
+          System.out.println("---JOIN FORM DONE!!! "+userFinished);
         } catch (IllegalArgumentException e2) {
           idField.setText("ENTER A VALID ID!!!");
         }
@@ -176,7 +176,8 @@ public class JoinDialog extends JDialog {
   }
   
   public JoinForm blockUntilIDAndTeam() {
-    while (!userFinished);
+    while (userFinished == false);
+    System.out.println("-----JOIN FORM DONE!!!!");
     return joinForm;
   }
   

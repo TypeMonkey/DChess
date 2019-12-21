@@ -16,13 +16,10 @@ package jg.proj.chess.net;
  *       Such requests are TEAM and ALL. They are sent when a new message is sent by a 
  *       team member or someone in session , respectively.
  *       
- *       Say Player A is connected to a session and is in Team 1. They then send a TEAM/ALL request.
- *       Naturally, the server responds with the same TEAM/ALL request to Player A to acknowledge that 
- *       the Player A's message was received. 
+ *       Say Player A is connected to a session and is in Team 1. They then send a TEAM/ALL request. 
  *       
  *       Then, the Server sends a TEAM/ALL response to all members of the A's team/session containing
- *       A's message - include A themself. This means that A receives their own message twice. It's important to filter
- *       appropriately for this.
+ *       A's message - include A themself. 
  * @author Jose
  */
 public enum ServerRequest{

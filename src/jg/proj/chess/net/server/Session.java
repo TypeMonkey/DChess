@@ -518,9 +518,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         }
         else {
           String message = arguments.get(0);
-          msgEveryone(String.format(ServerResponses.ALL_MSG, player.getName(), message));
-          
-          StringAndIOUtils.writeAndFlush(sender, msg);
+          msgEveryone(String.format(ServerResponses.ALL_MSG, player.getName(), message));       
         }
       }
       else {
@@ -537,13 +535,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           String message = arguments.get(0);
           
           if (teamOne.contains(sender)) {
-            msgTeamOne(String.format(ServerResponses.ALL_MSG, player.getName(), message));
+            msgTeamOne(String.format(ServerResponses.TEAM_MSG, player.getName(), message));
           }
           else {
-            msgTeamTwo(String.format(ServerResponses.ALL_MSG, player.getName(), message));
-          }
-          
-          StringAndIOUtils.writeAndFlush(sender, msg);
+            msgTeamTwo(String.format(ServerResponses.TEAM_MSG, player.getName(), message));
+          }        
         }
       }
       else {
