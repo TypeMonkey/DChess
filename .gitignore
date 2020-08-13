@@ -1,6 +1,9 @@
 # Ignore everything
 *
 
+#Whitelist README
+!README.md
+
 # Whitelist .gitignore
 !.gitignore
 
@@ -10,3 +13,11 @@
 # Whitelist all src/ files
 !/src/**
 
+#Whitelist all game images
+!/imgs/**
+
+#Whitelist xmls
+!/xmls/**
+
+#Whitelist chess piece images
+!/chesspieaces/**
