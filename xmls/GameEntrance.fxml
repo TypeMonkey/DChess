@@ -8,9 +8,9 @@
 
 <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="672.0" prefWidth="1032.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    <children>
-      <StackPane prefHeight="672.0" prefWidth="1032.0">
+      <StackPane fx:id="mainStackPane" prefHeight="672.0" prefWidth="1032.0">
          <children>
-            <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="303.0" prefWidth="600.0">
+            <Pane fx:id="entrancePane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="303.0" prefWidth="600.0">
                <children>
                   <VBox layoutX="9.0" layoutY="7.0" prefHeight="303.0" prefWidth="583.0">
                      <children>
