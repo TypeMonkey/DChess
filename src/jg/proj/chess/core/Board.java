@@ -1,5 +1,7 @@
 package jg.proj.chess.core;
 
+import jg.proj.chess.core.units.Unit;
+
 /**
  * Represents a game board
  * @author Jose
@@ -38,20 +40,35 @@ public class Board {
   }
   
   public String toString(){
-    return parsableToString().replace("~", System.lineSeparator());
+    return parsableToString().replace("|", System.lineSeparator());
   }
   
   public String parsableToString(){
-    String header = "  | a | b | c | d | e | f | g | h |~";
-    header       += "-----------------------------------~";
-    for(int i = 0; i < rankWidth; i++){
-      Square [] row = squares[i];
-      header += (i+1)+" |"; 
-      for(Square square : row){
-        header += (square.getUnit() != null ? square.getUnit().toString() : "   ")+"|";
+    String text = "";
+    
+    for(Square [] row : squares) {
+      String rowRep = "";
+      for(Square square : row) {
+        if (square.getUnit() == null) {
+          rowRep += "~";
+        }
+        else {
+          Unit unit = square.getUnit();
+          rowRep += String.valueOf(unit.getType().shortName)+unit.getTeamID();
+        }
+        rowRep += ",";
       }
-      header += "~";
+      
+      //cutout last ","
+      rowRep = rowRep.substring(0, rowRep.length() - 1);
+      
+      rowRep += "|";
+      text += rowRep;
     }
-    return header;
+    
+    //cutout last '|'
+    text = text.substring(0, text.length() - 1);
+    
+    return text;
   }
 }

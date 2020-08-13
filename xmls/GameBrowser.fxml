@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="672.0" prefWidth="1032.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <GridPane prefHeight="672.0" prefWidth="1032.0">
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="765.0" minWidth="5.0" prefWidth="28.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="1027.0" minWidth="10.0" prefWidth="985.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="1027.0" minWidth="10.0" prefWidth="24.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="448.0" minHeight="0.0" prefHeight="17.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="648.0" minHeight="0.0" prefHeight="629.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="72.0" minHeight="0.0" prefHeight="22.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <HBox prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+               <children>
+                  <VBox fx:id="gameBrowserBox" prefHeight="630.0" prefWidth="535.0">
+                     <children>
+                        <HBox alignment="CENTER" prefHeight="32.0" prefWidth="529.0">
+                           <children>
+                              <TextField fx:id="sessionUUIDInput" alignment="CENTER" prefHeight="25.0" prefWidth="258.0">
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" right="5.0" />
+                                 </HBox.margin></TextField>
+                              <Button fx:id="searchSessionButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="110.0" text="Search Session">
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" left="5.0" right="5.0" />
+                                 </HBox.margin></Button>
+                              <Button fx:id="refreshButton" mnemonicParsing="false" text="Refresh Session">
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" left="5.0" right="5.0" />
+                                 </HBox.margin>
+                              </Button>
+                           </children>
+                        </HBox>
+                        <TableView fx:id="activeSessionsTable" prefHeight="540.0" prefWidth="529.0">
+                          <columns>
+                            <TableColumn prefWidth="75.0" text="C1" />
+                            <TableColumn prefWidth="75.0" text="C2" />
+                          </columns>
+                        </TableView>
+                        <VBox alignment="CENTER" prefHeight="70.0" prefWidth="529.0">
+                           <children>
+                              <Button fx:id="joinSessionButton" mnemonicParsing="false" prefHeight="43.0" prefWidth="227.0" text="Join Session">
+                                 <font>
+                                    <Font name="Segoe UI Bold Italic" size="18.0" />
+                                 </font>
+                              </Button>
+                           </children>
+                        </VBox>
+                     </children>
+                  </VBox>
+                  <VBox fx:id="createSessionBox" prefHeight="630.0" prefWidth="446.0">
+                     <children>
+                        <Label fx:id="createSessionPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="84.0" prefWidth="445.0" text="Create A Session" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI Bold" size="35.0" />
+                           </font>
+                        </Label>
+                        <Label fx:id="teamPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Which team would you like to join?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="25.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
+                           <children>
+                              <RadioButton fx:id="teamOne" mnemonicParsing="false" prefHeight="17.0" prefWidth="130.0" text="Team One" />
+                              <RadioButton fx:id="teamTwo" mnemonicParsing="false" prefHeight="26.0" prefWidth="118.0" text="Team Two" />
+                              <RadioButton fx:id="randomTeam" mnemonicParsing="false" prefHeight="17.0" prefWidth="103.0" text="Random" />
+                           </children>
+                        </HBox>
+                        <Label fx:id="prisonDilPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Enforce Prisoner's Dillema?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="25.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
+                           <children>
+                              <RadioButton fx:id="yesPrisDil" mnemonicParsing="false" prefHeight="17.0" prefWidth="130.0" text="Yes" />
+                              <RadioButton fx:id="noPrisDil" mnemonicParsing="false" prefHeight="26.0" prefWidth="118.0" text="No" />
+                              <RadioButton fx:id="randPrisDil" mnemonicParsing="false" prefHeight="17.0" prefWidth="103.0" text="Random" />
+                           </children>
+                        </HBox>
+                        <Label fx:id="invalidVotesPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Allow Invalid Votes?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="25.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
+                           <children>
+                              <RadioButton fx:id="yesInvalVote" mnemonicParsing="false" prefHeight="17.0" prefWidth="130.0" text="Yes" />
+                              <RadioButton fx:id="noInvalVote" mnemonicParsing="false" prefHeight="26.0" prefWidth="118.0" text="No" />
+                              <RadioButton fx:id="randInvalVote" mnemonicParsing="false" prefHeight="27.0" prefWidth="103.0" text="Random" />
+                           </children>
+                        </HBox>
+                        <Label fx:id="lateJoinPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Allow Players to Join During Session?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="25.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
+                           <children>
+                              <RadioButton fx:id="yesLate" mnemonicParsing="false" prefHeight="17.0" prefWidth="130.0" text="Yes" />
+                              <RadioButton fx:id="noLate" mnemonicParsing="false" prefHeight="26.0" prefWidth="118.0" text="No" />
+                              <RadioButton fx:id="randLate" mnemonicParsing="false" prefHeight="27.0" prefWidth="103.0" text="Random" />
+                           </children>
+                        </HBox>
+                        <Label fx:id="votingDurationPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="How Many Seconds to Allow For Voting?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="21.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" cache="true" prefHeight="28.0" prefWidth="445.0">
+                           <children>
+                              <TextField fx:id="voteDurationInput" prefHeight="25.0" prefWidth="312.0" />
+                           </children>
+                        </HBox>
+                        <Label fx:id="minPlayerAmntPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Minimum Amount of Players Per Team?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="21.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" cache="true" prefHeight="28.0" prefWidth="445.0">
+                           <children>
+                              <TextField fx:id="minPlayerInput" prefHeight="25.0" prefWidth="312.0" />
+                           </children>
+                        </HBox>
+                        <FlowPane alignment="CENTER" prefHeight="69.0" prefWidth="445.0">
+                           <children>
+                              <Button fx:id="createSessionButton" mnemonicParsing="false" prefHeight="34.0" prefWidth="173.0" text="Create Session">
+                                 <font>
+                                    <Font name="Segoe UI Bold Italic" size="16.0" />
+                                 </font>
+                              </Button>
+                           </children>
+                        </FlowPane>
+                     </children>
+                  </VBox>
+               </children>
+            </HBox>
+         </children>
+      </GridPane>
+   </children>
+</Pane>

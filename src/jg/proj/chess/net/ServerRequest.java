@@ -132,7 +132,7 @@ public enum ServerRequest{
   /**
    * Requests the current list of active sessions the server is hosting
    * 
-   * Returns: ses:session1UUID,session1PlayerAmnt,session1PrisonersDilemma:session2UUID,session2PlayerAmnt,session2PrisonersDilemma
+   * Returns: ses:session1UUID,session1PlayerAmnt,session1PrisonersDilemma,voteDuration,invalidVoting:session2UUID,session2PlayerAmnt,session2PrisonersDilemma,voteDuration,invalidVoting
    */
   SES("ses", "~ses", 0 , "Requests the current list of active sessions the server is hosting");
   

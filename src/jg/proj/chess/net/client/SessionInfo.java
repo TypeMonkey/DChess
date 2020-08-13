@@ -8,12 +8,30 @@ public class SessionInfo {
   
   private final SessionRules rules;
   private final UUID sessionID;
-  private final boolean isTeamOne;
+  private final int playerAmnt;
   
-  public SessionInfo(SessionRules rules, UUID sessionID, boolean isTeamOne) {
+  public SessionInfo(SessionRules rules, UUID sessionID, int playerAmnt) {
     this.rules = rules;
     this.sessionID = sessionID;
-    this.isTeamOne = isTeamOne;
+    this.playerAmnt = playerAmnt;
+  }
+  
+  @Override
+  public int hashCode() {
+    return sessionID.hashCode();
+  }
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof SessionInfo) {
+      SessionInfo other = (SessionInfo) obj;
+      return other.sessionID.equals(sessionID);
+    }
+    return false;
+  }
+  
+  public int getPlayerAmnt() {
+    return playerAmnt;
   }
 
   public SessionRules getRules() {
@@ -22,9 +40,5 @@ public class SessionInfo {
 
   public UUID getSessionID() {
     return sessionID;
-  }
-
-  public boolean isTeamOne() {
-    return isTeamOne;
   }
 }

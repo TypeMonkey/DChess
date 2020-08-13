@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="672.0" prefWidth="1032.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <StackPane prefHeight="672.0" prefWidth="1032.0">
+         <children>
+            <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="303.0" prefWidth="600.0">
+               <children>
+                  <VBox layoutX="9.0" layoutY="7.0" prefHeight="303.0" prefWidth="583.0">
+                     <children>
+                        <Label fx:id="democChessPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="85.0" prefWidth="584.0" text="DemocraticChess">
+                           <font>
+                              <Font name="Calibri Bold" size="74.0" />
+                           </font>
+                        </Label>
+                        <HBox prefHeight="134.0" prefWidth="583.0">
+                           <children>
+                              <VBox prefHeight="119.0" prefWidth="583.0">
+                                 <children>
+                                    <Label fx:id="enterUserNamePost" alignment="CENTER" contentDisplay="CENTER" prefHeight="44.0" prefWidth="583.0" text="Enter A Username">
+                                       <font>
+                                          <Font name="Segoe UI Italic" size="22.0" />
+                                       </font>
+                                    </Label>
+                                    <TextField fx:id="userNameInput" alignment="CENTER" prefHeight="29.0" prefWidth="483.0">
+                                       <VBox.margin>
+                                          <Insets left="50.0" right="50.0" />
+                                       </VBox.margin>
+                                    </TextField>
+                                    <StackPane prefHeight="56.0" prefWidth="583.0">
+                                       <children>
+                                          <Button fx:id="userNameEnterButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="36.0" prefWidth="149.0" text="Enter">
+                                             <font>
+                                                <Font name="Segoe UI Bold" size="19.0" />
+                                             </font>
+                                          </Button>
+                                       </children>
+                                    </StackPane>
+                                 </children>
+                              </VBox>
+                           </children>
+                        </HBox>
+                        <Label fx:id="creditsPost" alignment="BOTTOM_CENTER" contentDisplay="CENTER" prefHeight="85.0" prefWidth="583.0" text="Developed by Jose Guaro" />
+                     </children>
+                  </VBox>
+               </children>
+            </Pane>
+         </children>
+      </StackPane>
+   </children>
+</Pane>
