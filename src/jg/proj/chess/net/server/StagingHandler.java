@@ -13,8 +13,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.AttributeKey;
-import jg.proj.chess.net.StringAndIOUtils;
 import jg.proj.chess.net.server.SessionRules.Properties;
+import jg.proj.chess.utils.StringAndIOUtils;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
 

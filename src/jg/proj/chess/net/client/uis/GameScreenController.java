@@ -30,8 +30,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import jg.proj.chess.net.client.ChessClient;
+import jg.proj.chess.net.client.MessageListener;
+import jg.proj.chess.net.client.SignalListener;
 
-public class GameScreenController{
+public class GameScreenController implements SignalListener, MessageListener{
   
   @FXML
   private StackPane mainPane;
@@ -111,6 +113,27 @@ public class GameScreenController{
     sessionUUIDDisplay.setEditable(false);
         
     makeBoard();  
+    
+    /*
+     * When sending "all" or "team" messages, provide BLANK Reactor instance
+     * instead of writing out a manual reactor. 
+     * 
+     *  all,team and server signals will have their own listeners
+     */
+    
+    //add this as listeners
+    client.addMessageListener(this);
+    client.addSignalListener(this);
+  }
+  
+  @Override
+  public void handleMessage(String messageType, String messageContent) {
+    chatListDisplay.getItems().add("["+messageType+"]"+messageContent);
+  }
+  
+  @Override
+  public void handleSignal(int signal) {
+    //TODO: Code to handle various signals
   }
   
   private void makeBoard() {   

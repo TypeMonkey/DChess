@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import jg.proj.chess.net.ServerRequest;
-import jg.proj.chess.net.StringAndIOUtils;
 import jg.proj.chess.net.server.SessionRules.Properties;
+import jg.proj.chess.utils.StringAndIOUtils;
 
 public final class SessionRules {
 

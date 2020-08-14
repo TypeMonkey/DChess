@@ -1,4 +1,4 @@
-package jg.proj.chess.net;
+package jg.proj.chess.utils;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -19,6 +19,7 @@ public final class StringAndIOUtils {
     ChannelFuture future = channel.writeAndFlush(message+"\r\n");
     future.syncUninterruptibly();
     
+    //DEV_CODE: Debug code
     if (!future.isSuccess()) {
       System.err.println(" write error! "+future.cause());
     }

@@ -31,9 +31,9 @@ import jg.proj.chess.core.units.InvalidMove;
 import jg.proj.chess.core.units.Unit.UnitType;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
-import jg.proj.chess.net.StringAndIOUtils;
 import jg.proj.chess.net.Vote;
 import jg.proj.chess.net.server.SessionRules.Properties;
+import jg.proj.chess.utils.StringAndIOUtils;
 
 /**
  * Represents a game session.

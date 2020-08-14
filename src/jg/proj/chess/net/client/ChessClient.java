@@ -37,7 +37,7 @@ public class ChessClient extends Application{
     config = readConfig(getParameters().getRaw().get(0));
     
     //create connector
-    connector = new Connector(config.getValue(ConfigKey.IP), Integer.parseInt(config.getValue(ConfigKey.PORT)));
+    connector = new Connector(this, config.getValue(ConfigKey.IP), Integer.parseInt(config.getValue(ConfigKey.PORT)));
     
     uiStage = primaryStage;
     
@@ -59,7 +59,7 @@ public class ChessClient extends Application{
     String line = null;
     while ((line = reader.readLine()) != null) {
       String [] split = line.split("=");
-      String key = split[0];
+      String key = split[0].toUpperCase();
       String value = split[1];
       
       try {
@@ -135,8 +135,17 @@ public class ChessClient extends Application{
     return userName;
   }
   
+  public void addSignalListener(SignalListener listener) {
+    connector.addSignalListener(listener);
+  }
+  
+  public void addMessageListener(MessageListener listener) {
+   connector.addMessageListener(listener);
+  }
+  
   public void sendRequest(PendingRequest request, Reactor reactor) {
     System.out.println("---REQUEST SUBMITTED: "+request);
+    connector.sendRequest(request, reactor);
   }
   
   public void recordException(Exception exception) {
