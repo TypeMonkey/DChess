@@ -47,13 +47,44 @@
                             <TableColumn prefWidth="75.0" text="C2" />
                           </columns>
                         </TableView>
-                        <VBox alignment="CENTER" prefHeight="70.0" prefWidth="529.0">
+                        <VBox alignment="CENTER" prefHeight="87.0" prefWidth="535.0">
                            <children>
-                              <Button fx:id="joinSessionButton" mnemonicParsing="false" prefHeight="43.0" prefWidth="227.0" text="Join Session">
+                              <Button fx:id="joinSessionButton" mnemonicParsing="false" prefHeight="10.0" prefWidth="227.0" text="Join Session">
                                  <font>
                                     <Font name="Segoe UI Bold Italic" size="18.0" />
                                  </font>
+                                 <VBox.margin>
+                                    <Insets top="5.0" />
+                                 </VBox.margin>
                               </Button>
+                              <HBox fx:id="teamChoiceButtons" alignment="CENTER" prefHeight="41.0" prefWidth="535.0">
+                                 <children>
+                                    <RadioButton fx:id="randTeamChoice" contentDisplay="CENTER" mnemonicParsing="false" text="Random Team" textAlignment="CENTER">
+                                       <font>
+                                          <Font name="Segoe UI" size="14.0" />
+                                       </font>
+                                       <HBox.margin>
+                                          <Insets right="5.0" />
+                                       </HBox.margin>
+                                    </RadioButton>
+                                    <RadioButton fx:id="teamOneChoice" contentDisplay="CENTER" mnemonicParsing="false" text="Team One" textAlignment="CENTER">
+                                       <font>
+                                          <Font name="Segoe UI" size="14.0" />
+                                       </font>
+                                       <HBox.margin>
+                                          <Insets left="5.0" right="5.0" />
+                                       </HBox.margin>
+                                    </RadioButton>
+                                    <RadioButton fx:id="teamTwoChoice" contentDisplay="CENTER" mnemonicParsing="false" text="Team Two" textAlignment="CENTER">
+                                       <font>
+                                          <Font name="Segoe UI" size="14.0" />
+                                       </font>
+                                       <HBox.margin>
+                                          <Insets left="5.0" />
+                                       </HBox.margin>
+                                    </RadioButton>
+                                 </children>
+                              </HBox>
                            </children>
                         </VBox>
                      </children>
@@ -73,7 +104,7 @@
                         <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
                            <children>
                               <RadioButton fx:id="teamOne" mnemonicParsing="false" prefHeight="17.0" prefWidth="130.0" text="Team One" />
-                              <RadioButton fx:id="teamTwo" mnemonicParsing="false" prefHeight="26.0" prefWidth="118.0" text="Team Two" />
+                              <RadioButton fx:id="teamTwo" mnemonicParsing="false" prefHeight="20.0" prefWidth="118.0" text="Team Two" />
                               <RadioButton fx:id="randomTeam" mnemonicParsing="false" prefHeight="17.0" prefWidth="103.0" text="Random" />
                            </children>
                         </HBox>

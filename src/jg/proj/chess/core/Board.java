@@ -43,6 +43,16 @@ public class Board {
     return parsableToString().replace("|", System.lineSeparator());
   }
   
+  /**
+   * Returns a string representation of the board that can be easily parsed
+   * 
+   * Per each row, a unit's string representation is concatenated with each other
+   * and separated by comma
+   * 
+   * Rows are then concatenated with each other, separated by the '|' character
+   * 
+   * @return a string representation of the board that can be easily parsed
+   */
   public String parsableToString(){
     String text = "";
     

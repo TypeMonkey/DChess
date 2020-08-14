@@ -76,7 +76,15 @@ public class GameEntranceController {
               userNameInput.setText("SERVER ERROR TO CUSER: "+errorCode);
               invalidUsername = true;
             }
-          });       
+          });     
+          
+          
+          //DEV_CODE, delete later
+          try {
+            client.showBrowser();
+          } catch (IOException e) {
+            client.recordException(e);
+          }
         }
       }
     });

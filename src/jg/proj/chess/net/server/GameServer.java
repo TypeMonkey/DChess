@@ -34,6 +34,10 @@ public class GameServer {
     workerThreadPool = new NioEventLoopGroup();  
   }
   
+  /**
+   * Starts the server, awaiting incoming connections
+   * @throws InterruptedException
+   */
   public void start() throws InterruptedException{
     try {
       ServerBootstrap serverBootstrap = new ServerBootstrap()
@@ -72,7 +76,6 @@ public class GameServer {
   
   public static void main(String [] args) throws Exception{  
     System.out.println("---DEMOCRATIC CHESS SERVER V1.0---");
-    GameServer gameServer = new GameServer();   
-    gameServer.start();
+    GAME_SERVER.start();
   }
 }

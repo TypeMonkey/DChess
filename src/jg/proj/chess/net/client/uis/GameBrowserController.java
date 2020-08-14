@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -25,6 +26,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.TableColumn.CellDataFeatures;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
@@ -52,6 +54,14 @@ public class GameBrowserController {
   private Button joinSessionButton;
   @FXML 
   private Button refreshButton;
+  @FXML
+  private HBox teamChoiceButtons;
+  @FXML
+  private RadioButton randTeamChoice;
+  @FXML
+  private RadioButton teamOneChoice;
+  @FXML
+  private RadioButton teamTwoChoice;
   
   //Right side components
   @FXML
@@ -118,22 +128,8 @@ public class GameBrowserController {
   private final Map<UUID, SessionInfo> activeSessMap;
   private final ObservableList<SessionInfo> activeSessions;
   
-  /**
-   * Couples SessionInfo and that SessionInfo's row index on the activeSessions List
-   * @author Jose
-   *
-   
-  private static class SessionAndRow{
-    public final SessionInfo sessionInfo;
-    public final int rowIndex;
-    
-    public SessionAndRow(SessionInfo sessionInfo, int rowIndex) {
-      // TODO Auto-generated constructor stub
-      this.sessionInfo = sessionInfo;
-      this.rowIndex = rowIndex;
-    }
-  }
-  */
+  //variables for flags and temporary values
+  private SessionInfo selectedSessionInfo;
   
   private GameBrowserController(ChessClient client) {
     this.client = client;
@@ -147,6 +143,7 @@ public class GameBrowserController {
    * @throws IOException 
    */
   private void init(){
+    //set custom styles
     createSessionBox.setStyle("-fx-padding: 10;" + 
         "-fx-border-style: solid inside;" + 
         "-fx-border-width: 2;" +
@@ -160,6 +157,14 @@ public class GameBrowserController {
         "-fx-border-insets: 5;" + 
         "-fx-border-radius: 3;" + 
         "-fx-border-color: grey;");
+    
+    //disable team buttons
+    randTeamChoice.setDisable(true);
+    teamOneChoice.setDisable(true);
+    teamTwoChoice.setDisable(true);
+
+    //disable join button
+    joinSessionButton.setDisable(true);
     
     //set tooltips texts
     Tooltip teamTip = new Tooltip("Sets the team you'd join once the session is created");
@@ -200,6 +205,17 @@ public class GameBrowserController {
       
       @Override
       public void handle(ActionEvent event) {
+        
+        /*
+        System.out.println("---dummy sessions");
+        SessionInfo info = new SessionInfo(new SessionRules(), UUID.randomUUID(), 15);
+        activeSessions.add(info);
+        activeSessMap.put(info.getSessionID(), info);
+        
+        activeSessionsTable.getItems().add(info);
+        */
+        
+        
         client.sendRequest(new PendingRequest(ServerRequest.SES), new Reactor() {
           
           @Override
@@ -238,6 +254,7 @@ public class GameBrowserController {
             //there should be no error
           }
         });
+        
       }
     });    
     
@@ -261,6 +278,114 @@ public class GameBrowserController {
           //bad uuid, do nothing
         }
       }
+    });
+    
+    //join session handle
+    joinSessionButton.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        //use selectedSessionInfo to get UUID of desired session
+        Reactor successJoin = new Reactor() {
+          
+          @Override
+          public void react(PendingRequest request, String... results) {
+            try {
+              client.showGame();
+            } catch (IOException e) {
+              client.recordException(e);
+            }
+          }
+          
+          @Override
+          public void error(PendingRequest request, int errorCode) {
+            client.recordException("FAILED TO JOIN SESSION: "+selectedSessionInfo.getSessionID());
+            joinSessionButton.setDisable(false);
+          }
+        };
+        
+        //disable join button
+        joinSessionButton.setDisable(true);
+        
+        //check team selection
+        int teamNum = teamOneChoice.isSelected() ? 1 : (teamTwoChoice.isSelected() ? 2 : 3);
+        
+        //send join request
+        client.sendRequest(new PendingRequest(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);
+      }
+      
+    });
+    
+    //create session handler
+    createSessionButton.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        String voteDuration = voteDurationInput.getText().trim();
+        if (voteDuration == null || voteDuration.isEmpty()) {
+          voteDurationInput.setText("Duration cannot be blank!");
+          voteDuration = null;
+        }    
+        else if (!voteDuration.chars().allMatch(Character::isDigit)) {
+          voteDurationInput.setText("Duration must be a number!");
+          voteDuration = null;
+        }
+               
+        String minPlayers = minPlayerInput.getText();
+        if (minPlayers == null || minPlayers.isEmpty()) {
+          minPlayerInput.setText("Minimum player amount cannot be blank!");
+          minPlayers = null;
+        }
+        else if (!minPlayers.chars().allMatch(Character::isDigit)) {
+          minPlayerInput.setText("Minimum player amount must be a number!");
+          minPlayers = null;
+        }
+      
+        if (minPlayers != null && voteDuration != null) {
+          //collect all data
+          int vDuration = Integer.parseInt(voteDuration);
+          int mPlayers = Integer.parseInt(minPlayers);
+          int teamID = teamOne.isSelected() ? 1 : (teamTwo.isSelected() ? 2 : 3);
+          boolean prisDil = yesPrisDil.isSelected();
+          boolean allowInvalid = yesInvalVote.isSelected();
+          boolean allowLate = yesLate.isSelected();
+          
+          PendingRequest createReq = new PendingRequest(ServerRequest.CSESS, 
+                                                        teamID, 
+                                                        prisDil, 
+                                                        vDuration, 
+                                                        mPlayers, 
+                                                        allowInvalid,
+                                                        allowLate);
+          
+          Reactor reactor = new Reactor() {
+            public void react(PendingRequest request, String... results) {
+              //TODO: ADD CODE
+              
+              try {
+                client.showGame();
+              } catch (IOException e) {
+                client.recordException(e);
+              }
+            }
+            
+            public void error(PendingRequest request, int errorCode) {
+              client.recordException("COULDN'T CREATE SESION!!!");
+            }
+          };
+          
+          client.sendRequest(createReq, reactor);
+          
+          //DEV_CODE, delete later
+          try {
+            client.showGame();
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+        }
+      }
+      
     });
     
     //set up sessions table
@@ -305,11 +430,183 @@ public class GameBrowserController {
     });
     
     activeSessionsTable.getColumns().setAll(playerAmnt, prisonDil, voteDuration, invalVotes);
+    
+    //add listeners to radio buttons for proper deselection
+    setRadioButtonDeselectors();
+    
+    //set default create session values
+    randomTeam.fire();
+    yesPrisDil.fire();
+    noInvalVote.fire();
+    noLate.fire();
+    
+    //add row selection listerer
+    activeSessionsTable.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<SessionInfo>() {
+
+      @Override
+      public void changed(ObservableValue<? extends SessionInfo> observable, SessionInfo oldValue,
+          SessionInfo newValue) {
+        selectedSessionInfo = newValue;
+        
+        //enable team choice buttons
+        randTeamChoice.setDisable(false);
+        teamOneChoice.setDisable(false);
+        teamTwoChoice.setDisable(false);
+        
+        //set default team choice
+        randTeamChoice.fire();
+
+        //enable join button
+        joinSessionButton.setDisable(false);
+      }
+    });
 
     
     //get session list from server
     refreshButton.fire();
 
+  }
+  
+  private void setRadioButtonDeselectors() {
+    //team choice deselectors
+    randomTeam.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        teamOneChoice.setSelected(false);
+        teamTwoChoice.setSelected(false);
+      }
+    });
+    
+    teamOneChoice.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        randTeamChoice.setSelected(false);
+        teamTwoChoice.setSelected(false);
+      }
+    });
+    
+    teamTwoChoice.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        teamOneChoice.setSelected(false);
+        randTeamChoice.setSelected(false);
+      }
+    });
+    
+    //create session - team choice
+    teamOne.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        teamTwo.setSelected(false);
+        randomTeam.setSelected(false);
+      }
+    });
+    
+    teamTwo.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        teamOne.setSelected(false);
+        randomTeam.setSelected(false);
+      }
+    });
+    
+    randomTeam.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        teamTwo.setSelected(false);
+        teamOne.setSelected(false);
+      }
+    });
+    
+    //create session - pris. dil.
+    yesPrisDil.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        noPrisDil.setSelected(false);
+        randPrisDil.setSelected(false);
+      }
+    });
+    
+    noPrisDil.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        yesPrisDil.setSelected(false);
+        randPrisDil.setSelected(false);
+      }
+    });
+    
+    randPrisDil.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        noPrisDil.setSelected(false);
+        yesPrisDil.setSelected(false);
+      }
+    });
+    
+    //create session - invalid votes
+    yesInvalVote.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        noInvalVote.setSelected(false);
+        randInvalVote.setSelected(false);
+      }
+    });
+    
+    noInvalVote.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        yesInvalVote.setSelected(false);
+        randInvalVote.setSelected(false);
+      }
+    });
+    
+    randInvalVote.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        yesInvalVote.setSelected(false);
+        noInvalVote.setSelected(false);
+      }
+    });
+    
+    //create session - late join
+    yesLate.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        noLate.setSelected(false);
+        randLate.setSelected(false);
+      }
+    });
+    
+    noLate.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        yesLate.setSelected(false);
+        randLate.setSelected(false);
+      }
+    });
+    
+    randLate.setOnAction(new EventHandler<ActionEvent>() {
+
+      @Override
+      public void handle(ActionEvent event) {
+        noLate.setSelected(false);
+        yesLate.setSelected(false);
+      }
+    });
   }
   
   private static GameBrowserController browserController;
