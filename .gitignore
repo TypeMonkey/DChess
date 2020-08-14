@@ -21,3 +21,6 @@
 
 #Whitelist chess piece images
 !/chesspieces/**
+
+#Whitelist config.txt
+!config.txt
