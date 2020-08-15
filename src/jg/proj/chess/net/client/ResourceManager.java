@@ -1,7 +1,9 @@
 package jg.proj.chess.net.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -116,6 +118,14 @@ public class ResourceManager {
       resource.setResource(bytes);
       resource.setLoaded(true); 
     }
+  }
+  
+  public InputStream getResourceAsStream(String key) throws IOException{
+    byte [] data = getResource(key);
+    if (data != null) {
+      return new ByteArrayInputStream(data);
+    }
+    return null;
   }
   
   public byte [] getResource(String key) throws IOException{

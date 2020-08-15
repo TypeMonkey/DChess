@@ -3,6 +3,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.paint.Paint;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -35,6 +36,7 @@ import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.MessageListener;
+import jg.proj.chess.net.client.ResourceManager;
 import jg.proj.chess.net.client.SignalListener;
 import jg.proj.chess.net.client.VoteTally;
 
@@ -95,17 +97,18 @@ public class GameScreenController implements SignalListener, MessageListener{
   
   //actual chess board
   private final Rectangle [][] board;
-  
   private final ChessClient client;
+  private final ResourceManager resourceManager;
   
   private GameScreenController(ChessClient client) { 
     this.client = client;
+    this.resourceManager = client.getResourceManager();
     board = new Rectangle[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
   }
   
   public void init() {    
     //set the session uuid
-    sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
+    //sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
     sessionUUIDDisplay.setEditable(false);
     
     //set style 
@@ -216,7 +219,7 @@ public class GameScreenController implements SignalListener, MessageListener{
         square.setStroke(Color.BLACK);
         square.setFill(Color.TRANSPARENT);
         
-        spots[r][c] = square;
+        board[r][c] = square;
         
         colFixer.getChildren().add(square);
       }
@@ -228,39 +231,38 @@ public class GameScreenController implements SignalListener, MessageListener{
     chessBoardPane.setAlignment(Pos.CENTER);    
     chessBoardPane.getChildren().add(group);
     
-    //set chess pieces manually
-    //black pieces
+    //set chess pieces manually    
     try {
-      spots[0][0].setFill(new ImagePattern(new Image(new File("chesspieces/rookBlack.png").toURI().toURL().toString())));
-      spots[0][1].setFill(new ImagePattern(new Image(new File("chesspieces/horseBlack.png").toURI().toURL().toString())));
-      spots[0][2].setFill(new ImagePattern(new Image(new File("chesspieces/bishopBlack.png").toURI().toURL().toString())));
-      spots[0][3].setFill(new ImagePattern(new Image(new File("chesspieces/queenBlack.png").toURI().toURL().toString())));
-      spots[0][4].setFill(new ImagePattern(new Image(new File("chesspieces/kingBlack.png").toURI().toURL().toString())));
-      spots[0][5].setFill(new ImagePattern(new Image(new File("chesspieces/bishopBlack.png").toURI().toURL().toString())));
-      spots[0][6].setFill(new ImagePattern(new Image(new File("chesspieces/horseBlack.png").toURI().toURL().toString())));
-      spots[0][7].setFill(new ImagePattern(new Image(new File("chesspieces/rookBlack.png").toURI().toURL().toString())));
+      //white pieces
+      board[0][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
+      board[0][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
+      board[0][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
+      board[0][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenWhite"))));
+      board[0][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingWhite"))));
+      board[0][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
+      board[0][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
+      board[0][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
 
       for(int c = 0; c < 8; c++) {
-        spots[1][c].setFill(new ImagePattern(new Image(new File("chesspieces/pawnBlack.png").toURI().toURL().toString())));
+        board[1][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnWhite"))));
       }
       
-      //white pieces
-      spots[7][0].setFill(new ImagePattern(new Image(new File("chesspieces/rookWhite.png").toURI().toURL().toString())));
-      spots[7][1].setFill(new ImagePattern(new Image(new File("chesspieces/horseWhite.png").toURI().toURL().toString())));
-      spots[7][2].setFill(new ImagePattern(new Image(new File("chesspieces/bishopWhite.png").toURI().toURL().toString())));
-      spots[7][3].setFill(new ImagePattern(new Image(new File("chesspieces/queenWhite.png").toURI().toURL().toString())));
-      spots[7][4].setFill(new ImagePattern(new Image(new File("chesspieces/kingWhite.png").toURI().toURL().toString())));
-      spots[7][5].setFill(new ImagePattern(new Image(new File("chesspieces/bishopWhite.png").toURI().toURL().toString())));
-      spots[7][6].setFill(new ImagePattern(new Image(new File("chesspieces/horseWhite.png").toURI().toURL().toString())));
-      spots[7][7].setFill(new ImagePattern(new Image(new File("chesspieces/rookWhite.png").toURI().toURL().toString())));
+      //black pieces
+      board[7][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
+      board[7][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
+      board[7][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
+      board[7][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenBlack"))));
+      board[7][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingBlack"))));
+      board[7][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
+      board[7][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
+      board[7][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
 
       for(int c = 0; c < 8; c++) {
-        spots[6][c].setFill(new ImagePattern(new Image(new File("chesspieces/pawnWhite.png").toURI().toURL().toString())));
+        board[6][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnBlack"))));
       }
 
-    } catch (MalformedURLException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+    } catch (IOException e) {
+     client.recordException(e);
     }
   }
 

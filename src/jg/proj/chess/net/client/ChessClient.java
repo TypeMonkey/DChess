@@ -71,8 +71,8 @@ public class ChessClient extends Application{
       String whiteImageName = unitType.name().toLowerCase()+"White";
       String blackImageName = unitType.name().toLowerCase()+"Black";
       
-      generalResources.add(new ResourceInfo(whiteImageName, "chesspieces/"+whiteImageName+".jpg"));
-      generalResources.add(new ResourceInfo(blackImageName, "chesspieces/"+blackImageName+".jpg"));
+      generalResources.add(new ResourceInfo(whiteImageName, "chesspieces/"+whiteImageName+".png"));
+      generalResources.add(new ResourceInfo(blackImageName, "chesspieces/"+blackImageName+".png"));
     }
     
     resourceManager = new ResourceManager(generalResources);
@@ -185,6 +185,10 @@ public class ChessClient extends Application{
   
   public SessionInfo getCurrentSession() {
     return currentSession;
+  }
+  
+  public ResourceManager getResourceManager() {
+    return resourceManager;
   }
   
   public synchronized void addSignalListener(SignalListener listener) {
