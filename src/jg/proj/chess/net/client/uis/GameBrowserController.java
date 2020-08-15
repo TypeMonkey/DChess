@@ -206,14 +206,14 @@ public class GameBrowserController {
       @Override
       public void handle(ActionEvent event) {
         
-        /*
+        
         System.out.println("---dummy sessions");
         SessionInfo info = new SessionInfo(new SessionRules(), UUID.randomUUID(), 15);
         activeSessions.add(info);
         activeSessMap.put(info.getSessionID(), info);
         
         activeSessionsTable.getItems().add(info);
-        */
+        
         
         
         client.sendRequest(new PendingRequest(ServerRequest.SES), new Reactor() {
@@ -311,7 +311,14 @@ public class GameBrowserController {
         int teamNum = teamOneChoice.isSelected() ? 1 : (teamTwoChoice.isSelected() ? 2 : 3);
         
         //send join request
-        client.sendRequest(new PendingRequest(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);
+        //client.sendRequest(new PendingRequest(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);
+        
+        //DEV_CODE: DELETE LATER!
+        try {
+          client.showGame();
+        } catch (IOException e) {
+          client.recordException(e);
+        }
       }
       
     });

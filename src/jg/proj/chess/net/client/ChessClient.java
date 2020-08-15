@@ -4,15 +4,20 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Scanner;
 
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import jg.proj.chess.core.units.Unit.UnitType;
 import jg.proj.chess.net.client.ClientConfig.ConfigKey;
+import jg.proj.chess.net.client.ResourceManager.ResourceInfo;
 import jg.proj.chess.net.client.uis.GameBrowserController;
 import jg.proj.chess.net.client.uis.GameEntranceController;
 import jg.proj.chess.net.client.uis.GameScreenController;
@@ -23,28 +28,67 @@ import jg.proj.chess.net.client.uis.GameScreenController;
  */
 public class ChessClient extends Application{
 
+  //session information
   private String userName;
+  private SessionInfo currentSession;
   
-  
+  //network and other game objects
   private ClientConfig config;
   private Connector connector;
+  private ResourceManager resourceManager;
+  private EventLoopGroup workerPool;
+  
+  //main UI object
   private Stage uiStage;
   
   @Override
   public void start(Stage primaryStage) throws Exception {
+    uiStage = primaryStage;
+    workerPool = new NioEventLoopGroup();
+
     //load config file and read IP and Port values
     //the path of the config file is the first argument to the application
     config = readConfig(getParameters().getRaw().get(0));
     
     //create connector
-    connector = new Connector(this, config.getValue(ConfigKey.IP), Integer.parseInt(config.getValue(ConfigKey.PORT)));
-    
-    uiStage = primaryStage;
-    
+    connector = new Connector(this, 
+                              workerPool, 
+                              config.getValue(ConfigKey.IP), 
+                              Integer.parseInt(config.getValue(ConfigKey.PORT)));   
+        
     //show entrance scene
     showEntrance();
+    
+    //load game resources
+    loadResources();
   }
   
+  private void loadResources() {
+    HashSet<ResourceInfo> generalResources = new HashSet<>();
+    
+    //get all unit images path
+    for (UnitType unitType : UnitType.values()) {
+      String whiteImageName = unitType.name().toLowerCase()+"White";
+      String blackImageName = unitType.name().toLowerCase()+"Black";
+      
+      generalResources.add(new ResourceInfo(whiteImageName, "chesspieces/"+whiteImageName+".jpg"));
+      generalResources.add(new ResourceInfo(blackImageName, "chesspieces/"+blackImageName+".jpg"));
+    }
+    
+    resourceManager = new ResourceManager(generalResources);
+    
+    //load all resources in a background thread
+    workerPool.execute(new Runnable() {
+      public void run() {
+        try {
+          resourceManager.loadAllResources();
+        } catch (IOException e) {
+          recordException(e);
+        }
+      }
+    });
+  }
+
   /**
    * Reads the provided configuration file
    * @param configPath - the path to the configuration file
@@ -131,21 +175,31 @@ public class ChessClient extends Application{
     this.userName = userName;
   }
   
+  public void setCurrentSession(SessionInfo currentSession) {
+    this.currentSession = currentSession;
+  }
+  
   public String getUserName() {
     return userName;
   }
   
-  public void addSignalListener(SignalListener listener) {
+  public SessionInfo getCurrentSession() {
+    return currentSession;
+  }
+  
+  public synchronized void addSignalListener(SignalListener listener) {
     connector.addSignalListener(listener);
   }
   
-  public void addMessageListener(MessageListener listener) {
+  public synchronized void addMessageListener(MessageListener listener) {
    connector.addMessageListener(listener);
   }
   
   public void sendRequest(PendingRequest request, Reactor reactor) {
     System.out.println("---REQUEST SUBMITTED: "+request);
-    connector.sendRequest(request, reactor);
+    
+    //UNCOMMENT BELOW
+    //connector.sendRequest(request, reactor);  
   }
   
   public void recordException(Exception exception) {

@@ -134,7 +134,16 @@ public enum ServerRequest{
    * 
    * Returns: ses:session1UUID,session1PlayerAmnt,session1PrisonersDilemma,voteDuration,invalidVoting:session2UUID,session2PlayerAmnt,session2PrisonersDilemma,voteDuration,invalidVoting
    */
-  SES("ses", "~ses", 0 , "Requests the current list of active sessions the server is hosting");
+  SES("ses", "~ses", 0 , "Requests the current list of active sessions the server is hosting"),
+  
+  /**
+   * Requests a tally of all of the player's current
+   * 
+   * Returns: "tally:ORIGINAL_SQUARE_COORDINATE > DEST_SQUARE_COORDINATE > VOTE_AMNT : .... other votes
+   * 
+   * If a session has enforced Prisoner's Dilemma, an error code is sent (PRISON_DIL)
+   */
+  TALLY("tally", "~tally", 0, "Requests a tally of all the player's current votes");
   
   private final String requestName;
   private final String formatedString;

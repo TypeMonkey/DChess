@@ -1,6 +1,7 @@
 package jg.proj.chess.net.client.uis;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
+import javafx.scene.paint.Paint;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TableView;
@@ -20,6 +22,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -28,12 +31,16 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.MessageListener;
 import jg.proj.chess.net.client.SignalListener;
+import jg.proj.chess.net.client.VoteTally;
 
 public class GameScreenController implements SignalListener, MessageListener{
+  
+  public static final int DEFAULT_BOARD_SIZE = 8;
   
   @FXML
   private StackPane mainPane;
@@ -72,7 +79,7 @@ public class GameScreenController implements SignalListener, MessageListener{
   @FXML
   private GridPane tallyAndCharGridPane;
   @FXML
-  private TableView<String> voteTallyTable;
+  private TableView<VoteTally> voteTallyTable;
   @FXML
   private ListView<String> chatListDisplay;
   
@@ -86,15 +93,22 @@ public class GameScreenController implements SignalListener, MessageListener{
   @FXML
   private Button clearSendButton;
   
+  //actual chess board
+  private final Rectangle [][] board;
+  
   private final ChessClient client;
   
   private GameScreenController(ChessClient client) { 
     this.client = client;
+    board = new Rectangle[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
   }
   
-  public void init() {
-    sessionUUIDDisplay.setText("HELLO!!!!!");
+  public void init() {    
+    //set the session uuid
+    sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
+    sessionUUIDDisplay.setEditable(false);
     
+    //set style 
     voteTallyPost.setStyle("-fx-padding: 2;" + 
         "-fx-border-style: solid inside;" + 
         "-fx-border-width: 2;" +
@@ -138,13 +152,67 @@ public class GameScreenController implements SignalListener, MessageListener{
   
   private void makeBoard() {   
     VBox rowFixer = new VBox(0);
+        
+    HBox colMarkerRow = new HBox(0);
     
-    Rectangle [][] spots = new Rectangle[8][8];
+    //this is the square at the top left corner of the board
+    final Rectangle dummyCornerSquare = new Rectangle(50, 50);
+    dummyCornerSquare.setFill(Color.TRANSPARENT);
+    dummyCornerSquare.setStroke(Color.TRANSPARENT);
+    colMarkerRow.getChildren().add(dummyCornerSquare);
+    
+    //add column marks 'A' <=> 'H'
+    for(char rMarker = 'A'; rMarker <= 'H'; rMarker++) {      
+      
+      final Label label = new Label(String.valueOf(rMarker));
+      label.setStyle("-fx-font-size: 30");
+      label.setTextFill(Color.BLACK);
+      label.setTextAlignment(TextAlignment.CENTER);
+      label.setContentDisplay(ContentDisplay.CENTER);
+      label.setAlignment(Pos.CENTER);
+      label.setPrefSize(25, 25);
+      
+      final Rectangle square = new Rectangle(50, 50);
+      square.setFill(Color.TRANSPARENT);
+      square.setStroke(Color.TRANSPARENT);
+      
+      final StackPane stackPane = new StackPane();
+      stackPane.setAlignment(Pos.CENTER);
+      
+      stackPane.getChildren().addAll(square, label);
+      
+      
+      System.out.println("---column mark: "+rMarker);
+      
+      
+      colMarkerRow.getChildren().add(stackPane);
+    }
+    rowFixer.getChildren().add(colMarkerRow);
+
     
     for(int r = 0; r<8; r++) {
       HBox colFixer = new HBox(0);
+      
+      final Label label = new Label(String.valueOf(r));
+      label.setStyle("-fx-font-size: 30");
+      label.setTextFill(Color.BLACK);
+      label.setTextAlignment(TextAlignment.CENTER);
+      label.setContentDisplay(ContentDisplay.CENTER);
+      label.setAlignment(Pos.CENTER);
+      label.setPrefSize(25, 25);
+      
+      final Rectangle colSquare = new Rectangle(50, 50);
+      colSquare.setFill(Color.TRANSPARENT);
+      colSquare.setStroke(Color.TRANSPARENT);
+      
+      final StackPane stackPane = new StackPane();
+      stackPane.setAlignment(Pos.CENTER);
+      
+      stackPane.getChildren().addAll(colSquare, label);
+      colFixer.getChildren().add(stackPane);
+      
       for(int c = 0; c<8; c++) {
-        Rectangle square = new Rectangle(55, 55);
+        Rectangle square = new Rectangle(50, 50);
         square.setStroke(Color.BLACK);
         square.setFill(Color.TRANSPARENT);
         

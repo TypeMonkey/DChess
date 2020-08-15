@@ -44,11 +44,11 @@ public class Connector extends SimpleChannelInboundHandler<String>{
   private Channel channel;
   private boolean isConnected;
   
-  public Connector(ChessClient client, String ip, int port) {
+  public Connector(ChessClient client, EventLoopGroup workerPool, String ip, int port) {
     this.client = client;
     this.ip = ip;
     this.port = port;
-    workerGroup = new NioEventLoopGroup();
+    this.workerGroup = workerPool;
     reqMap = new ConcurrentHashMap<>();
     signalListeners = new ArrayList<>();
     messageListeners = new ArrayList<>();

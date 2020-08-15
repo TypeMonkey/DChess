@@ -47,6 +47,8 @@ public interface ServerResponses {
   
   public static final int TURN_END = 19; //a team's turn has ended
   
+  public static final int VOTE_RECIEVED = 20; //Someone from the player's team has voted. So, the vote tally has been updated
+  
   //first string argument -> user-name , second string argument -> message
   public static final String ALL_MSG = "all:%s:%s";
   
