@@ -22,10 +22,10 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.channel.ChannelHandler.Sharable;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
+import jg.proj.chess.net.SessionRules;
 import jg.proj.chess.net.client.uis.IntroScreen;
 import jg.proj.chess.net.client.uis.MainFrame;
 import jg.proj.chess.net.client.uis.UsernameDialog;
-import jg.proj.chess.net.server.SessionRules;
 import jg.proj.chess.utils.StringAndIOUtils;
 
 @Sharable

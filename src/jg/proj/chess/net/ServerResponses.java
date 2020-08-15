@@ -17,6 +17,9 @@ public interface ServerResponses {
   
   //Server Signal messages
   public static final String SIGNAL = "signal:%d";
+  
+  public static final int GAME_START = 0; //game has started
+  
   public static final int VOTE_START = 1; //start of voting for player's team
   public static final int VOTE_END = 2; //end of voting for player's team
   

@@ -13,9 +13,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
+import jg.proj.chess.net.SessionRules;
 import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.net.client.uis.MainFrame;
-import jg.proj.chess.net.server.SessionRules;
 import jg.proj.chess.utils.StringAndIOUtils;
 
 public class RequestHandler extends SimpleChannelInboundHandler<String>{

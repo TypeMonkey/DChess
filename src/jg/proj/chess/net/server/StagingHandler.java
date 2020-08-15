@@ -13,10 +13,11 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.AttributeKey;
-import jg.proj.chess.net.server.SessionRules.Properties;
 import jg.proj.chess.utils.StringAndIOUtils;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
+import jg.proj.chess.net.SessionRules;
+import jg.proj.chess.net.SessionRules.Properties;
 
 /**
  * ChannelHandler meant for Players that have yet to join or create a Session
@@ -70,7 +71,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
     System.out.println(" FROM PLAYER "+sender.remoteAddress()+" | "+arguments+" | original: "+msg.trim());
 
     String first = arguments.remove(0);
-    if (first.equals("~cuser")) {
+    if (first.equals(ServerRequest.CUSER.getReqName())) {
       if (arguments.size() == ServerRequest.CUSER.argAmount()) {
         player.setName(arguments.get(0));
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.getName()+":"+arguments.get(0)+":"+player.getID().toString());
@@ -79,7 +80,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
-    else if (first.equals("~join")) {
+    else if (first.equals(ServerRequest.JOIN.getReqName())) {
       if (arguments.size() == ServerRequest.JOIN.argAmount()) {
         try {
           //parse sessionID and teamID       
@@ -111,7 +112,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
-    else if (first.equals("~csess")) {
+    else if (first.equals(ServerRequest.CSESS.getReqName())) {
       System.out.println("---IN CSESS");
       if (arguments.size() == ServerRequest.CSESS.argAmount()) {
         boolean teamIDParsingFailed = false;
@@ -162,7 +163,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
-    else if (first.equals("~ses")) {
+    else if (first.equals(ServerRequest.SES.getReqName())) {
       if (arguments.size() == ServerRequest.SES.argAmount()) {        
         String whole = "";
         for(UUID uuid : database.getAllSessionIDS()) {
@@ -178,7 +179,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
-    else if (first.equals("~disc")) {
+    else if (first.equals(ServerRequest.DISC.getReqName())) {
       System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
       
       server.getDatabase().removePlayer(player.getID());

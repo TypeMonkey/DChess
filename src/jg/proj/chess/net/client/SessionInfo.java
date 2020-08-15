@@ -2,7 +2,7 @@ package jg.proj.chess.net.client;
 
 import java.util.UUID;
 
-import jg.proj.chess.net.server.SessionRules;
+import jg.proj.chess.net.SessionRules;
 
 public class SessionInfo {
   

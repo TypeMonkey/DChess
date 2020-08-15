@@ -31,13 +31,13 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.SessionRules;
+import jg.proj.chess.net.SessionRules.Properties;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.SessionInfo;
 import jg.proj.chess.net.server.Session;
-import jg.proj.chess.net.server.SessionRules;
-import jg.proj.chess.net.server.SessionRules.Properties;
 
 public class GameBrowserController {
   

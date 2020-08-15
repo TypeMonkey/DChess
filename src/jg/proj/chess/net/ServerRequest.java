@@ -177,6 +177,14 @@ public enum ServerRequest{
   }
   
   /**
+   * Returns the name of this request, with the '~'
+   * @return the name of this request, with the '~'
+   */
+  public String getReqName() {
+    return "~"+requestName;
+  }
+  
+  /**
    * Returns the formatted string for this request
    * @return the formatted string for this request
    */

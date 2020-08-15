@@ -169,7 +169,6 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     }
     signalListeners.clear();
     messageListeners.clear();
-    workerGroup.shutdownGracefully();
     isConnected = false;
   }
   

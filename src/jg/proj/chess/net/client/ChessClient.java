@@ -191,11 +191,11 @@ public class ChessClient extends Application{
     return resourceManager;
   }
   
-  public synchronized void addSignalListener(SignalListener listener) {
+  public void addSignalListener(SignalListener listener) {
     connector.addSignalListener(listener);
   }
   
-  public synchronized void addMessageListener(MessageListener listener) {
+  public void addMessageListener(MessageListener listener) {
    connector.addMessageListener(listener);
   }
   
@@ -206,11 +206,16 @@ public class ChessClient extends Application{
     //connector.sendRequest(request, reactor);  
   }
   
-  public void recordException(Exception exception) {
+  public void stop() throws InterruptedException {
+    connector.shutdown();
+    workerPool.shutdownGracefully().sync();
+  }
+  
+  public synchronized void recordException(Exception exception) {
     exception.printStackTrace();
   }
   
-  public void recordException(String message) {
+  public synchronized void recordException(String message) {
     System.err.println(message);
   }
 

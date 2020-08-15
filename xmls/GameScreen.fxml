@@ -171,6 +171,9 @@
                                  <font>
                                     <Font name="Segoe UI Bold" size="11.0" />
                                  </font>
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" />
+                                 </HBox.margin>
                               </Button>
                            </children>
                         </HBox>

@@ -1,12 +1,11 @@
-package jg.proj.chess.net.server;
+package jg.proj.chess.net;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import jg.proj.chess.net.ServerRequest;
-import jg.proj.chess.net.server.SessionRules.Properties;
+import jg.proj.chess.net.SessionRules.Properties;
 import jg.proj.chess.utils.StringAndIOUtils;
 
 public final class SessionRules {
