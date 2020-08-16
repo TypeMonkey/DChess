@@ -278,6 +278,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
               else {
                 try {
                   square.getUnit().moveTo(destination);
+                  //send "res" message
+                  msgEveryone(String.format(ServerResponses.RESULT_MSG, square.getFile(), square.getRank(), destination.getFile(), destination.getRank()));                 
                 } catch (InvalidMove e) {
                   sendSignalAll( currentTeamID == 1 ? ServerResponses.TEAM1_IDIOT_VOTE : ServerResponses.TEAM2_IDIOT_VOTE);
                   System.out.println("----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE FROM THEM! <----");
@@ -285,7 +287,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                 
                 sendSignalAll(ServerResponses.TURN_END);
               }
-
+              
             }
           }
           else if(teamOneTurn){

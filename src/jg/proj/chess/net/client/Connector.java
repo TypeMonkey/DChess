@@ -19,6 +19,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.utils.StringAndIOUtils;
 
 /**
@@ -114,13 +115,22 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         if (reqMap.containsKey(request) && reqMap.get(request).size() > 0) {
           RequestFuture future = reqMap.get(request).removeFirst();
           if (gotError) {
+            future.changeStatus(Status.ERROR);
             future.error(Integer.parseInt(split[2]));
           }
           else {
+            future.changeStatus(Status.COMPLETE);
             future.react(Arrays.copyOfRange(split, 1, split.length));
           }
-        }
-        
+          
+        }      
+      }
+      else if (req.equals("result")) {
+        //result message
+        //alert all message listeners
+        for (MessageListener listener : messageListeners) {
+          listener.handleMessage(req, Arrays.copyOfRange(split, 1, split.length));
+        }          
       }
       else {
         //now activate appropriate reactors
@@ -128,9 +138,11 @@ public class Connector extends SimpleChannelInboundHandler<String>{
           ServerRequest originalRequest = ServerRequest.valueOf(req.toUpperCase());
           RequestFuture future = reqMap.get(originalRequest).removeFirst();
           if (gotError) {
+            future.changeStatus(Status.ERROR);
             future.error(Integer.parseInt(split[2]));
           }
           else {
+            future.changeStatus(Status.COMPLETE);
             future.react(Arrays.copyOfRange(split, 1, split.length));
           }
         } catch (IllegalArgumentException e) {

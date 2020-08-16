@@ -53,10 +53,17 @@ public interface ServerResponses {
   public static final int VOTE_RECIEVED = 20; //Someone from the player's team has voted. So, the vote tally has been updated
   
   //first string argument -> user-name , second string argument -> message
-  public static final String ALL_MSG = "all:%s:%s";
+  public static final String ALL = "all";
+  public static final String ALL_MSG = ALL+":%s:%s";
   
-  public static final String TEAM_MSG = "team:%s:%s";
+  public static final String TEAM = "team";
+  public static final String TEAM_MSG = TEAM+":%s:%s";
   
   //string argument -> message
-  public static final String SERVER_MSG = "serv:%s"; 
+  public static final String SERV = "serv"; 
+  public static final String SERVER_MSG = SERV+":%s"; 
+  
+  //Sent when a vote is decided. The arguments correspond to decided unit movement on the board
+  public static final String RESULT = "result";
+  public static final String RESULT_MSG = RESULT+":%c:%d:%c:%d";
 }

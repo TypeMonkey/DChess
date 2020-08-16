@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 
 import javafx.application.Application;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
@@ -22,6 +24,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.ColumnConstraints;
@@ -34,6 +37,11 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import jg.proj.chess.core.Board;
+import jg.proj.chess.core.DefaultBoardPreparer;
+import jg.proj.chess.core.Square;
+import jg.proj.chess.core.units.InvalidMove;
+import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.MessageListener;
 import jg.proj.chess.net.client.ResourceManager;
@@ -96,17 +104,23 @@ public class GameScreenController implements SignalListener, MessageListener{
   private Button clearSendButton;
   
   //actual chess board
-  private final Rectangle [][] board;
+  private final Rectangle [][] visibleBoard;
   private final ChessClient client;
   private final ResourceManager resourceManager;
+  
+  //logic for chess board and game session
+  private final Board board;
   
   private GameScreenController(ChessClient client) { 
     this.client = client;
     this.resourceManager = client.getResourceManager();
-    board = new Rectangle[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
+    visibleBoard = new Rectangle[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
+    board = new Board(DEFAULT_BOARD_SIZE, DEFAULT_BOARD_SIZE);
   }
   
   public void init() {    
+    //prepare logical board
+    board.initialize(new DefaultBoardPreparer());
     //set the session uuid
     //sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
     sessionUUIDDisplay.setEditable(false);
@@ -144,8 +158,45 @@ public class GameScreenController implements SignalListener, MessageListener{
   }
   
   @Override
-  public void handleMessage(String messageType, String messageContent) {
-    chatListDisplay.getItems().add("["+messageType+"]"+messageContent);
+  public void handleMessage(String messageType, String ... messageContent) {
+    if (messageType.equals(ServerResponses.RESULT)) {
+      //Apply unit move to both logical board and graphical card
+      
+      //parse coordinates
+      //NOTE: ranks start at 1.
+      final char fromChar = messageContent[0].charAt(0);
+      final int fromInt = Integer.parseInt(messageContent[1]);
+      final char destChar = messageContent[2].charAt(0);
+      final int destInt = Integer.parseInt(messageContent[3]);
+      
+      //update board
+      
+      //move units on the logical board
+      Square fromSquare = board.querySquare(fromChar, fromInt);
+      Square destSquare = board.querySquare(destChar, destInt);
+      
+      try {
+        fromSquare.getUnit().moveTo(destSquare);
+      } catch (InvalidMove e) {
+        /*
+         * This shouldn't happen as even if a session
+         * allows for invalid votes, the server doesn't
+         * send RESULT messages if an invalid vote reaches consensus
+         */
+        client.recordException(e);
+      }
+      
+      //move unit on the graphical board
+      Rectangle graphFromSquare = visibleBoard[fromInt - 1][fromChar - 'A'];
+      Rectangle graphToSquare = visibleBoard[destInt - 1][destChar - 'A'];
+      
+      Paint unit = graphFromSquare.getFill();
+      graphFromSquare.setFill(Color.TRANSPARENT);
+      graphToSquare.setFill(unit);
+    }
+    else {
+      chatListDisplay.getItems().add("["+messageType+"]"+messageContent);
+    }
   }
   
   @Override
@@ -153,8 +204,14 @@ public class GameScreenController implements SignalListener, MessageListener{
     //TODO: Code to handle various signals
   }
   
-  private void makeBoard() {   
+  public void showLegalMoves( ) {
+    
+  }
+  
+  private void makeBoard() {      
     VBox rowFixer = new VBox(0);
+    Group group = new Group(rowFixer);
+
         
     HBox colMarkerRow = new HBox(0);
     
@@ -219,14 +276,28 @@ public class GameScreenController implements SignalListener, MessageListener{
         square.setStroke(Color.BLACK);
         square.setFill(Color.TRANSPARENT);
         
-        board[r][c] = square;
+        square.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<Event>() {
+          @Override
+          public void handle(Event event) {
+            System.out.println("---SQUARE CLICKED!! board greying!");
+            square.setDisable(true);
+          }         
+        });
+        
+        square.addEventFilter(MouseEvent.MOUSE_RELEASED, new EventHandler<Event>() {
+          @Override
+          public void handle(Event event) {
+            System.out.println("---SQUARE RELEASED!! board greying!");
+            square.setDisable(false);         
+          }                 
+        });
+        
+        visibleBoard[r][c] = square;
         
         colFixer.getChildren().add(square);
       }
       rowFixer.getChildren().add(colFixer);
-    }
-    
-    Group group = new Group(rowFixer);
+    }    
     
     chessBoardPane.setAlignment(Pos.CENTER);    
     chessBoardPane.getChildren().add(group);
@@ -234,31 +305,31 @@ public class GameScreenController implements SignalListener, MessageListener{
     //set chess pieces manually    
     try {
       //white pieces
-      board[0][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
-      board[0][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
-      board[0][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
-      board[0][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenWhite"))));
-      board[0][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingWhite"))));
-      board[0][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
-      board[0][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
-      board[0][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
+      visibleBoard[0][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
+      visibleBoard[0][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
+      visibleBoard[0][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
+      visibleBoard[0][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenWhite"))));
+      visibleBoard[0][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingWhite"))));
+      visibleBoard[0][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
+      visibleBoard[0][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
+      visibleBoard[0][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
 
       for(int c = 0; c < 8; c++) {
-        board[1][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnWhite"))));
+        visibleBoard[1][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnWhite"))));
       }
       
       //black pieces
-      board[7][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
-      board[7][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
-      board[7][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
-      board[7][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenBlack"))));
-      board[7][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingBlack"))));
-      board[7][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
-      board[7][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
-      board[7][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
+      visibleBoard[7][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
+      visibleBoard[7][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
+      visibleBoard[7][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
+      visibleBoard[7][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenBlack"))));
+      visibleBoard[7][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingBlack"))));
+      visibleBoard[7][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
+      visibleBoard[7][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
+      visibleBoard[7][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
 
       for(int c = 0; c < 8; c++) {
-        board[6][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnBlack"))));
+        visibleBoard[6][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnBlack"))));
       }
 
     } catch (IOException e) {

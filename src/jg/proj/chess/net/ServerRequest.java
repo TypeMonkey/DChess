@@ -64,7 +64,7 @@ public enum ServerRequest{
       ArgType.INTEGER, ArgType.BOOLEAN, ArgType.INTEGER, ArgType.INTEGER, ArgType.BOOLEAN, ArgType.BOOLEAN),
   
   /**
-   * Requests the most recent string representation of the current game's state
+   * Requests the most recent string representation of the current game's baord
    * 
    * Returns: the String that represents the board's most current state
    *          or BAD_REQ if not in a session

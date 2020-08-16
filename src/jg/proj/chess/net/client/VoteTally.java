@@ -1,5 +1,10 @@
 package jg.proj.chess.net.client;
 
+/**
+ * Stores the vote count of a specific move
+ * @author Jose
+ *
+ */
 public class VoteTally {
 
   private final char oldFile;

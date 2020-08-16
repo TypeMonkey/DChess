@@ -19,6 +19,6 @@ public interface MessageListener {
    * @param messageType - the type of message
    * @param messageContent - the actual message's content
    */
-  public void handleMessage(String messageType, String messageContent);
+  public void handleMessage(String messageType, String ... messageContent);
   
 }
