@@ -7,6 +7,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.junit.experimental.theories.FromDataPoints;
 
 import javafx.application.Application;
 import javafx.event.Event;
@@ -148,6 +152,9 @@ public class GameScreenController implements SignalListener, MessageListener{
     chatInput.setWrapText(true);
     sessionUUIDDisplay.setEditable(false);
         
+    //disable send vote on default
+    sendVoteButton.setDisable(true);
+    
     makeBoard();  
     
     /*
@@ -192,8 +199,8 @@ public class GameScreenController implements SignalListener, MessageListener{
       }
       
       //move unit on the graphical board
-      Rectangle graphFromSquare = visibleBoard[fromInt - 1][fromChar - 'A'].getShape();
-      Rectangle graphToSquare = visibleBoard[destInt - 1][destChar - 'A'].getShape();
+      Rectangle graphFromSquare = visibleBoard[fromInt - 1][fromChar - 'A'].getOutline();
+      Rectangle graphToSquare = visibleBoard[destInt - 1][destChar - 'A'].getOutline();
       
       Paint unit = graphFromSquare.getFill();
       graphFromSquare.setFill(Color.TRANSPARENT);
@@ -254,9 +261,9 @@ public class GameScreenController implements SignalListener, MessageListener{
     }
     rowFixer.getChildren().add(colMarkerRow);
     
-    boolean greyOut = true;
+    boolean colGreyOut = true;
     for(int r = 0; r<8; r++) {
-      HBox colFixer = new HBox(1);
+      HBox colFixer = new HBox(3);
       
       final Label label = new Label(String.valueOf(r));
       label.setStyle("-fx-font-size: 30");
@@ -277,38 +284,97 @@ public class GameScreenController implements SignalListener, MessageListener{
       stackPane.getChildren().addAll(colSquare, label);
       colFixer.getChildren().add(stackPane);
       
+      boolean rowGreyOut = !colGreyOut;
       for(int c = 0; c<8; c++) {
-        Rectangle square = new Rectangle(46, 46);
-        square.setStroke(Color.BLACK);
-        square.setFill(greyOut ? Color.GREY : Color.TRANSPARENT);
-        square.setStrokeWidth(2);
+        Rectangle outlineSquare = new Rectangle(46, 46);
+        outlineSquare.setStroke(Color.BLACK);     
+        outlineSquare.setFill(rowGreyOut ? Color.GREY : Color.TRANSPARENT);
+        rowGreyOut = !rowGreyOut;       
+        outlineSquare.setStrokeWidth(3);
+        
+        Rectangle frameSquare = new Rectangle(46, 46);
+        frameSquare.setStroke(Color.TRANSPARENT);
+        frameSquare.setFill(Color.TRANSPARENT);
         
         StackPane squarePane = new StackPane();
         squarePane.setAlignment(Pos.CENTER);
         squarePane.setPrefSize(46, 46);
         squarePane.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         squarePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+             
+        squarePane.getChildren().addAll(outlineSquare, frameSquare);
         
-        
-        squarePane.getChildren().add(square);
-        
-        square.setOnMouseClicked( new EventHandler<Event>() {
+        final int squareFile = r + 1;
+        final char squareRank = (char) (c + 'A');
+        squarePane.setOnMouseClicked( new EventHandler<Event>() {
           @Override
           public void handle(Event event) {
             System.out.println("---SQUARE CLICKED!! board greying!");
+
+            if (voteChoice.isVoteComplete()) {
+              /*
+               * New vote is being made. Reset the board
+               */
+              Square firstChoice = voteChoice.getFromChoice();
+              Set<Square> posChoices = firstChoice.getUnit() != null ? 
+                                       firstChoice.getUnit().possibleDestinations() : 
+                                       new HashSet<Square>();
+
+              //go through possible squares and de-highlight them
+              for (Square choiceSquare : posChoices) {
+                GraphicalSquare gSquare = visibleBoard[choiceSquare.getFile() - 1][choiceSquare.getRank() - 'A'];
+                gSquare.getFrame().setFill(Color.TRANSPARENT);
+                gSquare.getOutline().setStroke(Color.BLACK);
+              }
+              
+              //then de-highlight from and to choices
+              Square fromSquare = voteChoice.getFromChoice();
+              Square toSquare = voteChoice.getToChoice();
+              
+              GraphicalSquare fromGSquare = visibleBoard[fromSquare.getFile() - 1][fromSquare.getRank() - 'A'];
+              GraphicalSquare toGSquare = visibleBoard[toSquare.getFile() - 1][toSquare.getRank() - 'A'];
+              
+              fromGSquare.getOutline().setStroke(Color.BLACK);
+              toGSquare.getOutline().setStroke(Color.BLACK);
+              
+              //now reset VoteChoice object
+              voteChoice.setFromChoice(null);
+              voteChoice.setToChoice(null);
+            }
+
+            if (voteChoice.getFromChoice() == null) {
+              Square pickedSquare = board.querySquare(squareFile, squareRank);
+              System.out.println("---first choice!!!"+pickedSquare+" | "+pickedSquare.getUnit().getType());
+              voteChoice.setFromChoice(pickedSquare);
+              //highlight this square as green
+              outlineSquare.setStroke(Color.GREEN);
+              
+              Set<Square> possibleChoices = pickedSquare.getUnit() != null ? 
+                                            pickedSquare.getUnit().possibleDestinations() : 
+                                            new HashSet<Square>();
+              
+              for (Square choiceSquare : possibleChoices) {
+                GraphicalSquare choiceGSquare = visibleBoard[choiceSquare.getFile() - 1][choiceSquare.getRank() - 'A'];
+                choiceGSquare.getOutline().setFill(Color.LIGHTGREEN);
+                choiceGSquare.getOutline().setStroke(Color.GREEN);
+              }
+            }
+            else if (voteChoice.getToChoice() == null) {
+              voteChoice.setToChoice(board.querySquare(squareFile, squareRank));
+              //highlight this square as blue
+              outlineSquare.setStroke(Color.BLUE);
+            }
             
-            //mark this sqaure's outline as green
-            square.setStroke(Color.GREEN);
           }         
         });
         
         
-        visibleBoard[r][c] = new GraphicalSquare(squarePane, square);
+        visibleBoard[r][c] = new GraphicalSquare(squarePane, outlineSquare, frameSquare);
         
         colFixer.getChildren().add(squarePane);
       }
       
-      greyOut = !greyOut;
+      colGreyOut = !colGreyOut;
       
       rowFixer.getChildren().add(colFixer);
     }    
@@ -316,41 +382,41 @@ public class GameScreenController implements SignalListener, MessageListener{
     chessBoardPane.setAlignment(Pos.CENTER);    
     chessBoardPane.getChildren().add(group);
     
-    /*
+    
     //set chess pieces manually    
     try {
-      //white pieces
-      visibleBoard[0][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
-      visibleBoard[0][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
-      visibleBoard[0][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
-      visibleBoard[0][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenWhite"))));
-      visibleBoard[0][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingWhite"))));
-      visibleBoard[0][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookWhite"))));
-      visibleBoard[0][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightWhite"))));
-      visibleBoard[0][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopWhite"))));
+      //white piece
+      visibleBoard[0][0].setPicture(new Image(resourceManager.getResourceAsStream("rookWhite")));
+      visibleBoard[0][1].setPicture(new Image(resourceManager.getResourceAsStream("knightWhite")));
+      visibleBoard[0][2].setPicture(new Image(resourceManager.getResourceAsStream("bishopWhite")));
+      visibleBoard[0][3].setPicture(new Image(resourceManager.getResourceAsStream("queenWhite")));
+      visibleBoard[0][4].setPicture(new Image(resourceManager.getResourceAsStream("kingWhite")));
+      visibleBoard[0][5].setPicture(new Image(resourceManager.getResourceAsStream("bishopWhite")));
+      visibleBoard[0][6].setPicture(new Image(resourceManager.getResourceAsStream("knightWhite")));
+      visibleBoard[0][7].setPicture(new Image(resourceManager.getResourceAsStream("rookWhite")));
 
       for(int c = 0; c < 8; c++) {
-        visibleBoard[1][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnWhite"))));
+        visibleBoard[1][c].setPicture(new Image(resourceManager.getResourceAsStream("pawnWhite")));
       }
       
       //black pieces
-      visibleBoard[7][0].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
-      visibleBoard[7][1].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
-      visibleBoard[7][2].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
-      visibleBoard[7][3].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("queenBlack"))));
-      visibleBoard[7][4].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("kingBlack"))));
-      visibleBoard[7][5].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("rookBlack"))));
-      visibleBoard[7][6].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("knightBlack"))));
-      visibleBoard[7][7].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("bishopBlack"))));
+      visibleBoard[7][0].setPicture(new Image(resourceManager.getResourceAsStream("rookBlack")));
+      visibleBoard[7][1].setPicture(new Image(resourceManager.getResourceAsStream("knightBlack")));
+      visibleBoard[7][2].setPicture(new Image(resourceManager.getResourceAsStream("bishopBlack")));
+      visibleBoard[7][3].setPicture(new Image(resourceManager.getResourceAsStream("queenBlack")));
+      visibleBoard[7][4].setPicture(new Image(resourceManager.getResourceAsStream("kingBlack")));
+      visibleBoard[7][5].setPicture(new Image(resourceManager.getResourceAsStream("bishopBlack")));
+      visibleBoard[7][6].setPicture(new Image(resourceManager.getResourceAsStream("knightBlack")));
+      visibleBoard[7][7].setPicture(new Image(resourceManager.getResourceAsStream("rookBlack")));
 
       for(int c = 0; c < 8; c++) {
-        visibleBoard[6][c].setFill(new ImagePattern(new Image(resourceManager.getResourceAsStream("pawnBlack"))));
+        visibleBoard[6][c].setPicture(new Image(resourceManager.getResourceAsStream("pawnBlack")));
       }
 
     } catch (IOException e) {
      client.recordException(e);
     }
-    */
+    
   }
 
   private static GameScreenController screenController;
