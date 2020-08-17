@@ -27,9 +27,9 @@ public class Board {
     return squares;
   }
   
-  public Square querySquare(char file, int rank){
-    int row = rank - 1;
-    int col = Character.toUpperCase(file) - 'A';
+  public Square querySquare(int file, char rank){
+    int row = file - 1;
+    int col = Character.toUpperCase(rank) - 'A';
     
     //System.out.println("files: "+row+" | ranks: "+col);
     if ((0 <= row && row < rankWidth) && (0 <= col && col < fileWidth)) {

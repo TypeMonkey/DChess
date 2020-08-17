@@ -23,9 +23,9 @@ public class King extends Unit{
     Square north = null, south = null, east = null, west = null, northWest = null, northEast = null, southWest = null, southEast = null;
     
     //calculate north
-    north = board.querySquare(currentSquare.getFile(), currentSquare.getRank() - 1);
+    north = board.querySquare(currentSquare.getFile(), (char) (currentSquare.getRank() - 1));
     //calculate south
-    south = board.querySquare(currentSquare.getFile(), currentSquare.getRank() + 1);
+    south = board.querySquare(currentSquare.getFile(), (char) (currentSquare.getRank() + 1));
     //calculate east
     east = board.querySquare((char) (currentSquare.getFile() - 1), currentSquare.getRank());
     //calculate west
@@ -37,13 +37,13 @@ public class King extends Unit{
     possibles.add( (east != null && east.getUnit() != null && east.getUnit().getTeamID() != getTeamID()) ? east : null);
     
     //calculate NW
-    northWest = board.querySquare((char) (currentSquare.getFile() - 1), currentSquare.getRank() - 1);
+    northWest = board.querySquare(currentSquare.getFile() - 1, (char) (currentSquare.getRank() - 1));
     //calculate NE
-    northEast = board.querySquare((char) (currentSquare.getFile() + 1), currentSquare.getRank() - 1);
+    northEast = board.querySquare(currentSquare.getFile() + 1, (char) (currentSquare.getRank() - 1));
     //calculate SW
-    southWest = board.querySquare((char) (currentSquare.getFile() - 1), currentSquare.getRank() + 1);
+    southWest = board.querySquare(currentSquare.getFile() - 1, (char) (currentSquare.getRank() + 1));
     //calculate SE
-    southEast = board.querySquare((char) (currentSquare.getFile() + 1), currentSquare.getRank() + 1);
+    southEast = board.querySquare(currentSquare.getFile() + 1, (char) (currentSquare.getRank() + 1));
     
     possibles.add( (northEast != null && northEast.getUnit() != null && northEast.getUnit().getTeamID() != getTeamID()) ? northEast : null);
     possibles.add( (northWest != null && northWest.getUnit() != null && northWest.getUnit().getTeamID() != getTeamID()) ? northWest : null);

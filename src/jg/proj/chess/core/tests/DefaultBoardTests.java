@@ -37,50 +37,50 @@ public class DefaultBoardTests {
   @Test
   public void test1DefaultPreparation(){    
     //check Team 1 positions
-    assertEquals(board.querySquare('a', 1).getUnit().getType(), UnitType.ROOK);
-    assertEquals(board.querySquare('b', 1).getUnit().getType(), UnitType.KNIGHT);
-    assertEquals(board.querySquare('c', 1).getUnit().getType(), UnitType.BISHOP);
-    assertEquals(board.querySquare('d', 1).getUnit().getType(), UnitType.KING);
-    assertEquals(board.querySquare('e', 1).getUnit().getType(), UnitType.QUEEN);
-    assertEquals(board.querySquare('f', 1).getUnit().getType(), UnitType.BISHOP);
-    assertEquals(board.querySquare('g', 1).getUnit().getType(), UnitType.KNIGHT);
-    assertEquals(board.querySquare('h', 1).getUnit().getType(), UnitType.ROOK);
+    assertEquals(board.querySquare(1, 'a').getUnit().getType(), UnitType.ROOK);
+    assertEquals(board.querySquare(1, 'b').getUnit().getType(), UnitType.KNIGHT);
+    assertEquals(board.querySquare(1, 'c').getUnit().getType(), UnitType.BISHOP);
+    assertEquals(board.querySquare(1, 'd').getUnit().getType(), UnitType.KING);
+    assertEquals(board.querySquare(1, 'e').getUnit().getType(), UnitType.QUEEN);
+    assertEquals(board.querySquare(1, 'f').getUnit().getType(), UnitType.BISHOP);
+    assertEquals(board.querySquare(1, 'g').getUnit().getType(), UnitType.KNIGHT);
+    assertEquals(board.querySquare(1, 'h').getUnit().getType(), UnitType.ROOK);
     
     //check pawns
-    for(char file = 'A'; file <= 'H'; file++){
-      assertEquals(board.querySquare(file, 2).getUnit().getType(), UnitType.PAWN);
+    for(char rank = 'A'; rank <= 'H'; rank++){
+      assertEquals(board.querySquare(2, rank).getUnit().getType(), UnitType.PAWN);
     }
        
-    for(char file = 'A'; file <= 'H'; file++){
-      for(int rank = 1; rank <= 2; rank++){
+    for(int file = 1; file <= 2; file++){
+      for(char rank = 'A'; rank <= 'H'; rank++){
         assertEquals(board.querySquare(file, rank).getUnit().getTeamID(), 1);
       }
     }
     
     //check Team 2 positions
-    assertEquals(board.querySquare('a', 8).getUnit().getType(), UnitType.ROOK);
-    assertEquals(board.querySquare('b', 8).getUnit().getType(), UnitType.KNIGHT);
-    assertEquals(board.querySquare('c', 8).getUnit().getType(), UnitType.BISHOP);
-    assertEquals(board.querySquare('d', 8).getUnit().getType(), UnitType.KING);
-    assertEquals(board.querySquare('e', 8).getUnit().getType(), UnitType.QUEEN);
-    assertEquals(board.querySquare('f', 8).getUnit().getType(), UnitType.BISHOP);
-    assertEquals(board.querySquare('g', 8).getUnit().getType(), UnitType.KNIGHT);
-    assertEquals(board.querySquare('h', 8).getUnit().getType(), UnitType.ROOK);
+    assertEquals(board.querySquare(8, 'a').getUnit().getType(), UnitType.ROOK);
+    assertEquals(board.querySquare(8, 'b').getUnit().getType(), UnitType.KNIGHT);
+    assertEquals(board.querySquare(8, 'c').getUnit().getType(), UnitType.BISHOP);
+    assertEquals(board.querySquare(8, 'd').getUnit().getType(), UnitType.KING);
+    assertEquals(board.querySquare(8, 'e').getUnit().getType(), UnitType.QUEEN);
+    assertEquals(board.querySquare(8, 'f').getUnit().getType(), UnitType.BISHOP);
+    assertEquals(board.querySquare(8, 'g').getUnit().getType(), UnitType.KNIGHT);
+    assertEquals(board.querySquare(8, 'h').getUnit().getType(), UnitType.ROOK);
     
     //check pawns
-    for(char file = 'A'; file <= 'H'; file++){
-      assertEquals(board.querySquare(file, 7).getUnit().getType(), UnitType.PAWN);
+    for(char rank = 'A'; rank <= 'H'; rank++){
+      assertEquals(board.querySquare(7, rank).getUnit().getType(), UnitType.PAWN);
     }
        
-    for(char file = 'A'; file <= 'H'; file++){
-      for(int rank = 7; rank <= 8; rank++){
-        assertEquals(board.querySquare(file, 8).getUnit().getTeamID(), 2);
+    for(int file = 7; file <= 8; file++){
+      for(char rank = 'A'; rank <= 'H'; rank++){
+        assertEquals(board.querySquare(file, rank).getUnit().getTeamID(), 2);
       }
     }
     
     //the ranks from 3 to 6 should have no units
-    for(int rank = 3; rank <= 6; rank++){
-      for(char file = 'A'; file <= 'H'; file++){
+    for(int file = 3; file <= 6; file++){
+      for(char rank = 'A'; rank <= 'H'; rank++){
         assertEquals(board.querySquare(file, rank).getUnit() == null, true);
       }
     }
@@ -88,11 +88,11 @@ public class DefaultBoardTests {
   
   @Test
   public void test2UnitPossibles(){
-    //all the none-pawn units at the star should have zero possible landings except knights   
+    //all the none-pawn units at the start should have zero possible landings except knights   
     
     //Team 1
-    for(char file = 'A'; file <= 'H'; file++){
-      Unit unit = board.querySquare(file, 1).getUnit();
+    for(char rank = 'A'; rank <= 'H'; rank++){
+      Unit unit = board.querySquare(1, rank).getUnit();
       if (unit.getType() == UnitType.KNIGHT) {
         continue;
       }
@@ -105,8 +105,8 @@ public class DefaultBoardTests {
     }
     
     //Team 2
-    for(char file = 'A'; file <= 'H'; file++){
-      Unit unit = board.querySquare(file, 8).getUnit();
+    for(char rank = 'A'; rank <= 'H'; rank++){
+      Unit unit = board.querySquare(8, rank).getUnit();
       if (unit.getType() == UnitType.KNIGHT) {
         continue;
       }
@@ -120,17 +120,17 @@ public class DefaultBoardTests {
     
     //check knights. Should only have 2 moves from the get go
     System.out.println("-------------");
-    System.out.println(board.querySquare('b', 1).getUnit().possibleDestinations());
-    assertEquals(board.querySquare('b', 1).getUnit().possibleDestinations().size(), 2);
+    System.out.println(board.querySquare(1, 'b').getUnit().possibleDestinations());
+    assertEquals(board.querySquare(1, 'b').getUnit().possibleDestinations().size(), 2);
     
-    assertEquals(board.querySquare('g', 1).getUnit().possibleDestinations().size(), 2);
-    assertEquals(board.querySquare('b', 8).getUnit().possibleDestinations().size(), 2);
-    assertEquals(board.querySquare('g', 8).getUnit().possibleDestinations().size(), 2);
+    assertEquals(board.querySquare(1, 'g').getUnit().possibleDestinations().size(), 2);
+    assertEquals(board.querySquare(8, 'b').getUnit().possibleDestinations().size(), 2);
+    assertEquals(board.querySquare(8, 'g').getUnit().possibleDestinations().size(), 2);
 
     //all pawns should have two possible destinations
     //Team 1
-    for(char file = 'A'; file <= 'H'; file++){
-      Pawn unit = (Pawn) board.querySquare(file, 2).getUnit();
+    for(char rank = 'A'; rank <= 'H'; rank++){
+      Pawn unit = (Pawn) board.querySquare(2, rank).getUnit();
       Set<Square> poss = unit.possibleDestinations();
       System.out.println(" FOR: "+ unit);
       System.out.println("     "+poss);
@@ -139,8 +139,8 @@ public class DefaultBoardTests {
     }
     
     //Team 2
-    for(char file = 'A'; file <= 'H'; file++){
-      Pawn unit = (Pawn) board.querySquare(file, 7).getUnit();
+    for(char rank = 'A'; rank <= 'H'; rank++){
+      Pawn unit = (Pawn) board.querySquare(7, rank).getUnit();
       Set<Square> poss = unit.possibleDestinations();
       System.out.println(" FOR: "+ unit);
       System.out.println("     "+poss);
@@ -152,26 +152,26 @@ public class DefaultBoardTests {
   @Test
   public void test3Pawn(){
     //Test Team 1 first (occupies the north)
-    Pawn pawn = (Pawn) board.querySquare('b', 2).getUnit();
+    Pawn pawn = (Pawn) board.querySquare(2, 'b').getUnit();
     
     try {
-      pawn.moveTo(board.querySquare('b', 3));
+      pawn.moveTo(board.querySquare(3, 'b'));
       
-      assertTrue(pawn.getCurrentSquare().equals(board.querySquare('b', 3)));
-      assertTrue(pawn == board.querySquare('b', 3).getUnit());
+      assertTrue(pawn.getCurrentSquare().equals(board.querySquare(3, 'b')));
+      assertTrue(pawn == board.querySquare(3, 'b').getUnit());
     } catch (InvalidMove e) {
       fail("Actually a valid move!");
     }
     
-    pawn = (Pawn) board.querySquare('f', 2).getUnit();
+    pawn = (Pawn) board.querySquare(2, 'f').getUnit();
     try {
-      pawn.moveTo(board.querySquare('f', 4));
-      pawn.moveTo(board.querySquare('f', 5));
+      pawn.moveTo(board.querySquare(4, 'f'));
+      pawn.moveTo(board.querySquare(5, 'f'));
     } catch (InvalidMove e) {
       fail("Actually a valid move!");
     }
     
-    Pawn enemyPawn = (Pawn) board.querySquare('f', 7).getUnit();
+    Pawn enemyPawn = (Pawn) board.querySquare(7, 'f').getUnit();
     try {
       enemyPawn.moveTo(enemyPawn.getCurrentSquare().upSquare());
     } catch (InvalidMove e) {
@@ -193,7 +193,7 @@ public class DefaultBoardTests {
       assertTrue(true);
     }
     
-    enemyPawn = (Pawn) board.querySquare('e', 7).getUnit();
+    enemyPawn = (Pawn) board.querySquare(7, 'e').getUnit();
     try {
       enemyPawn.moveTo(enemyPawn.getCurrentSquare().upSquare());
       pawn.moveTo(pawn.getCurrentSquare().downSquare().leftSquare());
@@ -202,7 +202,7 @@ public class DefaultBoardTests {
       assertTrue(enemyPawn.getCurrentSquare() == null);
       assertTrue(pawn.getCurrentSquare() != null);
       
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('e', 6));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(6, 'e'));
     } catch (InvalidMove e) {
       fail("Actually a valid move!");
     }
@@ -210,43 +210,43 @@ public class DefaultBoardTests {
     System.out.println("-----------------------");
     System.out.println(board);
     
-    pawn = (Pawn) board.querySquare('a', 2).getUnit();
+    pawn = (Pawn) board.querySquare(2, 'a').getUnit();
     try {
       pawn.moveTo(pawn.getCurrentSquare().downSquare());      
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('a', 3));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(3, 'a'));
       
       System.out.println(board);
       
       pawn.moveTo(pawn.getCurrentSquare().downSquare());      
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('a', 4));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(4, 'a'));
       
       pawn.moveTo(pawn.getCurrentSquare().downSquare());      
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('a', 5));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(5, 'a'));
       
       pawn.moveTo(pawn.getCurrentSquare().downSquare());      
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('a', 6));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(6, 'a'));
       
       pawn.moveTo(pawn.getCurrentSquare().downSquare().rightSquare());
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('b', 7));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(7, 'b'));
       
       pawn.moveTo(pawn.getCurrentSquare().downSquare().rightSquare());
-      assertEquals(pawn.getCurrentSquare(), board.querySquare('c', 8));
+      assertEquals(pawn.getCurrentSquare(), board.querySquare(8, 'c'));
 
       System.out.println(board);
     } catch (InvalidMove e) {
       fail("Actually a valid move!");
     }
     
-    Rook rook = (Rook) board.querySquare('a', 1).getUnit();
+    Rook rook = (Rook) board.querySquare(1, 'a').getUnit();
     try {
-      rook.moveTo(board.querySquare('a', 7));
-      assertEquals(rook.getCurrentSquare(), board.querySquare('a', 7));
+      rook.moveTo(board.querySquare(7, 'a'));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(7, 'a'));
       
       rook.moveTo(rook.getCurrentSquare().downSquare());
-      assertEquals(rook.getCurrentSquare(), board.querySquare('a', 8));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(8, 'a'));
 
       rook.moveTo(rook.getCurrentSquare().rightSquare());
-      assertEquals(rook.getCurrentSquare(), board.querySquare('b', 8));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(8, 'b'));
 
       System.out.println(board);
     } catch (InvalidMove e) {
@@ -262,16 +262,16 @@ public class DefaultBoardTests {
 
     try {
       rook.moveTo(rook.getCurrentSquare().upSquare());
-      assertEquals(rook.getCurrentSquare(), board.querySquare('b', 7));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(7, 'b'));
       
       rook.moveTo(rook.getCurrentSquare().rightSquare());
-      assertEquals(rook.getCurrentSquare(), board.querySquare('c', 7));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(7, 'c'));
 
       rook.moveTo(rook.getCurrentSquare().rightSquare());
-      assertEquals(rook.getCurrentSquare(), board.querySquare('d', 7));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(7, 'd'));
       
       rook.moveTo(rook.getCurrentSquare().downSquare());
-      assertEquals(rook.getCurrentSquare(), board.querySquare('d', 8));
+      assertEquals(rook.getCurrentSquare(), board.querySquare(8, 'd'));
 
       //assert win condition. A.k.A: Team 2's only king's current square is null
       assertNull(info.getTeamTwo().get(UnitType.KING).get(0).getCurrentSquare());

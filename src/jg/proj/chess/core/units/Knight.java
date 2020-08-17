@@ -24,26 +24,26 @@ public class Knight extends Unit{
     Board board = currentSquare.getHostBoard();   
     
     //north possibilities
-    Square northOne = board.querySquare((char) (currentSquare.getFile() - 1), currentSquare.getRank() - 2);
-    Square northTwo = board.querySquare((char) (currentSquare.getFile() + 1), currentSquare.getRank() - 2); 
+    Square northOne = board.querySquare(currentSquare.getFile() - 1, (char) (currentSquare.getRank() - 2));
+    Square northTwo = board.querySquare(currentSquare.getFile() + 1, (char) (currentSquare.getRank() - 2)); 
     possibles.add(northOne);
     possibles.add(northTwo);
 
     //south possibilities
-    Square southOne = board.querySquare((char) (currentSquare.getFile() - 1), currentSquare.getRank() + 2);
-    Square southTwo = board.querySquare((char) (currentSquare.getFile() + 1), currentSquare.getRank() + 2);
+    Square southOne = board.querySquare(currentSquare.getFile() - 1, (char) (currentSquare.getRank() + 2));
+    Square southTwo = board.querySquare(currentSquare.getFile() + 1, (char) (currentSquare.getRank() + 2));
     possibles.add(southOne);
     possibles.add(southTwo);
     
     //west possibilities
-    Square westOne = board.querySquare((char) (currentSquare.getFile() - 2), currentSquare.getRank() + 1);
-    Square westTwo = board.querySquare((char) (currentSquare.getFile() - 2), currentSquare.getRank() - 1);
+    Square westOne = board.querySquare(currentSquare.getFile() - 2, (char) (currentSquare.getRank() + 1));
+    Square westTwo = board.querySquare(currentSquare.getFile() - 2, (char) (currentSquare.getRank() - 1));
     possibles.add(westOne);
     possibles.add(westTwo);
     
     //east possibilities
-    Square eastOne = board.querySquare((char) (currentSquare.getFile() + 2), currentSquare.getRank() + 1);
-    Square eastTwo = board.querySquare((char) (currentSquare.getFile() + 2), currentSquare.getRank() - 1);
+    Square eastOne = board.querySquare(currentSquare.getFile() + 2, (char) (currentSquare.getRank() + 1));
+    Square eastTwo = board.querySquare(currentSquare.getFile() + 2, (char) (currentSquare.getRank() - 1));
     possibles.add(eastOne);
     possibles.add(eastTwo);
     

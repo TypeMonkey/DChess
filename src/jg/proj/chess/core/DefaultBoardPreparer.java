@@ -84,9 +84,9 @@ public class DefaultBoardPreparer implements BoardPreparer{
     }
     
     //fill board matrix with squares
-    for(int rank = 1; rank <= 8; rank++){
-      for(char file = 'A'; file <= 'H'; file++){
-        squares[rank - 1][file - 'A'] = new Square(file, rank, board);
+    for(int file = 1; file <= 8; file++){
+      for(char rank = 'A'; rank <= 'H'; rank++){
+        squares[file - 1][rank - 'A'] = new Square(file, rank, board);
       }
     }
 

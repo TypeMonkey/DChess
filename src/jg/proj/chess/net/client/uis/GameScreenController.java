@@ -31,6 +31,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -47,6 +48,8 @@ import jg.proj.chess.net.client.MessageListener;
 import jg.proj.chess.net.client.ResourceManager;
 import jg.proj.chess.net.client.SignalListener;
 import jg.proj.chess.net.client.VoteTally;
+import jg.proj.chess.net.client.uis.components.GraphicalSquare;
+import jg.proj.chess.net.client.uis.components.VoteChoice;
 
 public class GameScreenController implements SignalListener, MessageListener{
   
@@ -104,17 +107,19 @@ public class GameScreenController implements SignalListener, MessageListener{
   private Button clearSendButton;
   
   //actual chess board
-  private final Rectangle [][] visibleBoard;
+  private final GraphicalSquare [][] visibleBoard;
   private final ChessClient client;
   private final ResourceManager resourceManager;
   
   //logic for chess board and game session
   private final Board board;
+  private final VoteChoice voteChoice;
   
   private GameScreenController(ChessClient client) { 
     this.client = client;
     this.resourceManager = client.getResourceManager();
-    visibleBoard = new Rectangle[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
+    voteChoice = new VoteChoice();
+    visibleBoard = new GraphicalSquare[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
     board = new Board(DEFAULT_BOARD_SIZE, DEFAULT_BOARD_SIZE);
   }
   
@@ -187,8 +192,8 @@ public class GameScreenController implements SignalListener, MessageListener{
       }
       
       //move unit on the graphical board
-      Rectangle graphFromSquare = visibleBoard[fromInt - 1][fromChar - 'A'];
-      Rectangle graphToSquare = visibleBoard[destInt - 1][destChar - 'A'];
+      Rectangle graphFromSquare = visibleBoard[fromInt - 1][fromChar - 'A'].getShape();
+      Rectangle graphToSquare = visibleBoard[destInt - 1][destChar - 'A'].getShape();
       
       Paint unit = graphFromSquare.getFill();
       graphFromSquare.setFill(Color.TRANSPARENT);
@@ -209,11 +214,11 @@ public class GameScreenController implements SignalListener, MessageListener{
   }
   
   private void makeBoard() {      
-    VBox rowFixer = new VBox(0);
+    VBox rowFixer = new VBox();
     Group group = new Group(rowFixer);
 
         
-    HBox colMarkerRow = new HBox(0);
+    HBox colMarkerRow = new HBox(1);
     
     //this is the square at the top left corner of the board
     final Rectangle dummyCornerSquare = new Rectangle(50, 50);
@@ -230,11 +235,11 @@ public class GameScreenController implements SignalListener, MessageListener{
       label.setTextAlignment(TextAlignment.CENTER);
       label.setContentDisplay(ContentDisplay.CENTER);
       label.setAlignment(Pos.CENTER);
-      label.setPrefSize(25, 25);
       
-      final Rectangle square = new Rectangle(50, 50);
+      final Rectangle square = new Rectangle(46, 46);
       square.setFill(Color.TRANSPARENT);
       square.setStroke(Color.TRANSPARENT);
+      square.setStrokeWidth(2);
       
       final StackPane stackPane = new StackPane();
       stackPane.setAlignment(Pos.CENTER);
@@ -248,10 +253,10 @@ public class GameScreenController implements SignalListener, MessageListener{
       colMarkerRow.getChildren().add(stackPane);
     }
     rowFixer.getChildren().add(colMarkerRow);
-
     
+    boolean greyOut = true;
     for(int r = 0; r<8; r++) {
-      HBox colFixer = new HBox(0);
+      HBox colFixer = new HBox(1);
       
       final Label label = new Label(String.valueOf(r));
       label.setStyle("-fx-font-size: 30");
@@ -261,9 +266,10 @@ public class GameScreenController implements SignalListener, MessageListener{
       label.setAlignment(Pos.CENTER);
       label.setPrefSize(25, 25);
       
-      final Rectangle colSquare = new Rectangle(50, 50);
+      final Rectangle colSquare = new Rectangle(46, 46);
       colSquare.setFill(Color.TRANSPARENT);
       colSquare.setStroke(Color.TRANSPARENT);
+      colSquare.setStrokeWidth(2);
       
       final StackPane stackPane = new StackPane();
       stackPane.setAlignment(Pos.CENTER);
@@ -272,36 +278,45 @@ public class GameScreenController implements SignalListener, MessageListener{
       colFixer.getChildren().add(stackPane);
       
       for(int c = 0; c<8; c++) {
-        Rectangle square = new Rectangle(50, 50);
+        Rectangle square = new Rectangle(46, 46);
         square.setStroke(Color.BLACK);
-        square.setFill(Color.TRANSPARENT);
+        square.setFill(greyOut ? Color.GREY : Color.TRANSPARENT);
+        square.setStrokeWidth(2);
         
-        square.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<Event>() {
+        StackPane squarePane = new StackPane();
+        squarePane.setAlignment(Pos.CENTER);
+        squarePane.setPrefSize(46, 46);
+        squarePane.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        squarePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        
+        
+        squarePane.getChildren().add(square);
+        
+        square.setOnMouseClicked( new EventHandler<Event>() {
           @Override
           public void handle(Event event) {
             System.out.println("---SQUARE CLICKED!! board greying!");
-            square.setDisable(true);
+            
+            //mark this sqaure's outline as green
+            square.setStroke(Color.GREEN);
           }         
         });
         
-        square.addEventFilter(MouseEvent.MOUSE_RELEASED, new EventHandler<Event>() {
-          @Override
-          public void handle(Event event) {
-            System.out.println("---SQUARE RELEASED!! board greying!");
-            square.setDisable(false);         
-          }                 
-        });
         
-        visibleBoard[r][c] = square;
+        visibleBoard[r][c] = new GraphicalSquare(squarePane, square);
         
-        colFixer.getChildren().add(square);
+        colFixer.getChildren().add(squarePane);
       }
+      
+      greyOut = !greyOut;
+      
       rowFixer.getChildren().add(colFixer);
     }    
     
     chessBoardPane.setAlignment(Pos.CENTER);    
     chessBoardPane.getChildren().add(group);
     
+    /*
     //set chess pieces manually    
     try {
       //white pieces
@@ -335,6 +350,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     } catch (IOException e) {
      client.recordException(e);
     }
+    */
   }
 
   private static GameScreenController screenController;

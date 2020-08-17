@@ -29,25 +29,25 @@ public class Rook extends Unit{
     int i = 1;
     do {
       //calculate north
-      north = northFlag ? null : board.querySquare(currentSquare.getFile(), currentSquare.getRank() - i);
+      north = northFlag ? null : board.querySquare(currentSquare.getFile(), (char) (currentSquare.getRank() - i));
       if (north != null && north.getUnit() != null) {
         northFlag = true;
       }
       
       //calculate south
-      south = southFlag ? null : board.querySquare(currentSquare.getFile(), currentSquare.getRank() + i);
+      south = southFlag ? null : board.querySquare(currentSquare.getFile(), (char) (currentSquare.getRank() + i));
       if (south != null && south.getUnit() != null) {
         southFlag = true;
       }
       
       //calculate east
-      east = eastFlag ? null : board.querySquare((char) (currentSquare.getFile() - i), currentSquare.getRank());
+      east = eastFlag ? null : board.querySquare(currentSquare.getFile() - i, currentSquare.getRank());
       if (east != null && east.getUnit() != null) {
         eastFlag = true;
       }
       
       //calculate west
-      west = westFlag ? null : board.querySquare((char) (currentSquare.getFile() + i), currentSquare.getRank());
+      west = westFlag ? null : board.querySquare(currentSquare.getFile() + i, currentSquare.getRank());
       if (west != null && west.getUnit() != null) {
         westFlag = true;
       }

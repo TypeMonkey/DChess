@@ -6,15 +6,15 @@ import jg.proj.chess.core.units.Unit;
 
 public class Square {
 
-  private final char file;
-  private final int rank;
+  private final int file;
+  private final char rank;
   private final Board hostBoard;
 
   private Unit attachedUnit;
 
-  public Square(char file, int rank, Board hostBoard){
-    this.file = Character.toUpperCase(file);
-    this.rank = rank;
+  public Square(int file, char rank, Board hostBoard){
+    this.file = file;
+    this.rank = Character.toUpperCase(rank);
     this.hostBoard = hostBoard;
   }
 
@@ -39,42 +39,48 @@ public class Square {
   }
 
   public Square leftSquare(){
-    char newFile = (char) (file - 1);
-    if ('A' <= newFile && newFile <= 'H') {
-      return hostBoard.getSquares()[rank - 1][newFile - 'A'];
+    char newRank = (char) (rank - 1);  
+    
+    if ('A' <= newRank && newRank <= 'H') {
+      return hostBoard.getSquares()[file - 1][newRank - 'A'];
     }
     return null;
   }
 
   public Square rightSquare(){
-    char newFile = (char) (file + 1);
-    if ('A' <= newFile && newFile <= 'H') {
-      return hostBoard.getSquares()[rank - 1][newFile - 'A'];
+    char newRank = (char) (rank + 1);  
+    
+    if ('A' <= newRank && newRank <= 'H') {
+      return hostBoard.getSquares()[file - 1][newRank - 'A'];
     }
     return null;
   }
 
   public Square upSquare(){
-    int newRank = rank - 1;
-    if (1 <= newRank && newRank <= 8) {
-      return hostBoard.getSquares()[newRank - 1][file - 'A'];
+    int newFile = file - 1;
+    
+    if (1 <= newFile && newFile <= 8) {
+      return hostBoard.getSquares()[newFile - 1][rank - 'A'];
     }
+    
     return null;
   }
 
   public Square downSquare(){
-    int newRank = rank + 1;
-    if (1 <= newRank && newRank <= 8) {
-      return hostBoard.getSquares()[newRank - 1][file - 'A'];
+    int newFile = file + 1;
+    
+    if (1 <= newFile && newFile <= 8) {
+      return hostBoard.getSquares()[newFile - 1][rank - 'A'];
     }
+    
     return null;
   }
 
-  public char getFile() {
+  public int getFile() {
     return file;
   }
 
-  public int getRank() {
+  public char getRank() {
     return rank;
   }
   
@@ -83,6 +89,6 @@ public class Square {
   }
 
   public String toString(){
-    return String.valueOf(file)+rank+"|"+(attachedUnit != null ? attachedUnit.toString() : "");
+    return file+String.valueOf(rank)+"|"+(attachedUnit != null ? attachedUnit.toString() : "");
   }
 }

@@ -30,25 +30,25 @@ public class Queen extends Unit {
     int i = 1;
     do {
     //calculate north
-      north = northFlag ? null : board.querySquare(currentSquare.getFile(), currentSquare.getRank() - i);
+      north = northFlag ? null : board.querySquare(currentSquare.getFile(), (char) (currentSquare.getRank() - i));
       if (north != null && north.getUnit() != null) {
         northFlag = true;
       }
       
       //calculate south
-      south = southFlag ? null : board.querySquare(currentSquare.getFile(), currentSquare.getRank() + i);
+      south = southFlag ? null : board.querySquare(currentSquare.getFile(), (char) (currentSquare.getRank() + i));
       if (south != null && south.getUnit() != null) {
         southFlag = true;
       }
       
       //calculate east
-      east = eastFlag ? null : board.querySquare((char) (currentSquare.getFile() - i), currentSquare.getRank());
+      east = eastFlag ? null : board.querySquare(currentSquare.getFile() - i, currentSquare.getRank());
       if (east != null && east.getUnit() != null) {
         eastFlag = true;
       }
       
       //calculate west
-      west = westFlag ? null : board.querySquare((char) (currentSquare.getFile() + i), currentSquare.getRank());
+      west = westFlag ? null : board.querySquare(currentSquare.getFile() + i, currentSquare.getRank());
       if (west != null && west.getUnit() != null) {
         westFlag = true;
       }
@@ -59,25 +59,25 @@ public class Queen extends Unit {
       possibles.add( (east != null && ((east.getUnit() != null && east.getUnit().getTeamID() != getTeamID()) || east.getUnit() == null)) ? east : null);
       
     //calculate NW
-      northWest = northWestFlag ? null : board.querySquare((char) (currentSquare.getFile() - i), currentSquare.getRank() - i);
+      northWest = northWestFlag ? null : board.querySquare(currentSquare.getFile() - i, (char) (currentSquare.getRank() - i));
       if (northWest != null && northWest.getUnit() != null) {
         northWestFlag = true;
       }
       
       //calculate NE
-      northEast = northEastFlag ? null : board.querySquare((char) (currentSquare.getFile() + i), currentSquare.getRank() - i);
+      northEast = northEastFlag ? null : board.querySquare(currentSquare.getFile() + i, (char) (currentSquare.getRank() - i));
       if (northEast != null && northEast.getUnit() != null) {
         northEastFlag = true;
       }
       
       //calculate SW
-      southWest = southWestFlag ? null : board.querySquare((char) (currentSquare.getFile() - i), currentSquare.getRank() + i);
+      southWest = southWestFlag ? null : board.querySquare(currentSquare.getFile() - i, (char) (currentSquare.getRank() + i));
       if (southWest != null && southWest.getUnit() != null) {
         southWestFlag = true;
       }
       
       //calculate SE
-      southEast = southEastFlag ? null : board.querySquare((char) (currentSquare.getFile() + i), currentSquare.getRank() + i);
+      southEast = southEastFlag ? null : board.querySquare(currentSquare.getFile() + i, (char) (currentSquare.getRank() + i));
       if (southEast != null && southEast.getUnit() != null) {
         southEastFlag = true;
       }
