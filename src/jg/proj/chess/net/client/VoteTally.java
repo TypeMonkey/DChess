@@ -7,15 +7,15 @@ package jg.proj.chess.net.client;
  */
 public class VoteTally {
 
-  private final char oldFile;
-  private final int oldRank;
+  private final int oldFile;
+  private final char oldRank;
   
-  private final char newFile;
-  private final int newRank;
+  private final int newFile;
+  private final char newRank;
   
   private final int voteCount;
   
-  public VoteTally(char oldFile, int oldRank, char newFile, int newRank, int voteCount) {
+  public VoteTally(int oldFile, char oldRank, int newFile, char newRank, int voteCount) {
     this.oldFile = oldFile;
     this.oldRank = oldRank;
     this.newFile = newFile;
@@ -27,19 +27,19 @@ public class VoteTally {
     return voteCount;
   }
 
-  public char getOldFile() {
+  public int getOldFile() {
     return oldFile;
   }
 
-  public int getOldRank() {
+  public char getOldRank() {
     return oldRank;
   }
 
-  public char getNewFile() {
+  public int getNewFile() {
     return newFile;
   }
 
-  public int getNewRank() {
+  public char getNewRank() {
     return newRank;
   }
 }

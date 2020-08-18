@@ -15,10 +15,15 @@ import java.util.stream.Collectors;
 import org.junit.experimental.theories.FromDataPoints;
 
 import javafx.application.Application;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -26,10 +31,14 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
@@ -42,8 +51,10 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import jg.proj.chess.core.Board;
 import jg.proj.chess.core.DefaultBoardPreparer;
 import jg.proj.chess.core.Square;
@@ -55,6 +66,7 @@ import jg.proj.chess.net.client.MessageListener;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.ResourceManager;
+import jg.proj.chess.net.client.SessionInfo;
 import jg.proj.chess.net.client.SignalListener;
 import jg.proj.chess.net.client.VoteTally;
 import jg.proj.chess.net.client.uis.components.GraphicalSquare;
@@ -63,6 +75,7 @@ import jg.proj.chess.net.client.uis.components.VoteChoice;
 public class GameScreenController implements SignalListener, MessageListener{
   
   public static final int DEFAULT_BOARD_SIZE = 8;
+  public static final double CHAT_LIST_WRAP_WIDTH = 157;
   
   @FXML
   private StackPane mainPane;
@@ -103,7 +116,7 @@ public class GameScreenController implements SignalListener, MessageListener{
   @FXML
   private TableView<VoteTally> voteTallyTable;
   @FXML
-  private ListView<String> chatListDisplay;
+  private ListView<Text> chatListDisplay;
   
   //--bottom right components
   @FXML
@@ -113,7 +126,7 @@ public class GameScreenController implements SignalListener, MessageListener{
   @FXML 
   private Button chatSendButton;
   @FXML
-  private Button clearSendButton;
+  private Button chatClearButton;
   
   //actual chess board
   private final GraphicalSquare [][] visibleBoard;
@@ -133,6 +146,12 @@ public class GameScreenController implements SignalListener, MessageListener{
   }
   
   public void init() {    
+    //DEV_CODE: 
+    for(int i = 0 ; i < 100; i++) {
+      updateChatList("HELLO WORLD!!! "+i+" hello world hello world hello world", 
+                      (i % 2) == 0 ? Color.GREENYELLOW : Color.RED);
+    }
+    
     //prepare logical board
     board.initialize(new DefaultBoardPreparer());
     //set the session uuid
@@ -160,7 +179,10 @@ public class GameScreenController implements SignalListener, MessageListener{
         Reactor reactor = new Reactor() {        
           @Override
           public void react(PendingRequest request, String... results) {
-            chatListDisplay.getItems().add("[SERVER] GOT YOUR VOTE: "+Arrays.stream(results).collect(Collectors.joining("")));
+            String mess = "[SERVER] GOT YOUR VOTE: "+Arrays.stream(results).collect(Collectors.joining(""));
+            Text text = new Text(mess);
+            text.setWrappingWidth(chatListDisplay.getPrefWidth());
+            chatListDisplay.getItems().add(text);
           }
           
           @Override
@@ -186,11 +208,76 @@ public class GameScreenController implements SignalListener, MessageListener{
         "-fx-border-radius: 3;" + 
         "-fx-border-color: grey;");
     
+    //add code for send chat button
+    chatSendButton.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent event) {
+        String message = chatInput.getText() == null ? "" : chatInput.getText();
+        
+        int colonIndex = message.indexOf(':');
+        colonIndex = colonIndex == -1 ? 0 : colonIndex + 1;
+        
+        String actMess = message.substring(colonIndex);
+        if (message.startsWith(ServerRequest.TEAM.getReqName())) {
+          client.sendRequest(new PendingRequest(ServerRequest.TEAM, actMess), Reactor.BLANK_REACTOR);
+        }
+        else {
+          client.sendRequest(new PendingRequest(ServerRequest.ALL, actMess), Reactor.BLANK_REACTOR);
+        }
+        
+        //now clear the chatInput textarea
+        chatInput.setText("");
+      }
+    });
+    
+    //add code for chatInput
     chatInput.setWrapText(true);
+    chatInput.setText(ServerRequest.TEAM.getReqName()+": "); //default to team message
+    chatInput.setOnKeyPressed(new EventHandler<KeyEvent>() {
+      @Override
+      public void handle(KeyEvent arg0) {
+        if (arg0.getCode() == KeyCode.ENTER) {
+          chatSendButton.fire();
+        }
+      }
+    });
+    
+    //add code for clear chat
+    chatClearButton.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent event) {
+        chatInput.setText("");
+      }
+    });
+    
+    
     sessionUUIDDisplay.setEditable(false);
         
     //disable send vote on default
     sendVoteButton.setDisable(true);
+    
+    //set tallyVote columns
+    TableColumn<VoteTally, String> voteColumn = new TableColumn<>("Vote");
+    voteColumn.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<VoteTally,String>, ObservableValue<String>>() {
+      
+      @Override
+      public ObservableValue<String> call(CellDataFeatures<VoteTally, String> param) {
+        VoteTally tally = param.getValue();     
+        String fromSq = tally.getOldFile()+String.valueOf(tally.getOldRank());   
+        String toSq = tally.getNewFile()+String.valueOf(tally.getNewRank());
+        return new SimpleStringProperty(fromSq+"->"+toSq);
+      }
+    });
+    
+    //set vote count column
+    TableColumn<VoteTally, Number> voteCountCol = new TableColumn<>("Vote Count");
+    voteCountCol.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<VoteTally,Number>, ObservableValue<Number>>() {
+
+      @Override
+      public ObservableValue<Number> call(CellDataFeatures<VoteTally, Number> param) {
+        return new SimpleIntegerProperty(param.getValue().getVoteCount());
+      }
+    });
     
     makeBoard();  
     
@@ -242,8 +329,12 @@ public class GameScreenController implements SignalListener, MessageListener{
       visibleBoard[fromFile - 1][fromRank - 'A'].setPicture(Color.TRANSPARENT);
       visibleBoard[destFile - 1][destRank - 'A'].setPicture(unitFromSquare);
     }
+    else if (messageType.equals(ServerResponses.SERV)) {
+      updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()));
+    }
     else {
-      chatListDisplay.getItems().add("["+messageType+"]"+messageContent);
+      updateChatList("["+messageType+"]"+messageContent[1]+": "+
+                     Arrays.stream(Arrays.copyOfRange(messageContent, 2, messageContent.length)).collect(Collectors.joining()));
     }
   }
   
@@ -285,59 +376,179 @@ public class GameScreenController implements SignalListener, MessageListener{
       break;
     }
     case ServerResponses.VOTE_START:
+    {
       //update voteNowDisplay
+      voteNowDisplay.setText("VOTE NOW");
+      voteNowDisplay.setTextFill(Color.GREENYELLOW);
       break;
+    }
     case ServerResponses.VOTE_END:
+    {
       //update voteNowDisplay
-      break;
+      voteNowDisplay.setText("VOTE END");
+      voteNowDisplay.setTextFill(Color.RED);
+      break; 
+    }
     case ServerResponses.TEAM1_WON:
+    {
+      String outcomeText = client.getCurrentTeam() == 1 ? "YOUR TEAM WON!" :
+                                                          "YOUR TEAM LOST";
+      Color outcomeFont = client.getCurrentTeam() == 1 ? Color.GREENYELLOW : Color.RED;
       //update voteNowDisplay and chat to show victory
+      voteNowDisplay.setText(outcomeText);
+      voteNowDisplay.setTextFill(outcomeFont);
+      
+      //update chatlist
+      updateChatList("[SERVER] "+outcomeText, outcomeFont);    
       break;
+    }
     case ServerResponses.TEAM2_WON:
+    {
+      String outcomeText = client.getCurrentTeam() == 2 ? "YOUR TEAM WON!" :
+                                                          "YOUR TEAM LOST";
+      Color outcomeFont = client.getCurrentTeam() == 2 ? Color.GREENYELLOW : Color.RED;
       //update voteNowDisplay and chat to show victory
+      voteNowDisplay.setText(outcomeText);
+      voteNowDisplay.setTextFill(outcomeFont);
+      
+      //update chatlist
+      updateChatList("[SERVER] "+outcomeText, outcomeFont);    
       break;
+    }
     case ServerResponses.TEAM1_DESS:
-      //update voteNowDisplay and chat to show defeat
+    {
+      //If client is Team 1, then they've already quit the screen.
+      //No need to update team 1's UI then
+      if (client.getCurrentTeam() == 2) {
+        String message = "YOUR TEAM WON!";
+        //update voteNowDisplay to show team2 lost
+        voteNowDisplay.setText(message);
+        voteNowDisplay.setTextFill(Color.GREENYELLOW);
+        //update chat to show defeat
+        updateChatList("[SERVER] "+message, Color.GREENYELLOW);
+      }
       break;
+    }
     case ServerResponses.TEAM2_DESS:
-      //update voteNowDisplay and chat to show defeat
-
+    {
+      //If client is Team 2, then they've already quit the screen.
+      //No need to update team 2's UI then
+      if (client.getCurrentTeam() == 1) {
+        String message = "YOUR TEAM WON!";
+        //update voteNowDisplay to show team2 lost
+        voteNowDisplay.setText(message);
+        voteNowDisplay.setTextFill(Color.GREENYELLOW);
+        //update chat to show defeat
+        updateChatList("[SERVER] "+message, Color.GREENYELLOW);
+      }
       break;
+    }
     case ServerResponses.TEAM1_TIED:
+    {
       //update voteNowDisplay and chat to show tied status
+      String message = client.getCurrentTeam() == 1 ? "YOUR TEAM IS TIED!" : "TEAM TWO IS TIED!";
+      voteNowDisplay.setText(message);
+      voteNowDisplay.setTextFill(Color.CORNFLOWERBLUE);
       
+      //update chatlist
+      updateChatList("[SERVER] "+message, Color.CORNFLOWERBLUE);
       break;
+    }
     case ServerResponses.TEAM2_TIED:
+    {
       //update voteNowDisplay and chat to show tied status
+      String message = client.getCurrentTeam() == 2 ? "YOUR TEAM IS TIED!" : "TEAM ONE IS TIED!";
+      voteNowDisplay.setText(message);
+      voteNowDisplay.setTextFill(Color.CORNFLOWERBLUE);
       
+      //update chatlist
+      updateChatList("[SERVER] "+message, Color.CORNFLOWERBLUE);
       break;
+    }
     case ServerResponses.TEAM1_OTHER_UNIT:
+    {
       //update voteNowDisplay and chat to show dumb vote
-
-      break;
-    case ServerResponses.TEAM2_OTHER_UNIT:
-      //update voteNowDisplay and chat to show dumb vote
-
-      break;
-    case ServerResponses.TEAM1_IDIOT_VOTE:
-      //update voteNowDisplay and chat to show dumb vote
-
-
-      break;
-    case ServerResponses.TEAM2_IDIOT_VOTE:
-      //update voteNowDisplay and chat to show dumb vote
-
-
-      break;
-    case ServerResponses.TEAM1_NO_VOTE:
-      //update voteNowDisplay and chat to show absence of votes
-
-      break;
-    case ServerResponses.TEAM2_NO_VOTE:
-      //update voteNowDisplay and chat to show absence of votes
-
-      break;
+      String message = client.getCurrentTeam() == 1 ? "YOUR TEAM IS DUMB" : "TEAM ONE IS DUMB";
+      voteNowDisplay.setText(message);
       
+      //update chatlist
+      message = client.getCurrentTeam() == 1 ? 
+                 "Your team voted to move a unit that's not theirs. No move made!" : 
+                 "Team One voted to move one of your team's units. No move made!";
+      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
+      updateChatList("[SERVER] "+message, messColor);
+      break;
+    }
+    case ServerResponses.TEAM2_OTHER_UNIT:
+    {
+      //update voteNowDisplay and chat to show dumb vote
+      String message = client.getCurrentTeam() == 2 ? "YOUR TEAM IS DUMB" : "TEAM TWO IS DUMB";
+      voteNowDisplay.setText(message);
+      
+      //update chatlist
+      message = client.getCurrentTeam() == 2? 
+                "Your team voted to move a unit that's not theirs. No move made!" : 
+                "Team Two voted to move one of your team's units. No move made!";
+      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
+      updateChatList("[SERVER] "+message, messColor);
+      break;
+    }
+    case ServerResponses.TEAM1_IDIOT_VOTE:
+    {
+      //update voteNowDisplay and chat to show dumb vote
+      String message = client.getCurrentTeam() == 1 ? "T-T" : "PRAY FOR TEAM 1";
+      voteNowDisplay.setText(message);
+      
+      //update chatlist
+      message = client.getCurrentTeam() == 1 ? 
+                "Your team voted on an illegal move. No move made!" : 
+                "Team One voted on an illegal move. No move made!";
+      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
+      updateChatList("[SERVER] "+message, messColor);
+      break;
+    }
+    case ServerResponses.TEAM2_IDIOT_VOTE:
+    {
+      //update voteNowDisplay and chat to show dumb vote
+      String message = client.getCurrentTeam() == 2 ? "T-T" : "PRAY FOR TEAM 1";
+      voteNowDisplay.setText(message);
+      
+      //update chatlist
+      message = client.getCurrentTeam() == 2 ? 
+                "Your team voted on an illegal move. No move made!" : 
+                "Team Two voted on an illegal move. No move made!";
+      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
+      updateChatList("[SERVER] "+message, messColor);
+      break;
+    }
+    case ServerResponses.TEAM1_NO_VOTE:
+    {
+      //update voteNowDisplay and chat to show absence of votes
+      String message = client.getCurrentTeam() == 1 ? "NO VOTES??" : "PRAY FOR TEAM 1";
+      voteNowDisplay.setText(message);
+      
+      //update chatlist
+      message = client.getCurrentTeam() == 1 ? 
+                "Your team sent no votes at all! No move made!" : 
+                "Team One sent no votes at all! No move made!";
+      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
+      updateChatList("[SERVER] "+message, messColor);
+      break;
+    }
+    case ServerResponses.TEAM2_NO_VOTE:
+    {
+      //update voteNowDisplay and chat to show absence of votes
+      String message = client.getCurrentTeam() == 2 ? "NO VOTES??" : "PRAY FOR TEAM 1";
+      voteNowDisplay.setText(message);
+      
+      //update chatlist
+      message = client.getCurrentTeam() == 2 ? 
+                "Your team sent no votes at all! No move made!" : 
+                "Team One sent no votes at all! No move made!";
+      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
+      updateChatList("[SERVER] "+message, messColor);
+      break;
+    } 
     case ServerResponses.PLAYER_JOINED:
     {
       //get player list
@@ -359,10 +570,52 @@ public class GameScreenController implements SignalListener, MessageListener{
       
       break;
     case ServerResponses.VOTE_RECIEVED:
+    {
       //request TALLY 
+      Reactor tallyReactor = new Reactor() {
+        
+        @Override
+        public void react(PendingRequest request, String... results) {
+          // TODO Auto-generated method stub
+          for (String vote : results) {
+            String [] split = vote.split(">");
+            
+            String fromSquare = split[0];
+            int fromFile = Integer.parseInt(String.valueOf(fromSquare.charAt(0)));
+            char fromRank = fromSquare.charAt(1);
+            
+            String toSquare = split[1];
+            int toFile = Integer.parseInt(String.valueOf(toSquare.charAt(0)));
+            char toRank = toSquare.charAt(1);
+            
+            int voteCnt = Integer.parseInt(split[2]);
+            
+            voteTallyTable.getItems().add(new VoteTally(fromFile, fromRank, toFile, toRank, voteCnt));
+          }
+        }
+        
+        @Override
+        public void error(PendingRequest request, int errorCode) {
+          client.recordException("TALLY REQUEST FAILED: "+errorCode);
+        }
+      };
       
+      client.sendRequest(new PendingRequest(ServerRequest.TALLY), tallyReactor);
       break;
     }
+    }
+  }
+  
+  private void updateChatList(String message) {
+    updateChatList(message, Color.BLACK);
+  }
+  
+  private void updateChatList(String message, Color fontColor) {
+    Text text = new Text(message);
+    text.setStroke(fontColor);
+    text.setWrappingWidth(CHAT_LIST_WRAP_WIDTH);
+    chatListDisplay.getItems().add(text);
+    chatListDisplay.scrollTo(text);
   }
   
   private void makeBoard() {      

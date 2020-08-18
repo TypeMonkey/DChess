@@ -107,9 +107,12 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         //actual request
         ServerRequest request = ServerRequest.valueOf(req);
         
+        //get subarray from 1 <-> split.length-1
+        String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
+        
         //alert all message listeners
         for (MessageListener listener : messageListeners) {
-          listener.handleMessage(req, split[1]);
+          listener.handleMessage(req, contentSeq);
         }             
         
         if (reqMap.containsKey(request) && reqMap.get(request).size() > 0) {
@@ -120,16 +123,27 @@ public class Connector extends SimpleChannelInboundHandler<String>{
           }
           else {
             future.changeStatus(Status.COMPLETE);
-            future.react(Arrays.copyOfRange(split, 1, split.length));
+            future.react(contentSeq);
           }
           
         }      
       }
+      else if (req.equals("serv")) {
+        //get subarray from 1 <-> split.length-1
+        String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
+        for (MessageListener listener : messageListeners) {
+          listener.handleMessage(req, contentSeq);
+        }
+      }
       else if (req.equals("result")) {
         //result message
+        
+        //get subarray from 1 <-> split.length-1
+        String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
+        
         //alert all message listeners
         for (MessageListener listener : messageListeners) {
-          listener.handleMessage(req, Arrays.copyOfRange(split, 1, split.length));
+          listener.handleMessage(req, contentSeq);
         }          
       }
       else {
