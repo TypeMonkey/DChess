@@ -145,7 +145,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       
       hasStarted = true;
       //alert all players that the game has started
-      msgEveryone(String.format(ServerResponses.SERVER_MSG, "----> GAME STARTED! <----"));
+      sendSignalAll(ServerResponses.GAME_START);
 
       //play the game
       boolean hasWon = false;
@@ -167,7 +167,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         }
         else {
           /*
-           * starts a make shift countdown window for voting
+           * starts a makeshift countdown window for voting
            */
           long timeNow = System.currentTimeMillis();
           long projectedEnd = timeNow + TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
@@ -285,7 +285,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                   System.out.println("----> TEAM "+currentTeamID+" has voted on an invalid move. NO MOVE FROM THEM! <----");
                 }
                 
-                sendSignalAll(ServerResponses.TURN_END);
               }
               
             }
@@ -308,8 +307,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             hasWon = true;
             sendSignalAll(ServerResponses.TEAM2_WON);
             System.out.println("[SERVER] TEAM TWO WON!");
-          }
+          }         
         }
+        //turn has ended
+        sendSignalAll(ServerResponses.TURN_END);
 
         //switch turns
         teamOneTurn = teamOneTurn ? false : true;

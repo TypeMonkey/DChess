@@ -145,13 +145,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     board = new Board(DEFAULT_BOARD_SIZE, DEFAULT_BOARD_SIZE);
   }
   
-  public void init() {    
-    //DEV_CODE: 
-    for(int i = 0 ; i < 100; i++) {
-      updateChatList("HELLO WORLD!!! "+i+" hello world hello world hello world", 
-                      (i % 2) == 0 ? Color.GREENYELLOW : Color.RED);
-    }
-    
+  public void init() {       
     //prepare logical board
     board.initialize(new DefaultBoardPreparer());
     //set the session uuid
@@ -190,6 +184,8 @@ public class GameScreenController implements SignalListener, MessageListener{
             voteNowDisplay.setText("BAD VOTE! Retry!");
           }
         };
+        
+        client.sendRequest(voteRequest, reactor);
       }
     });
     
@@ -248,13 +244,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       public void handle(ActionEvent event) {
         chatInput.setText("");
       }
-    });
-    
+    }); 
     
     sessionUUIDDisplay.setEditable(false);
-        
-    //disable send vote on default
-    sendVoteButton.setDisable(true);
     
     //set tallyVote columns
     TableColumn<VoteTally, String> voteColumn = new TableColumn<>("Vote");
@@ -373,6 +365,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       //get player list
       PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
       client.sendRequest(plistRequest, plistReactor);
+      updateChatList("[SERVER] GAME HAS STARTED!!!", Color.GREEN);
       break;
     }
     case ServerResponses.VOTE_START:
@@ -820,6 +813,17 @@ public class GameScreenController implements SignalListener, MessageListener{
     }
     
   }
+  
+  /**
+   * Place all dev code here
+   */
+  private void uiTest() {
+    //DEV_CODE: 
+    for(int i = 0 ; i < 100; i++) {
+      updateChatList("HELLO WORLD!!! "+i+" hello world hello world hello world", 
+                      (i % 2) == 0 ? Color.GREENYELLOW : Color.RED);
+    }
+  }
 
   private static GameScreenController screenController;
   private static Pane pane;
@@ -834,6 +838,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       pane = uiLoader.load();
       
       screenController.init();
+      
+      //DEV_CODE: delete soon
+      screenController.uiTest();
       
       return pane;
     }

@@ -29,6 +29,7 @@ import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.SessionRules;
@@ -206,16 +207,6 @@ public class GameBrowserController {
       @Override
       public void handle(ActionEvent event) {
         
-        
-        System.out.println("---dummy sessions");
-        SessionInfo info = new SessionInfo(new SessionRules(), UUID.randomUUID(), 15);
-        activeSessions.add(info);
-        activeSessMap.put(info.getSessionID(), info);
-        
-        activeSessionsTable.getItems().add(info);
-        
-        
-        
         client.sendRequest(new PendingRequest(ServerRequest.SES), new Reactor() {
           
           @Override
@@ -241,8 +232,7 @@ public class GameBrowserController {
               
               SessionInfo info = new SessionInfo(rules, uuid, playerAmnt);
               activeSessions.add(info); 
-              activeSessMap.put(uuid, info);
-              
+              activeSessMap.put(uuid, info);          
             }
           }
           
@@ -308,14 +298,7 @@ public class GameBrowserController {
         int teamNum = teamOneChoice.isSelected() ? 1 : (teamTwoChoice.isSelected() ? 2 : 3);
         
         //send join request
-        //client.sendRequest(new PendingRequest(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);
-        
-        //DEV_CODE: DELETE LATER!
-        try {
-          client.showGame();
-        } catch (IOException e) {
-          client.recordException(e);
-        }
+        client.sendRequest(new PendingRequest(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);      
       }
       
     });
@@ -379,14 +362,6 @@ public class GameBrowserController {
           };
           
           client.sendRequest(createReq, reactor);
-          
-          //DEV_CODE, delete later
-          try {
-            client.showGame();
-          } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
         }
       }
       
@@ -613,6 +588,19 @@ public class GameBrowserController {
     });
   }
   
+  /**
+   * Place all dev code here
+   */
+  private void uiTest() {
+    //DEV_CODE: 
+    System.out.println("---dummy sessions");
+    SessionInfo info = new SessionInfo(new SessionRules(), UUID.randomUUID(), 15);
+    activeSessions.add(info);
+    activeSessMap.put(info.getSessionID(), info);
+    
+    activeSessionsTable.getItems().add(info);
+  }
+  
   private static GameBrowserController browserController;
   private static Pane pane;
   
@@ -626,6 +614,9 @@ public class GameBrowserController {
       pane = uiLoader.load();
       
       browserController.init();
+      
+      //DEV_CODE: delete soon
+      browserController.uiTest();
       
       return pane;
     }

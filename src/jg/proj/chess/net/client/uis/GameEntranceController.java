@@ -77,14 +77,6 @@ public class GameEntranceController {
               invalidUsername = true;
             }
           });     
-          
-          
-          //DEV_CODE, delete later
-          try {
-            client.showBrowser();
-          } catch (IOException e) {
-            client.recordException(e);
-          }
         }
       }
     });
