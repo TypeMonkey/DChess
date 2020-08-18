@@ -31,6 +31,7 @@ public class ChessClient extends Application{
   //session information
   private String userName;
   private SessionInfo currentSession;
+  private int teamID;
   
   //network and other game objects
   private ClientConfig config;
@@ -175,7 +176,8 @@ public class ChessClient extends Application{
     this.userName = userName;
   }
   
-  public void setCurrentSession(SessionInfo currentSession) {
+  public void setCurrentSession(int teamID, SessionInfo currentSession) {
+    this.teamID = teamID;
     this.currentSession = currentSession;
   }
   
@@ -185,6 +187,10 @@ public class ChessClient extends Application{
   
   public SessionInfo getCurrentSession() {
     return currentSession;
+  }
+  
+  public int getCurrentTeam() {
+    return teamID;
   }
   
   public ResourceManager getResourceManager() {

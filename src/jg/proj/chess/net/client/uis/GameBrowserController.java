@@ -225,15 +225,13 @@ public class GameBrowserController {
             activeSessMap.clear();
             
             //each string in results array represent the information of each active session
-            
-            int rowIndex = 0;
-            
+                        
             for (String ses : results) {
               String [] values = ses.split(",");
               UUID uuid = UUID.fromString(values[0]);
               int playerAmnt = Integer.parseInt(values[1]);
-              boolean prisonDilemma = Boolean.parseBoolean(values[2]);
-              int voteDuration = Integer.parseInt(values[3]);
+              boolean prisonDilemma = Boolean.parseBoolean(values[1]);
+              int voteDuration = Integer.parseInt(values[2]);
               boolean invalidVoting = Boolean.parseBoolean(values[3]);
               
               SessionRules rules = new SessionRules();
@@ -245,7 +243,6 @@ public class GameBrowserController {
               activeSessions.add(info); 
               activeSessMap.put(uuid, info);
               
-              rowIndex++;
             }
           }
           

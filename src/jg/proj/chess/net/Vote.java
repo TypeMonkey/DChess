@@ -6,13 +6,13 @@ public class Vote {
 
   private final Player voter;
   
-  private final char fileOrigin; 
-  private final int rankOrigin;
+  private final int fileOrigin; 
+  private final char rankOrigin;
   
-  private final char fileDest; 
-  private final int rankDest;
+  private final int fileDest; 
+  private final char rankDest;
   
-  public Vote(char fileOrigin, int rankOrigin, char fileDest, int rankDest, Player voter) {
+  public Vote(int fileOrigin, char rankOrigin, int fileDest, char rankDest, Player voter) {
     this.fileOrigin = fileOrigin;
     this.rankOrigin = rankOrigin;
     
@@ -38,22 +38,22 @@ public class Vote {
   
   @Override
   public String toString() {
-    return String.valueOf(fileOrigin)+rankOrigin+">"+String.valueOf(fileDest)+rankDest;
+    return fileOrigin+String.valueOf(rankOrigin)+">"+fileDest+String.valueOf(rankDest);
   }
 
-  public char getFileOrigin() {
+  public int getFileOrigin() {
     return fileOrigin;
   }
 
-  public int getRankOrigin() {
+  public char getRankOrigin() {
     return rankOrigin;
   }
 
-  public char getFileDest() {
+  public int getFileDest() {
     return fileDest;
   }
 
-  public int getRankDest() {
+  public char getRankDest() {
     return rankDest;
   } 
   

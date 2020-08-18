@@ -458,12 +458,12 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
     else if (first.equals(ServerRequest.VOTE.getReqName())) {
       if (arguments.size() == ServerRequest.VOTE.argAmount()) {
-        char fromChar = arguments.remove(0).charAt(0);
-        int fromInt = Integer.parseInt(arguments.remove(0));
-        char destChar = arguments.remove(0).charAt(0);
-        int destInt = Integer.parseInt(arguments.remove(0));
+        int fromFile = Integer.parseInt(arguments.remove(0));
+        char fromRank = arguments.remove(0).charAt(0);
+        int destFile = Integer.parseInt(arguments.remove(0));
+        char destRank = arguments.remove(0).charAt(0);
         
-        Vote vote = new Vote(fromChar, fromInt, destChar, destInt, player);
+        Vote vote = new Vote(fromFile, fromRank, destFile, destRank, player);
         if (currentlyVoting) {
           voteQueue.put(vote);
           StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.getName()+":"+vote.toString());
@@ -481,7 +481,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         }
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(ServerResponses.WRONG_ARGS));
+        StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
     else if (first.equals(ServerRequest.PLIST.getReqName())) {

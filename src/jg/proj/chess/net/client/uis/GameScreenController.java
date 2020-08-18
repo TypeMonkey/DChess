@@ -7,8 +7,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.experimental.theories.FromDataPoints;
 
@@ -46,9 +48,12 @@ import jg.proj.chess.core.Board;
 import jg.proj.chess.core.DefaultBoardPreparer;
 import jg.proj.chess.core.Square;
 import jg.proj.chess.core.units.InvalidMove;
+import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.MessageListener;
+import jg.proj.chess.net.client.PendingRequest;
+import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.ResourceManager;
 import jg.proj.chess.net.client.SignalListener;
 import jg.proj.chess.net.client.VoteTally;
@@ -134,6 +139,38 @@ public class GameScreenController implements SignalListener, MessageListener{
     //sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
     sessionUUIDDisplay.setEditable(false);
     
+    //disable send and clear vote buttons by default
+    sendVoteButton.setDisable(true);
+    clearVoteButton.setDisable(true);
+    
+    //add handles for send and clear vote buttons
+    sendVoteButton.setOnMouseClicked(new EventHandler<Event>() {
+
+      @Override
+      public void handle(Event event) {
+        //make send request 
+        Square fromSquare = voteChoice.getFromChoice();
+        Square toSquare = voteChoice.getToChoice();
+        PendingRequest voteRequest = new PendingRequest(ServerRequest.VOTE, 
+            fromSquare.getFile(), 
+            fromSquare.getRank(), 
+            toSquare.getFile(), 
+            toSquare.getRank());
+        
+        Reactor reactor = new Reactor() {        
+          @Override
+          public void react(PendingRequest request, String... results) {
+            chatListDisplay.getItems().add("[SERVER] GOT YOUR VOTE: "+Arrays.stream(results).collect(Collectors.joining("")));
+          }
+          
+          @Override
+          public void error(PendingRequest request, int errorCode) {
+            voteNowDisplay.setText("BAD VOTE! Retry!");
+          }
+        };
+      }
+    });
+    
     //set style 
     voteTallyPost.setStyle("-fx-padding: 2;" + 
         "-fx-border-style: solid inside;" + 
@@ -176,16 +213,16 @@ public class GameScreenController implements SignalListener, MessageListener{
       
       //parse coordinates
       //NOTE: ranks start at 1.
-      final char fromChar = messageContent[0].charAt(0);
-      final int fromInt = Integer.parseInt(messageContent[1]);
-      final char destChar = messageContent[2].charAt(0);
-      final int destInt = Integer.parseInt(messageContent[3]);
+      final int fromFile = Integer.parseInt(messageContent[0]);
+      final char fromRank = messageContent[1].charAt(0);
+      final int destFile = Integer.parseInt(messageContent[2]);
+      final char destRank = messageContent[3].charAt(0);
       
       //update board
       
       //move units on the logical board
-      Square fromSquare = board.querySquare(fromChar, fromInt);
-      Square destSquare = board.querySquare(destChar, destInt);
+      Square fromSquare = board.querySquare(fromFile, fromRank);
+      Square destSquare = board.querySquare(destFile, destRank);
       
       try {
         fromSquare.getUnit().moveTo(destSquare);
@@ -199,12 +236,11 @@ public class GameScreenController implements SignalListener, MessageListener{
       }
       
       //move unit on the graphical board
-      Rectangle graphFromSquare = visibleBoard[fromInt - 1][fromChar - 'A'].getOutline();
-      Rectangle graphToSquare = visibleBoard[destInt - 1][destChar - 'A'].getOutline();
+      Paint unitFromSquare = visibleBoard[fromFile - 1][fromRank - 'A'].getPicture();
       
-      Paint unit = graphFromSquare.getFill();
-      graphFromSquare.setFill(Color.TRANSPARENT);
-      graphToSquare.setFill(unit);
+      //swap from and to images 
+      visibleBoard[fromFile - 1][fromRank - 'A'].setPicture(Color.TRANSPARENT);
+      visibleBoard[destFile - 1][destRank - 'A'].setPicture(unitFromSquare);
     }
     else {
       chatListDisplay.getItems().add("["+messageType+"]"+messageContent);
@@ -213,11 +249,120 @@ public class GameScreenController implements SignalListener, MessageListener{
   
   @Override
   public void handleSignal(int signal) {
-    //TODO: Code to handle various signals
-  }
-  
-  public void showLegalMoves( ) {
     
+    final Reactor plistReactor = new Reactor() {      
+      @Override
+      public void react(PendingRequest request, String... results) {
+        //clear both team lists
+        
+        //iterate through user strings
+        for (String userEntry : results) {
+          String [] values = userEntry.split(",");
+          String name = values[0];
+          boolean isTeamOne = Boolean.parseBoolean(values[1]);
+          String uuid = values[2];
+
+          if (isTeamOne) {
+            teamOneList.getItems().add(name+"@"+uuid);
+          }
+          else {
+            teamTwoList.getItems().add(name+"@"+uuid);
+          }
+        }
+      }      
+      @Override
+      public void error(PendingRequest request, int errorCode) {
+        
+      }
+    };
+    
+    switch (signal) {
+    case ServerResponses.GAME_START: 
+    {
+      //get player list
+      PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
+      client.sendRequest(plistRequest, plistReactor);
+      break;
+    }
+    case ServerResponses.VOTE_START:
+      //update voteNowDisplay
+      break;
+    case ServerResponses.VOTE_END:
+      //update voteNowDisplay
+      break;
+    case ServerResponses.TEAM1_WON:
+      //update voteNowDisplay and chat to show victory
+      break;
+    case ServerResponses.TEAM2_WON:
+      //update voteNowDisplay and chat to show victory
+      break;
+    case ServerResponses.TEAM1_DESS:
+      //update voteNowDisplay and chat to show defeat
+      break;
+    case ServerResponses.TEAM2_DESS:
+      //update voteNowDisplay and chat to show defeat
+
+      break;
+    case ServerResponses.TEAM1_TIED:
+      //update voteNowDisplay and chat to show tied status
+      
+      break;
+    case ServerResponses.TEAM2_TIED:
+      //update voteNowDisplay and chat to show tied status
+      
+      break;
+    case ServerResponses.TEAM1_OTHER_UNIT:
+      //update voteNowDisplay and chat to show dumb vote
+
+      break;
+    case ServerResponses.TEAM2_OTHER_UNIT:
+      //update voteNowDisplay and chat to show dumb vote
+
+      break;
+    case ServerResponses.TEAM1_IDIOT_VOTE:
+      //update voteNowDisplay and chat to show dumb vote
+
+
+      break;
+    case ServerResponses.TEAM2_IDIOT_VOTE:
+      //update voteNowDisplay and chat to show dumb vote
+
+
+      break;
+    case ServerResponses.TEAM1_NO_VOTE:
+      //update voteNowDisplay and chat to show absence of votes
+
+      break;
+    case ServerResponses.TEAM2_NO_VOTE:
+      //update voteNowDisplay and chat to show absence of votes
+
+      break;
+      
+    case ServerResponses.PLAYER_JOINED:
+    {
+      //get player list
+      PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
+      client.sendRequest(plistRequest, plistReactor);
+      break;
+    }
+    case ServerResponses.PLAYER_LEFT:
+    {
+      //get player list
+      PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
+      client.sendRequest(plistRequest, plistReactor);
+      break;
+    }
+    case ServerResponses.TURN_END:
+      //server should be sending resulting vote right after this
+      //--update voteNowDisplay?
+      
+      
+      break;
+    case ServerResponses.VOTE_RECIEVED:
+      //request TALLY 
+      
+      break;
+    }
   }
   
   private void makeBoard() {      
@@ -287,8 +432,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       boolean rowGreyOut = !colGreyOut;
       for(int c = 0; c<8; c++) {
         Rectangle outlineSquare = new Rectangle(46, 46);
-        outlineSquare.setStroke(Color.BLACK);     
-        outlineSquare.setFill(rowGreyOut ? Color.GREY : Color.TRANSPARENT);
+        outlineSquare.setStroke(Color.BLACK);            
+        Color squareColor = rowGreyOut ? Color.GREY : Color.TRANSPARENT;        
+        outlineSquare.setFill(squareColor);
         rowGreyOut = !rowGreyOut;       
         outlineSquare.setStrokeWidth(3);
         
@@ -323,7 +469,7 @@ public class GameScreenController implements SignalListener, MessageListener{
               //go through possible squares and de-highlight them
               for (Square choiceSquare : posChoices) {
                 GraphicalSquare gSquare = visibleBoard[choiceSquare.getFile() - 1][choiceSquare.getRank() - 'A'];
-                gSquare.getFrame().setFill(Color.TRANSPARENT);
+                gSquare.getOutline().setFill(gSquare.getOrigialSqaureColor());
                 gSquare.getOutline().setStroke(Color.BLACK);
               }
               
@@ -344,7 +490,7 @@ public class GameScreenController implements SignalListener, MessageListener{
 
             if (voteChoice.getFromChoice() == null) {
               Square pickedSquare = board.querySquare(squareFile, squareRank);
-              System.out.println("---first choice!!!"+pickedSquare+" | "+pickedSquare.getUnit().getType());
+              //System.out.println("---first choice!!!"+pickedSquare+" | "+pickedSquare.getUnit().getType());
               voteChoice.setFromChoice(pickedSquare);
               //highlight this square as green
               outlineSquare.setStroke(Color.GREEN);
@@ -363,13 +509,16 @@ public class GameScreenController implements SignalListener, MessageListener{
               voteChoice.setToChoice(board.querySquare(squareFile, squareRank));
               //highlight this square as blue
               outlineSquare.setStroke(Color.BLUE);
+              //then, enable send vote and clear vote buttons
+              sendVoteButton.setDisable(false);
+              clearVoteButton.setDisable(false);
             }
             
           }         
         });
         
         
-        visibleBoard[r][c] = new GraphicalSquare(squarePane, outlineSquare, frameSquare);
+        visibleBoard[r][c] = new GraphicalSquare(squarePane, outlineSquare, frameSquare, squareColor);
         
         colFixer.getChildren().add(squarePane);
       }

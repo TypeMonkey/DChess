@@ -85,8 +85,8 @@ public enum ServerRequest{
    * or NOT_VOTING team isn't voting at the moment, 
    * or BAD_REQ user isn't in a session
    */
-  VOTE("vote", "~vote:%c:%d:%c:%d", 4, "Votes for a move",
-      ArgType.CHAR, ArgType.INTEGER, ArgType.CHAR, ArgType.INTEGER),
+  VOTE("vote", "~vote:%d:%c:%d:%c", 4, "Votes for a move",
+      ArgType.INTEGER, ArgType.CHAR, ArgType.INTEGER, ArgType.CHAR),
   
   /**
    * Requests the name, their current team - and optionally their UUIDs - of all players in the session
@@ -96,7 +96,7 @@ public enum ServerRequest{
    *           
    *      If client isn't in a session, then BAD_REQ is returned
    */
-  PLIST("plist", "~plist:%b", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session",
+  PLIST("plist", "~plist", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session",
       ArgType.BOOLEAN),
   
   /**
