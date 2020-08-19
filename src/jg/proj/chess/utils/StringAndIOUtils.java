@@ -1,7 +1,10 @@
 package jg.proj.chess.utils;
 
+import java.util.Arrays;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.handler.codec.Delimiters;
 
 /**
  * A collection of handy IO and String utility methods
@@ -17,7 +20,12 @@ public final class StringAndIOUtils {
    */
   public static void writeAndFlush(Channel channel, String message) {
     System.out.println("---SENDING!!!!! "+message);
-    ChannelFuture future = channel.writeAndFlush(message+"\n");
+    
+    byte[] messBytes = new byte[message.getBytes().length + 1];
+    System.arraycopy(message.getBytes(), 0, messBytes, 0, message.getBytes().length);
+    messBytes[messBytes.length - 1] = 0;
+    
+    ChannelFuture future = channel.writeAndFlush(messBytes);
     System.out.println("---GOT FUTURE!!!!! "+message);
     
     future.syncUninterruptibly();

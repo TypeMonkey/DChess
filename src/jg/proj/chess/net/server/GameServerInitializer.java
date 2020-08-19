@@ -29,7 +29,7 @@ public class GameServerInitializer extends ChannelInitializer<SocketChannel> {
   protected void initChannel(SocketChannel ch) throws Exception {
     ChannelPipeline pipeline = ch.pipeline();
     
-    pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));  
+    pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.nulDelimiter()));  
     pipeline.addLast("encoder", new StringEncoder());
     pipeline.addLast("decoder", new StringDecoder());
     
