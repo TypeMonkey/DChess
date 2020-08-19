@@ -25,7 +25,7 @@ public final class StringAndIOUtils {
     System.arraycopy(message.getBytes(), 0, messBytes, 0, message.getBytes().length);
     messBytes[messBytes.length - 1] = 0;
     
-    ChannelFuture future = channel.writeAndFlush(messBytes);
+    ChannelFuture future = channel.writeAndFlush(new String(messBytes));
     System.out.println("---GOT FUTURE!!!!! "+message);
     
     future.syncUninterruptibly();
