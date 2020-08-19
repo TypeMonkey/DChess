@@ -163,6 +163,18 @@ public class GameScreenController implements SignalListener, MessageListener{
     
     //set chat to sent to team by default
     teamChatButton.fire();
+    teamChatButton.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent event) {
+        allChatButton.setSelected(false);
+      }
+    });
+    allChatButton.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent event) {
+        teamChatButton.setSelected(false);
+      }
+    });
     
     //add handles for send and clear vote buttons
     sendVoteButton.setOnMouseClicked(new EventHandler<Event>() {
