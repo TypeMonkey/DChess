@@ -26,6 +26,7 @@ import io.netty.handler.codec.Delimiters;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import javafx.application.Platform;
+import jg.proj.chess.net.ArgType;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.utils.StringAndIOUtils;
@@ -196,7 +197,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     }
     
     //send out request
-    System.out.println("----CONNECTOR: SENDING "+request.toString());
+    System.out.println("----CONNECTOR: SENDING "+request.toString()+" | "+Arrays.toString(request.getArguments())+" | "+Arrays.toString(ArgType.getStringRep(request.getArguments())));
     StringAndIOUtils.writeAndFlush(channel, request.toString());
   }
   

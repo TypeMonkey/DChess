@@ -96,7 +96,7 @@ public enum ServerRequest{
    *           
    *      If client isn't in a session, then BAD_REQ is returned
    */
-  PLIST("plist", "~plist", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session",
+  PLIST("plist", "~plist:%b", 1, "Requests the name, their current team - and optionally their UUIDs - of all players in the session",
       ArgType.BOOLEAN),
   
   /**
