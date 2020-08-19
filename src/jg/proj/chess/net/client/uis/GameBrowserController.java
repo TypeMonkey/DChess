@@ -368,7 +368,7 @@ public class GameBrowserController {
               //TODO: ADD CODE             
               try {        
                 String uuid = results[0];
-                int teamID = Integer.parseInt(results[1]);
+                int teamID = Boolean.parseBoolean(results[1]) ? 1 : 2;
                 client.setCurrentSession(teamID, new SessionInfo(rules, UUID.fromString(uuid), 0));
                 client.showGame();
               } catch (IOException e) {

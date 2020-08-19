@@ -143,12 +143,25 @@
                                  <children>
                                     <Button fx:id="chatClearButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="25.0" prefWidth="87.0" text="Clear">
                                        <HBox.margin>
-                                          <Insets right="100.0" top="10.0" />
+                                          <Insets bottom="10.0" right="10.0" top="10.0" />
                                        </HBox.margin>
                                     </Button>
+                                    <RadioButton fx:id="teamChatButton" mnemonicParsing="false" text="Team Chat" textAlignment="CENTER">
+                                       <font>
+                                          <Font name="Segoe UI" size="12.0" />
+                                       </font>
+                                       <HBox.margin>
+                                          <Insets bottom="10.0" left="5.0" right="5.0" top="10.0" />
+                                       </HBox.margin>
+                                    </RadioButton>
+                                    <RadioButton fx:id="allChatButton" mnemonicParsing="false" text="All Chat" textAlignment="CENTER">
+                                       <HBox.margin>
+                                          <Insets bottom="10.0" left="5.0" right="5.0" top="10.0" />
+                                       </HBox.margin>
+                                    </RadioButton>
                                     <Button fx:id="chatSendButton" mnemonicParsing="false" prefHeight="25.0" prefWidth="88.0" text="Send">
                                        <HBox.margin>
-                                          <Insets left="100.0" top="10.0" />
+                                          <Insets bottom="10.0" left="10.0" top="10.0" />
                                        </HBox.margin>
                                     </Button>
                                  </children>

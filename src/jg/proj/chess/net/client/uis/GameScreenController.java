@@ -31,6 +31,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -127,6 +128,10 @@ public class GameScreenController implements SignalListener, MessageListener{
   private Button chatSendButton;
   @FXML
   private Button chatClearButton;
+  @FXML
+  private RadioButton teamChatButton;
+  @FXML
+  private RadioButton allChatButton;
   
   //actual chess board
   private final GraphicalSquare [][] visibleBoard;
@@ -155,6 +160,9 @@ public class GameScreenController implements SignalListener, MessageListener{
     //disable send and clear vote buttons by default
     sendVoteButton.setDisable(true);
     clearVoteButton.setDisable(true);
+    
+    //set chat to sent to team by default
+    teamChatButton.fire();
     
     //add handles for send and clear vote buttons
     sendVoteButton.setOnMouseClicked(new EventHandler<Event>() {
@@ -210,16 +218,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       public void handle(ActionEvent event) {
         String message = chatInput.getText() == null ? "" : chatInput.getText();
         
-        int colonIndex = message.indexOf(':');
-        colonIndex = colonIndex == -1 ? 0 : colonIndex + 1;
-        
-        String actMess = message.substring(colonIndex);
-        if (message.startsWith(ServerRequest.TEAM.getReqName())) {
-          client.sendRequest(new PendingRequest(ServerRequest.TEAM, actMess), Reactor.BLANK_REACTOR);
-        }
-        else {
-          client.sendRequest(new PendingRequest(ServerRequest.ALL, actMess), Reactor.BLANK_REACTOR);
-        }
+        client.sendRequest(new PendingRequest(teamChatButton.isSelected() ? ServerRequest.TEAM : ServerRequest.ALL, message), Reactor.BLANK_REACTOR);
         
         //now clear the chatInput textarea
         chatInput.setText("");
@@ -228,12 +227,21 @@ public class GameScreenController implements SignalListener, MessageListener{
     
     //add code for chatInput
     chatInput.setWrapText(true);
-    chatInput.setText(ServerRequest.TEAM.getReqName()+": "); //default to team message
     chatInput.setOnKeyPressed(new EventHandler<KeyEvent>() {
       @Override
       public void handle(KeyEvent arg0) {
         if (arg0.getCode() == KeyCode.ENTER) {
           chatSendButton.fire();
+        }
+        else if (arg0.getCode() == KeyCode.TAB) {
+          if (teamChatButton.isSelected()) {
+            teamChatButton.setSelected(false);
+            allChatButton.setSelected(true);
+          }
+          else {
+            allChatButton.setSelected(false);
+            teamChatButton.setSelected(true);
+          }
         }
       }
     });
