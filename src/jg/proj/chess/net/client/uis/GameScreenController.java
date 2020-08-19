@@ -840,7 +840,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       screenController.init();
       
       //DEV_CODE: delete soon
-      screenController.uiTest();
+      //screenController.uiTest();
       
       return pane;
     }

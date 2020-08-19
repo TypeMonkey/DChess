@@ -221,9 +221,9 @@ public class GameBrowserController {
               String [] values = ses.split(",");
               UUID uuid = UUID.fromString(values[0]);
               int playerAmnt = Integer.parseInt(values[1]);
-              boolean prisonDilemma = Boolean.parseBoolean(values[1]);
-              int voteDuration = Integer.parseInt(values[2]);
-              boolean invalidVoting = Boolean.parseBoolean(values[3]);
+              boolean prisonDilemma = Boolean.parseBoolean(values[2]);
+              int voteDuration = Integer.parseInt(values[3]);
+              boolean invalidVoting = Boolean.parseBoolean(values[4]);
               
               SessionRules rules = new SessionRules();
               rules.setProperty(Properties.PRISON_DILEMMA, prisonDilemma);

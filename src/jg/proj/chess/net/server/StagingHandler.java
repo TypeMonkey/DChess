@@ -174,7 +174,11 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           for(UUID uuid : database.getAllSessionIDS()) {
             Session session = database.findSession(uuid);
             if (session != null && session.isAcceptingPlayers()) {
-              whole += uuid.toString()+","+session.totalPlayers()+","+session.getRules().getProperty(Properties.PRISON_DILEMMA)+":";
+              whole += uuid.toString()+","+
+                       session.totalPlayers()+","+
+                       session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
+                       session.getRules().getProperty(Properties.VOTING_DURATION)+","+
+                       session.getRules().getProperty(Properties.ALLOW_INVL_VOTES)+":";
             }
           }
           StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
