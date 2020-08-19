@@ -147,10 +147,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           }
         }
         acceptingPlayers = false;
-        if (running == false) {
-          //quit session
-          return;
-        }
       }
       
       hasStarted = true;
@@ -161,7 +157,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       boolean hasWon = false;
 
       teamOneTurn = true;
-      while (!hasWon) {
+      while (!hasWon && running) {
         
         /*
          * Check if either team has no players. The team with no players loose 
@@ -337,8 +333,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     System.out.println("---REMOVED SESSION: "+sessionID);
     server.getDatabase().removeSession(sessionID);
   }
-  
-  
   
   @Override
   public void handlerAdded(ChannelHandlerContext ctx) throws Exception {

@@ -141,6 +141,7 @@ public class GameScreenController implements SignalListener, MessageListener{
   //logic for chess board and game session
   private final Board board;
   private final VoteChoice voteChoice;
+  private final Reactor plistReactor;
   
   private GameScreenController(ChessClient client) { 
     this.client = client;
@@ -148,6 +149,32 @@ public class GameScreenController implements SignalListener, MessageListener{
     voteChoice = new VoteChoice();
     visibleBoard = new GraphicalSquare[DEFAULT_BOARD_SIZE][DEFAULT_BOARD_SIZE];
     board = new Board(DEFAULT_BOARD_SIZE, DEFAULT_BOARD_SIZE);
+    
+    plistReactor = new Reactor() {      
+      @Override
+      public void react(PendingRequest request, String... results) {
+        //clear both team lists
+        
+        //iterate through user strings
+        for (String userEntry : results) {
+          String [] values = userEntry.split(",");
+          String name = values[0];
+          boolean isTeamOne = Boolean.parseBoolean(values[1]);
+          String uuid = values[2];
+
+          if (isTeamOne) {
+            teamOneList.getItems().add(name+"@"+uuid);
+          }
+          else {
+            teamTwoList.getItems().add(name+"@"+uuid);
+          }
+        }
+      }      
+      @Override
+      public void error(PendingRequest request, int errorCode) {
+        
+      }
+    };
   }
   
   public void init() {       
@@ -304,6 +331,9 @@ public class GameScreenController implements SignalListener, MessageListener{
     //add this as listeners
     client.addMessageListener(this);
     client.addSignalListener(this);
+    
+    //send plist request
+    client.sendRequest(new PendingRequest(ServerRequest.PLIST, true), plistReactor);
   }
   
   @Override
@@ -353,32 +383,6 @@ public class GameScreenController implements SignalListener, MessageListener{
   
   @Override
   public void handleSignal(int signal) {
-    
-    final Reactor plistReactor = new Reactor() {      
-      @Override
-      public void react(PendingRequest request, String... results) {
-        //clear both team lists
-        
-        //iterate through user strings
-        for (String userEntry : results) {
-          String [] values = userEntry.split(",");
-          String name = values[0];
-          boolean isTeamOne = Boolean.parseBoolean(values[1]);
-          String uuid = values[2];
-
-          if (isTeamOne) {
-            teamOneList.getItems().add(name+"@"+uuid);
-          }
-          else {
-            teamTwoList.getItems().add(name+"@"+uuid);
-          }
-        }
-      }      
-      @Override
-      public void error(PendingRequest request, int errorCode) {
-        
-      }
-    };
     
     switch (signal) {
     case ServerResponses.GAME_START: 
