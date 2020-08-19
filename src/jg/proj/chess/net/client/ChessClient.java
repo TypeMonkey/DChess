@@ -56,7 +56,7 @@ public class ChessClient extends Application{
                               workerPool, 
                               config.getValue(ConfigKey.IP), 
                               Integer.parseInt(config.getValue(ConfigKey.PORT)));   
-        
+    connector.connect();
     //show entrance scene
     showEntrance();
     
@@ -206,10 +206,8 @@ public class ChessClient extends Application{
   }
   
   public void sendRequest(PendingRequest request, Reactor reactor) {
-    System.out.println("---REQUEST SUBMITTED: "+request);
-    
-    //UNCOMMENT BELOW
-    //connector.sendRequest(request, reactor);  
+    System.out.println("---REQUEST SUBMITTED: "+request);   
+    connector.sendRequest(request, reactor);  
   }
   
   public void stop() throws InterruptedException {

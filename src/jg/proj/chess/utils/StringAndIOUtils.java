@@ -16,9 +16,11 @@ public final class StringAndIOUtils {
    * @param message - the String message to send. A line break "\r\n" is appended to it.
    */
   public static void writeAndFlush(Channel channel, String message) {
+    System.out.println("---SENDING!!!!! "+message);
     ChannelFuture future = channel.writeAndFlush(message+"\r\n");
-    future.syncUninterruptibly();
+    System.out.println("---GOT FUTURE!!!!! "+message);
     
+    future.syncUninterruptibly();
     //DEV_CODE: Debug code
     if (!future.isSuccess()) {
       System.err.println(" write error! "+future.cause());

@@ -14,10 +14,18 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.Delimiters;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
+import javafx.application.Platform;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.utils.StringAndIOUtils;
@@ -62,6 +70,12 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         .handler(this);
     
     channel = bootstrap.connect(ip, port).sync().channel();
+    
+    ChannelPipeline pipeline = channel.pipeline();
+    pipeline.addFirst("encoder", new StringEncoder());
+    pipeline.addFirst("decoder", new StringDecoder());
+    pipeline.addFirst("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));  
+    
     isConnected = true;
 
     System.out.println("*Connected to server at "+ip+":"+port);
@@ -86,6 +100,8 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     return uuid;
     */
   }
+  
+  
 
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
@@ -93,10 +109,12 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     String req = split[0];
     
     
+    System.out.println("----FROM SERVER: "+msg);
+    
     if (req.equals("signal")) {
       //alert all signal listeners
       for (SignalListener listener : signalListeners) {
-        listener.handleSignal(Integer.parseInt(split[1]));
+        Platform.runLater(() -> listener.handleSignal(Integer.parseInt(split[1])));
       }
     }
     else {
@@ -112,18 +130,18 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         
         //alert all message listeners
         for (MessageListener listener : messageListeners) {
-          listener.handleMessage(req, contentSeq);
+          Platform.runLater(() -> listener.handleMessage(req, contentSeq));
         }             
         
         if (reqMap.containsKey(request) && reqMap.get(request).size() > 0) {
           RequestFuture future = reqMap.get(request).removeFirst();
           if (gotError) {
             future.changeStatus(Status.ERROR);
-            future.error(Integer.parseInt(split[2]));
+            Platform.runLater(() -> future.error(Integer.parseInt(split[2])));;
           }
           else {
             future.changeStatus(Status.COMPLETE);
-            future.react(contentSeq);
+            Platform.runLater(() -> future.react(contentSeq));;
           }
           
         }      
@@ -132,7 +150,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         //get subarray from 1 <-> split.length-1
         String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
         for (MessageListener listener : messageListeners) {
-          listener.handleMessage(req, contentSeq);
+          Platform.runLater(() -> listener.handleMessage(req, contentSeq));
         }
       }
       else if (req.equals("result")) {
@@ -143,7 +161,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         
         //alert all message listeners
         for (MessageListener listener : messageListeners) {
-          listener.handleMessage(req, contentSeq);
+          Platform.runLater(() -> listener.handleMessage(req, contentSeq));
         }          
       }
       else {
@@ -153,11 +171,11 @@ public class Connector extends SimpleChannelInboundHandler<String>{
           RequestFuture future = reqMap.get(originalRequest).removeFirst();
           if (gotError) {
             future.changeStatus(Status.ERROR);
-            future.error(Integer.parseInt(split[2]));
+            Platform.runLater(() -> future.error(Integer.parseInt(split[2])));
           }
           else {
             future.changeStatus(Status.COMPLETE);
-            future.react(Arrays.copyOfRange(split, 1, split.length));
+            Platform.runLater(() -> future.react(Arrays.copyOfRange(split, 1, split.length)));
           }
         } catch (IllegalArgumentException e) {
           //should not happen! But just report as a sanity check
@@ -178,6 +196,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     }
     
     //send out request
+    System.out.println("----CONNECTOR: SENDING "+request.toString());
     StringAndIOUtils.writeAndFlush(channel, request.toString());
   }
   

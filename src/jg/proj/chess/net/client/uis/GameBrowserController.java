@@ -362,6 +362,7 @@ public class GameBrowserController {
           };
           
           client.sendRequest(createReq, reactor);
+                 
         }
       }
       
@@ -616,7 +617,7 @@ public class GameBrowserController {
       browserController.init();
       
       //DEV_CODE: delete soon
-      browserController.uiTest();
+      // browserController.uiTest();
       
       return pane;
     }

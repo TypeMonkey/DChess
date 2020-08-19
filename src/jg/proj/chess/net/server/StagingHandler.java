@@ -164,16 +164,21 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
       }
     }
     else if (first.equals(ServerRequest.SES.getReqName())) {
-      if (arguments.size() == ServerRequest.SES.argAmount()) {        
-        String whole = "";
-        for(UUID uuid : database.getAllSessionIDS()) {
-          Session session = database.findSession(uuid);
-          if (session != null && session.isAcceptingPlayers()) {
-            whole += uuid.toString()+","+session.totalPlayers()+","+session.getRules().getProperty(Properties.PRISON_DILEMMA)+":";
-          }
-        }
+      if (arguments.size() == ServerRequest.SES.argAmount()) {
         
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
+        if (database.getAllSessionIDS().isEmpty()) {
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.NO_SESS));
+        }
+        else {
+          String whole = "";
+          for(UUID uuid : database.getAllSessionIDS()) {
+            Session session = database.findSession(uuid);
+            if (session != null && session.isAcceptingPlayers()) {
+              whole += uuid.toString()+","+session.totalPlayers()+","+session.getRules().getProperty(Properties.PRISON_DILEMMA)+":";
+            }
+          }
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
+        }     
       }
       else {
         StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.WRONG_ARGS));
