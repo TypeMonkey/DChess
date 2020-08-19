@@ -588,7 +588,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           StringAndIOUtils.writeAndFlush(sender, ServerRequest.ALL.createErrorString(ServerResponses.PRISON_DIL));
         }
         else {
-          String message = arguments.get(0);
+          String message = arguments.stream().collect(Collectors.joining());
           msgEveryone(String.format(ServerResponses.ALL_MSG, player.getName(), message));       
         }
       }
@@ -603,7 +603,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           StringAndIOUtils.writeAndFlush(sender, ServerRequest.TEAM.createErrorString(ServerResponses.PRISON_DIL));
         }
         else {
-          String message = arguments.get(0);
+          String message = arguments.stream().collect(Collectors.joining());
           
           if (teamOne.contains(sender)) {
             msgTeamOne(String.format(ServerResponses.TEAM_MSG, player.getName(), message));
