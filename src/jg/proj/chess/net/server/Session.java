@@ -139,8 +139,18 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       if (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
         msgEveryone(String.format(ServerResponses.SERVER_MSG, "----> WAITING FOR MORE PLAYERS <----"));
         acceptingPlayers = true;
-        while (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize);
+        while (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
+          if (teamOne.size() == 0 && teamTwo.size() == 0) {
+            //session has been abandoned.
+            running = false;
+            break;
+          }
+        }
         acceptingPlayers = false;
+        if (running == false) {
+          //quit session
+          return;
+        }
       }
       
       hasStarted = true;

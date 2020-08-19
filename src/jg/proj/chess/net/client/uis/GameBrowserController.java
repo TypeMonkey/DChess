@@ -232,7 +232,8 @@ public class GameBrowserController {
               
               SessionInfo info = new SessionInfo(rules, uuid, playerAmnt);
               activeSessions.add(info); 
-              activeSessMap.put(uuid, info);          
+              activeSessMap.put(uuid, info);    
+              activeSessionsTable.getItems().add(info);
             }
           }
           
@@ -418,7 +419,7 @@ public class GameBrowserController {
     randomTeam.fire();
     yesPrisDil.fire();
     noInvalVote.fire();
-    noLate.fire();
+    yesLate.fire();
     
     //add row selection listerer
     activeSessionsTable.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<SessionInfo>() {

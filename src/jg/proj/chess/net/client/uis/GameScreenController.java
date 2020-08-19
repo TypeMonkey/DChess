@@ -149,7 +149,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     //prepare logical board
     board.initialize(new DefaultBoardPreparer());
     //set the session uuid
-    //sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
+    sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
     sessionUUIDDisplay.setEditable(false);
     
     //disable send and clear vote buttons by default

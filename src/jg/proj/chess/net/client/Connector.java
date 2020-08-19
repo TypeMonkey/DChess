@@ -123,7 +123,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
       
       if (ServerRequest.ALL.getName().equals(req) || ServerRequest.TEAM.getName().equals(req)) {
         //actual request
-        ServerRequest request = ServerRequest.valueOf(req);
+        ServerRequest request = ServerRequest.valueOf(req.toUpperCase());
         
         //get subarray from 1 <-> split.length-1
         String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
