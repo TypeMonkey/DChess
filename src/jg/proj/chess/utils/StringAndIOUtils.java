@@ -17,7 +17,7 @@ public final class StringAndIOUtils {
    */
   public static void writeAndFlush(Channel channel, String message) {
     System.out.println("---SENDING!!!!! "+message);
-    ChannelFuture future = channel.writeAndFlush(message+"\r\n");
+    ChannelFuture future = channel.writeAndFlush(message+"\n");
     System.out.println("---GOT FUTURE!!!!! "+message);
     
     future.syncUninterruptibly();

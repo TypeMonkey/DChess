@@ -618,7 +618,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       }
     }
     else {
-      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, "!"+first, ServerResponses.UNKNOWN));
+      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, first, ServerResponses.UNKNOWN));
     }  
   }
   
