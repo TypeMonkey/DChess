@@ -24,3 +24,6 @@
 
 #Whitelist config.txt
 !config.txt
+
+#Whitelist server.jar
+!server.jar
