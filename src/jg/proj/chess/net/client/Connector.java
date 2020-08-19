@@ -127,6 +127,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         
         //get subarray from 1 <-> split.length-1
         String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
+        System.out.println("----> GIVING: "+Arrays.toString(contentSeq));
         
         //alert all message listeners
         for (MessageListener listener : messageListeners) {
@@ -142,8 +143,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
           else {
             future.changeStatus(Status.COMPLETE);
             Platform.runLater(() -> future.react(contentSeq));;
-          }
-          
+          }         
         }      
       }
       else if (req.equals("serv")) {

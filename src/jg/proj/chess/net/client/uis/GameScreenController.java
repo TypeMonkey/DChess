@@ -233,7 +233,7 @@ public class GameScreenController implements SignalListener, MessageListener{
         client.sendRequest(new PendingRequest(teamChatButton.isSelected() ? ServerRequest.TEAM : ServerRequest.ALL, message), Reactor.BLANK_REACTOR);
         
         //now clear the chatInput textarea
-        chatInput.setText("");
+        chatInput.clear();
       }
     });
     
@@ -244,8 +244,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       public void handle(KeyEvent arg0) {
         if (arg0.getCode() == KeyCode.ENTER) {
           chatSendButton.fire();
+          arg0.consume();
         }
-        else if (arg0.getCode() == KeyCode.TAB) {
+        else if (arg0.getCode() == KeyCode.ALT) {
           if (teamChatButton.isSelected()) {
             teamChatButton.setSelected(false);
             allChatButton.setSelected(true);
@@ -262,7 +263,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     chatClearButton.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent event) {
-        chatInput.setText("");
+        chatInput.clear();;
       }
     }); 
     
@@ -345,8 +346,8 @@ public class GameScreenController implements SignalListener, MessageListener{
       updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()));
     }
     else {
-      updateChatList("["+messageType+"]"+messageContent[1]+": "+
-                     Arrays.stream(Arrays.copyOfRange(messageContent, 2, messageContent.length)).collect(Collectors.joining()));
+      updateChatList("["+messageType+"] "+messageContent[0]+": "+
+                     Arrays.stream(Arrays.copyOfRange(messageContent, 1, messageContent.length)).collect(Collectors.joining()));
     }
   }
   

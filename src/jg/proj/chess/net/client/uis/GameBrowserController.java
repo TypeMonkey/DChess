@@ -436,7 +436,7 @@ public class GameBrowserController {
     
     //set default create session values
     randomTeam.fire();
-    yesPrisDil.fire();
+    noPrisDil.fire();
     noInvalVote.fire();
     yesLate.fire();
     

@@ -332,6 +332,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       
       running = false;  
     }
+    
+    //remove session from database
+    System.out.println("---REMOVED SESSION: "+sessionID);
+    server.getDatabase().removeSession(sessionID);
   }
   
   
