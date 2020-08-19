@@ -74,7 +74,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     ChannelPipeline pipeline = channel.pipeline();
     pipeline.addFirst("encoder", new StringEncoder());
     pipeline.addFirst("decoder", new StringDecoder());
-    pipeline.addFirst("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));  
+    pipeline.addFirst("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.nulDelimiter()));  
     
     isConnected = true;
 
