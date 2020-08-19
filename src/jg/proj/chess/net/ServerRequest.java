@@ -52,7 +52,7 @@ public enum ServerRequest{
    * or Team 2 ("black") respectively. If teamID isn't either 1 or 2, their
    * team designation will be randomly decided
    * 
-   * Returns: a string of the form: "sessionUUID:isTeamOne:CONFIG"
+   * Returns: a string of the form: "sessionUUID:isTeamOne"
    *          where CONFIG is the argument string provided with csess
    */
   CSESS("csess", "~csess:%d:"

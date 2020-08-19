@@ -142,8 +142,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
 
             sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
             StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.getName()+":"+newSession.getSessionID().toString()+":"+
-                sender.attr(teamAttribute).get()+":"+
-                rules.toString());
+                sender.attr(teamAttribute).get());
 
             sender.pipeline().removeLast();
             sender.pipeline().addLast("shandler", newSession);

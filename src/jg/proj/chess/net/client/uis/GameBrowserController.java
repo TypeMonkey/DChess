@@ -4,9 +4,11 @@ import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -279,6 +281,14 @@ public class GameBrowserController {
           @Override
           public void react(PendingRequest request, String... results) {
             try {
+              String uuid = results[0];
+              boolean isTeamOne = Boolean.parseBoolean(results[1]);
+              
+              String [] configStrings = Arrays.copyOfRange(results, 2, results.length);
+              String configWhole = Arrays.stream(configStrings).collect(Collectors.joining());
+              
+              SessionRules sessionRules = SessionRules.parseFromString(configWhole);
+              client.setCurrentSession(isTeamOne ? 1 : 2, new SessionInfo(sessionRules, UUID.fromString(uuid), 0));
               client.showGame();
             } catch (IOException e) {
               client.recordException(e);
@@ -346,11 +356,20 @@ public class GameBrowserController {
                                                         allowInvalid,
                                                         allowLate);
           
+          SessionRules rules = new SessionRules();
+          rules.setProperty(Properties.ALLOW_INVL_VOTES, allowInvalid);
+          rules.setProperty(Properties.ALLOW_JOINS_GAME, allowLate);
+          rules.setProperty(Properties.PRISON_DILEMMA, prisDil);
+          rules.setProperty(Properties.VOTING_DURATION, vDuration);
+          rules.setProperty(Properties.MIN_TEAM_COUNT, mPlayers);
+          
           Reactor reactor = new Reactor() {
             public void react(PendingRequest request, String... results) {
-              //TODO: ADD CODE
-              
-              try {
+              //TODO: ADD CODE             
+              try {        
+                String uuid = results[0];
+                int teamID = Integer.parseInt(results[1]);
+                client.setCurrentSession(teamID, new SessionInfo(rules, UUID.fromString(uuid), 0));
                 client.showGame();
               } catch (IOException e) {
                 client.recordException(e);
