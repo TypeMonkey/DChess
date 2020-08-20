@@ -452,17 +452,22 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           }
         }
         
-        //now, concat all votes
-        String tally = "";
-        for (Entry<Vote, Integer> voteCountEntry : voteCount.entrySet()) {
-          tally += voteCountEntry.getKey().toString()+">"+voteCountEntry.getValue()+":";
+        if (!voteCount.isEmpty()) {
+          //now, concat all votes
+          String tally = "";
+          for (Entry<Vote, Integer> voteCountEntry : voteCount.entrySet()) {
+            tally += voteCountEntry.getKey().toString()+">"+voteCountEntry.getValue()+":";
+          }
+          
+          //if no votes have been received, then just send empty string
+          tally = tally.isEmpty() ? tally : tally.substring(0, tally.length() - 1);
+          
+          //send tally over
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.TALLY.getName()+":"+tally);
         }
-        
-        //if no votes have been received, then just send empty string
-        tally = tally.isEmpty() ? tally : tally.substring(0, tally.length() - 1);
-        
-        //send tally over
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.TALLY.getName()+":"+tally);
+        else {
+          StringAndIOUtils.writeAndFlush(sender, ServerRequest.TALLY.createErrorString(ServerResponses.NO_TALLY));
+        }       
       }
     }
     else if (first.equals(ServerRequest.VOTE.getReqName())) {

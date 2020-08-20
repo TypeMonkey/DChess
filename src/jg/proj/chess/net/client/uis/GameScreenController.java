@@ -154,6 +154,8 @@ public class GameScreenController implements SignalListener, MessageListener{
       @Override
       public void react(PendingRequest request, String... results) {
         //clear both team lists
+        teamOneList.getItems().clear();
+        teamTwoList.getItems().clear();
         
         //iterate through user strings
         for (String userEntry : results) {
@@ -178,6 +180,9 @@ public class GameScreenController implements SignalListener, MessageListener{
   }
   
   public void init() {       
+    //voteNowDisplay should be blank
+    voteNowDisplay.setText("");
+    
     //prepare logical board
     board.initialize(new DefaultBoardPreparer());
     //set the session uuid

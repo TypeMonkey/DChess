@@ -39,12 +39,12 @@
                                   <RowConstraints maxHeight="71.0" minHeight="10.0" prefHeight="71.0" vgrow="SOMETIMES" />
                                 </rowConstraints>
                                  <children>
-                                    <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="17.0" prefWidth="359.0" text="Team One">
+                                    <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="17.0" prefWidth="359.0" text="Team One (White)">
                                        <font>
                                           <Font name="System Bold" size="16.0" />
                                        </font>
                                     </Label>
-                                    <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="17.0" prefWidth="359.0" text="Team Two" GridPane.columnIndex="1">
+                                    <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="17.0" prefWidth="359.0" text="Team Two (Black)" GridPane.columnIndex="1">
                                        <font>
                                           <Font name="System Bold" size="16.0" />
                                        </font>
