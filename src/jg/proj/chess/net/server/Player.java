@@ -4,6 +4,11 @@ import java.util.UUID;
 
 import io.netty.channel.Channel;
 
+/**
+ * Holds key information related to a connected user
+ * @author Jose
+ *
+ */
 public class Player {
 
   private final UUID id;

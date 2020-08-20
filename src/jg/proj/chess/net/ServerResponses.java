@@ -49,9 +49,7 @@ public interface ServerResponses {
   
   public static final int PLAYER_JOINED = 17; //player has joined the session
   public static final int PLAYER_LEFT = 18; //player has left the session
-  
-  public static final int TURN_END = 19; //a team's turn has ended
-  
+    
   public static final int VOTE_RECIEVED = 20; //Someone from the player's team has voted. So, the vote tally has been updated
   
   //first string argument -> user-name , second string argument -> message

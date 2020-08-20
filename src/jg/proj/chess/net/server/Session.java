@@ -5,14 +5,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -29,6 +32,7 @@ import jg.proj.chess.core.DefaultBoardPreparer;
 import jg.proj.chess.core.Square;
 import jg.proj.chess.core.TeamInformation;
 import jg.proj.chess.core.units.InvalidMove;
+import jg.proj.chess.core.units.Unit;
 import jg.proj.chess.core.units.Unit.UnitType;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
@@ -44,26 +48,65 @@ import jg.proj.chess.utils.StringAndIOUtils;
  */
 @Sharable
 public class Session extends SimpleChannelInboundHandler<String> implements Runnable{
+  private static final int DEFAULT_BOARD_SIZE = 8;
   private final GameServer server;
   
+  /**
+   * The unique id that identifies this session
+   */
   private final UUID sessionID;  
+  
+  /**
+   * The game logic for this session
+   */
   private final Board board;
   private final TeamInformation teams;
   
+  /**
+   * The teams of this session
+   */
   private final ChannelGroup teamOne;
   private final ChannelGroup teamTwo;
   
-  private final ArrayBlockingQueue<Vote> voteQueue;
+  /**
+   * List to add votes to. Cleared at every vote end
+   */
+  private final List<Vote> votes;
   
+  /**
+   * The rules of this session
+   */
   private final SessionRules rules;
   
+  /**
+   * Round count
+   */
   private volatile int currentRound;  
+  
+  /**
+   * Whether the session is active (hasn't ended)
+   */
   private volatile boolean running;
+  
+  /**
+   * Whether it's currently team one's turn
+   */
   private volatile boolean teamOneTurn;
+  
+  /**
+   * Whether this session is currently accepting votes
+   * from either team
+   */
   private volatile boolean currentlyVoting;
   
+  /**
+   * Whether this session has started
+   */
   private volatile boolean hasStarted;
   
+  /**
+   * Whether this session is currently accepting players
+   */
   private volatile boolean acceptingPlayers;
   
   public Session(GameServer server, SessionRules rules){
@@ -71,9 +114,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     this.rules = rules;
     this.sessionID = UUID.randomUUID();
     
-    voteQueue = new ArrayBlockingQueue<>(10);
+    votes = new CopyOnWriteArrayList<>();
     
-    board = new Board(8, 8);
+    board = new Board(DEFAULT_BOARD_SIZE, DEFAULT_BOARD_SIZE);
     teams = board.initialize(new DefaultBoardPreparer());
     currentRound = 1;
     
@@ -135,7 +178,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       running = true;
 
       //Wait until both teams reach the minimum size
-      int minTeamSize = (int) rules.getProperty(Properties.MIN_TEAM_COUNT);
+      final int minTeamSize = (int) rules.getProperty(Properties.MIN_TEAM_COUNT);
       if (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
         msgEveryone(String.format(ServerResponses.SERVER_MSG, "----> WAITING FOR MORE PLAYERS <----"));
         acceptingPlayers = true;
@@ -178,11 +221,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           long timeNow = System.currentTimeMillis();
           long projectedEnd = timeNow + TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
 
-          ConcurrentHashMap<Vote, Set<Player>> voteMap = new ConcurrentHashMap<>();
-          ConcurrentHashMap<Player, Vote> votedPlayers = new ConcurrentHashMap<>();
+          //maps a player to their vote
+          ConcurrentHashMap<Player, Vote> voterMap = new ConcurrentHashMap<>();
 
           //voting time window
-          ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
+          final ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
           final int currentTeamID = teamOneTurn ? 1 : 2;
           
           System.out.println("---CURRENT TURN: "+currentTeamID+" | "+teamOneTurn);
@@ -196,71 +239,58 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           
           currentlyVoting = true;
           while (System.currentTimeMillis() < projectedEnd) {
-            try {
-              Vote vote = voteQueue.poll(0, TimeUnit.MILLISECONDS);
-              if (vote == null) {
-                continue;
-              }
-
-              System.out.println("  -> HAS VOTED: "+vote);
+            /*
+             * Keep iterating through the vote list while the 
+             * voting window is still active
+             */
+            for(Vote vote : votes) {
+              System.out.println(" ---> sorting vote: "+vote);
               
               if (currentTeam.contains(vote.getVoter().getChannel())) {
-                Square square = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
+                //make sure to only be sorting votes from the current team
+                
+                Square origin = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
                 Square destination = board.querySquare(vote.getFileDest(), vote.getRankDest());
-                System.out.println("  ---> SOURCE SQUARE??? "+square.getUnit());
+                Unit targetUnit = origin.getUnit();
                 
                 //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes              
-                if ( (square.getUnit() != null && square.getUnit().getTeamID() == currentTeamID && square.getUnit().possibleDestinations().contains(destination)) || 
-                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {                  
-                  if (!voteMap.containsKey(vote)) {
-                    HashSet<Player> votees = new HashSet<>();
-                    votees.add(vote.getVoter());
-                    voteMap.put(vote, votees);
-                  }
-                  else {
-                    voteMap.get(vote).add(vote.getVoter());
-                  }
-                  
-                  //if player already voted, then update the votemap to discount double counting
-                  if (votedPlayers.contains(vote.getVoter())) {
-                    voteMap.get(vote).remove(vote.getVoter());
-                  }
-                  else {
-                    votedPlayers.put(vote.getVoter(), vote);
-                  }
-
+                if ( (targetUnit != null && targetUnit.getTeamID() == currentTeamID && targetUnit.possibleDestinations().contains(destination)) || 
+                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {             
+                  voterMap.put(vote.getVoter(), vote);
                 }
                 else {
                   System.out.println("   NOT A VALID DESTINATION SQUARE");
                   StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
                       String.format(ServerResponses.BAD_REQUEST, ServerRequest.VOTE.getName(), ServerResponses.BAD_VOTE));
                 }        
+              
               }
-              else {
-                System.out.println("   PLAYER: "+vote.getVoter().getName()+" isn't in "+currentTeamID);
-                StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
-                        String.format(ServerResponses.BAD_REQUEST, ServerRequest.VOTE.getName(), ServerResponses.BAD_VOTE));
-              }
-            } catch (InterruptedException e) {
-              System.out.println("---INTERRUPTED");
             }
           }
-          currentlyVoting = false;
-          voteQueue.clear();
           
-          //tell all players that voting has ended
-          System.out.println("    > voting done");
+          //clear out previous votes and signal vote end
+          currentlyVoting = false;
+          votes.clear();
           if (teamOneTurn) {
             sendSignallTeam1(ServerResponses.VOTE_END);
           }
           else {
             sendSignallTeam2(ServerResponses.VOTE_END);
           }
+          msgEveryone(String.format(ServerResponses.SERVER_MSG, "---> Processing votes! <---"));
 
           //decide on move based on plurality
-          if (!voteMap.isEmpty()) {
+          if (!voterMap.isEmpty()) {
             PriorityQueue<VoteCounter> voteQueue = new PriorityQueue<VoteCounter>((x,y) -> y.votes - x.votes);
-            voteMap.entrySet().stream().map(x -> new VoteCounter(x.getKey(), x.getValue().size())).collect(Collectors.toCollection(() -> voteQueue));
+            
+            HashMap<Vote, Integer> voteCounter = new HashMap<>();
+            for(Vote voteEntry : voterMap.values()) {
+                voteCounter.put(voteEntry, voteCounter.containsKey(voteEntry) ? voteCounter.get(voteEntry) + 1 : 1);             
+            }
+            
+            voteCounter.entrySet().stream().map(x -> new VoteCounter(x.getKey(), x.getValue())).collect(Collectors.toCollection(() -> voteQueue));
+            
+            msgEveryone(String.format(ServerResponses.SERVER_MSG, "---> Votes processed! <---"));
             
             VoteCounter mostPopular = voteQueue.poll();
             System.out.println(" MOST POPULAR: "+mostPopular.vote.getVoter().getName()+" | "+mostPopular.vote);
@@ -315,11 +345,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             System.out.println("[SERVER] TEAM TWO WON!");
           }         
         }
-        //turn has ended
-        sendSignalAll(ServerResponses.TURN_END);
-
         //switch turns
         teamOneTurn = teamOneTurn ? false : true;
+        currentRound++;
       }
 
       //clear both teams of members
@@ -362,9 +390,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
       }
     }
-    else {
-      StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_END));
-    }
+    
     System.out.println("---sent newbie welcom---");
   }
   
@@ -412,6 +438,167 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
+
+    Channel sender = ctx.channel();
+    Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
+    
+    String [] split = msg.split(":"); //split message
+    final String requestIdentifier = split[0];  //used by the client to identify requests
+    ServerRequest request = null;
+    try {
+      //the substring operation is to remove the '~' in front of a request
+      request = ServerRequest.valueOf(split[1].substring(1));
+    } catch (IllegalArgumentException e) {
+      //leave as is...
+    }
+    
+    /*
+     * A requests has the format: IDEN:REQ_NAME:arguments
+     * So, extract all elements from index 2 to split.length - 1 as those are the actual arguments
+     * 
+     * If split.length <= 2, then that means the request has insufficient arguments
+     */
+    final String [] arguments = split.length > 2 ? Arrays.copyOfRange(split, 2, split.length) : new String[0];
+    
+    System.out.println(" FROM PLAYER (SESS) "+sender.remoteAddress()+" | "+request+" | original: "+msg.trim());
+
+    if (request != null) {
+      if (request.argAmount() == arguments.length) {
+        AttributeKey<Boolean> teamAttribute = AttributeKey.valueOf("teamone");
+        
+        int errorCode = 0; //0 means no error was encountered
+        String response = null; 
+        
+        switch (request) {
+          case CUSER:
+          { 
+            player.setName(arguments[0]);
+            response = player.getName()+":"+player.getID();
+            break;
+          }
+          case JOIN:
+          {
+            UUID sessionUUID = UUID.fromString(arguments[0]);
+            int teamID = Integer.parseInt(arguments[1]);
+            
+            //find the session
+            Session session = server.getDatabase().findSession(sessionUUID);
+            if (session == null) {
+              System.out.println(" -> No session found of ID '"+sessionUUID+"' , req by "+player.getName());
+              errorCode = ServerResponses.NO_SESS;
+            }
+            else if(session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
+                    !session.isAcceptingPlayers()){
+              //session doesn't allow late joins or isn't currently accepting players -> send error
+              errorCode = ServerResponses.NO_JOIN;
+            }
+            else {
+              //player can join session
+              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
+              sender.pipeline().removeLast();
+              sender.pipeline().addLast("shandler", session);
+              
+              response = sessionUUID.toString()+":"+sender.attr(teamAttribute).get()+":"+session.getRules();             
+            }
+            break;
+          }
+          case CSESS:
+          {
+            int teamID = Integer.parseInt(arguments[0]);
+            String [] rulesSubArray = Arrays.copyOfRange(arguments, 1, arguments.length);
+            String rulesString = Arrays.stream(rulesSubArray).collect(Collectors.joining(":"));
+            
+            //now parse the rules
+            SessionRules sessionRules = SessionRules.parseFromString(rulesString);
+            if (sessionRules != null) {
+              //no error found in parsing. Continue on
+              
+              //create session and add it to the database
+              Session session = new Session(server, sessionRules);
+              server.getDatabase().addSession(session);
+              
+              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());            
+
+              sender.pipeline().removeLast();
+              sender.pipeline().addLast("shandler", session);
+              server.runSession(session);
+              
+              response = session.getSessionID() + ":" + sender.attr(teamAttribute).get();
+            }
+            else {
+              errorCode = ServerResponses.WRONG_ARGS;
+            }
+            
+            break;
+          }
+          case SES:
+          {
+            if (server.getDatabase().getSessionCount() == 0) {
+              //if there are no sessions running, respond with error NO_SES
+              errorCode = ServerResponses.NO_SESS;
+            }
+            else {
+              String whole = "";
+              for(UUID uuid : server.getDatabase().getAllSessionIDS()) {
+                Session session = server.getDatabase().findSession(uuid);
+                if (session != null && session.isAcceptingPlayers()) {
+                  whole += uuid.toString()+","+
+                           session.totalPlayers()+","+
+                           session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
+                           session.getRules().getProperty(Properties.VOTING_DURATION)+","+
+                           session.getRules().getProperty(Properties.ALLOW_INVL_VOTES)+":";
+                }
+              }
+              response = whole;    
+            }
+            break;
+          }
+          case DISC: 
+          {
+            System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
+            
+            server.getDatabase().removePlayer(player.getID());
+            sender.pipeline().remove(this);
+            sender.close();
+            
+            response = "bye";
+            break;
+          }
+          default:
+          {
+            //the rest of the server requests are only available while in a session
+            errorCode = ServerResponses.NOT_IN_SESS;
+            break;
+          }
+        }
+        
+        if (errorCode < 0) {
+          //means error was encountered
+          StringAndIOUtils.writeAndFlush(sender, 
+               requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), errorCode));
+        }
+        else {
+          //no error was encountered. Result string has been created
+          StringAndIOUtils.writeAndFlush(sender, requestIdentifier+":"+request.getName()+":"+response);
+        }
+        
+      }
+      else {
+        //invalid amount of args provided. Send error
+        StringAndIOUtils.writeAndFlush(sender, 
+            requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), ServerResponses.WRONG_ARGS));
+      }
+    }
+    else {
+      //no such request exists
+      String errorResponse = String.format(ServerResponses.BAD_REQUEST, requestIdentifier, ServerResponses.UNKNOWN);
+      System.out.println("--CLIENT: "+player.getName()+" sent an unknow request: "+split[1]);
+      StringAndIOUtils.writeAndFlush(sender, errorResponse);
+    }
+  
+  }
+  
+  protected void channelRead(ChannelHandlerContext ctx, String msg) throws Exception {
     Channel sender = ctx.channel();
     Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
     System.out.println("FROM: "+ctx.channel().remoteAddress()+" | "+msg);
@@ -663,21 +850,5 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   public SessionRules getRules(){
     return rules;
-  }
-    
-  public static class VoteCounter{
-    
-    public final Vote vote; 
-    public final int votes;
-    
-    public VoteCounter(Vote vote, int voteCount) {
-      this.vote = vote;
-      this.votes = voteCount;
-    }
-    
-    @Override
-    public String toString() {
-      return "CNT: "+votes+" , "+vote;
-    }
   }
 }

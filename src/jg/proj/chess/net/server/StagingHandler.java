@@ -63,149 +63,159 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
     Channel sender = ctx.channel();
     Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
-    //check is message is a "join" or "csess" command. If so, change handler to be a Session
     
-    AttributeKey<Boolean> teamAttribute = AttributeKey.valueOf("teamone");
-                
-    ArrayList<String> arguments = new ArrayList<String>(Arrays.asList(msg.split(":")));
-    System.out.println(" FROM PLAYER "+sender.remoteAddress()+" | "+arguments+" | original: "+msg.trim());
+    String [] split = msg.split(":"); //split message
+    final String requestIdentifier = split[0];  //used by the client to identify requests
+    ServerRequest request = null;
+    try {
+      //the substring operation is to remove the '~' in front of a request
+      request = ServerRequest.valueOf(split[1].substring(1));
+    } catch (IllegalArgumentException e) {
+      //leave as is...
+    }
+    
+    /*
+     * A requests has the format: IDEN:REQ_NAME:arguments
+     * So, extract all elements from index 2 to split.length - 1 as those are the actual arguments
+     * 
+     * If split.length <= 2, then that means the request has insufficient arguments
+     */
+    final String [] arguments = split.length > 2 ? Arrays.copyOfRange(split, 2, split.length) : new String[0];
+    
+    System.out.println(" FROM PLAYER "+sender.remoteAddress()+" | "+request+" | original: "+msg.trim());
 
-    String first = arguments.remove(0);
-    if (first.equals(ServerRequest.CUSER.getReqName())) {
-      if (arguments.size() == ServerRequest.CUSER.argAmount()) {
-        player.setName(arguments.get(0));
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.getName()+":"+arguments.get(0)+":"+player.getID().toString());
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.JOIN.getReqName())) {
-      if (arguments.size() == ServerRequest.JOIN.argAmount()) {
-        try {
-          //parse sessionID and teamID       
-          UUID sessionID = UUID.fromString(arguments.get(0));
-          int teamID = Integer.parseInt(arguments.get(1));
-          
-          Session session = database.findSession(sessionID);
-          if (session == null) {
-            System.out.println("----FROM: "+player.getName()+" attempt to join SESSION: |"+sessionID+"| , AVAILS: "+database.getAllSessionIDS());
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.NO_SESS));
+    if (request != null) {
+      if (request.argAmount() == arguments.length) {
+        AttributeKey<Boolean> teamAttribute = AttributeKey.valueOf("teamone");
+        
+        int errorCode = 0; //0 means no error was encountered
+        String response = null; 
+        
+        switch (request) {
+          case CUSER:
+          { 
+            player.setName(arguments[0]);
+            response = player.getName()+":"+player.getID();
+            break;
           }
-          else if (session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
-                   !session.isAcceptingPlayers()) {
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.NO_JOIN));
-          }
-          else {          
-            sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
-            sender.pipeline().removeLast();
-            sender.pipeline().addLast("shandler", session);
+          case JOIN:
+          {
+            UUID sessionUUID = UUID.fromString(arguments[0]);
+            int teamID = Integer.parseInt(arguments[1]);
             
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.getName()+":"+sessionID.toString()+":"+sender.attr(teamAttribute).get()+":"+session.getRules());
+            //find the session
+            Session session = database.findSession(sessionUUID);
+            if (session == null) {
+              System.out.println(" -> No session found of ID '"+sessionUUID+"' , req by "+player.getName());
+              errorCode = ServerResponses.NO_SESS;
+            }
+            else if(session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
+                    !session.isAcceptingPlayers()){
+              //session doesn't allow late joins or isn't currently accepting players -> send error
+              errorCode = ServerResponses.NO_JOIN;
+            }
+            else {
+              //player can join session
+              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
+              sender.pipeline().removeLast();
+              sender.pipeline().addLast("shandler", session);
+              
+              response = sessionUUID.toString()+":"+sender.attr(teamAttribute).get()+":"+session.getRules();             
+            }
+            break;
           }
-          
-        } catch (IllegalArgumentException e) {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.WRONG_ARGS));
-        }
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.JOIN.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.CSESS.getReqName())) {
-      System.out.println("---IN CSESS");
-      if (arguments.size() == ServerRequest.CSESS.argAmount()) {
-        boolean teamIDParsingFailed = false;
-        int teamID = -1;
-        try {
-          teamID = Integer.parseInt(arguments.remove(0));
-        } catch (NumberFormatException e) {
-          teamIDParsingFailed = true;
+          case CSESS:
+          {
+            int teamID = Integer.parseInt(arguments[0]);
+            String [] rulesSubArray = Arrays.copyOfRange(arguments, 1, arguments.length);
+            String rulesString = Arrays.stream(rulesSubArray).collect(Collectors.joining(":"));
+            
+            //now parse the rules
+            SessionRules sessionRules = SessionRules.parseFromString(rulesString);
+            if (sessionRules != null) {
+              //no error found in parsing. Continue on
+              
+              //create session and add it to the database
+              Session session = new Session(server, sessionRules);
+              database.addSession(session);
+              
+              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());            
+
+              sender.pipeline().removeLast();
+              sender.pipeline().addLast("shandler", session);
+              server.runSession(session);
+              
+              response = session.getSessionID() + ":" + sender.attr(teamAttribute).get();
+            }
+            else {
+              errorCode = ServerResponses.WRONG_ARGS;
+            }
+            
+            break;
+          }
+          case SES:
+          {
+            if (database.getSessionCount() == 0) {
+              //if there are no sessions running, respond with error NO_SES
+              errorCode = ServerResponses.NO_SESS;
+            }
+            else {
+              String whole = "";
+              for(UUID uuid : database.getAllSessionIDS()) {
+                Session session = database.findSession(uuid);
+                if (session != null && session.isAcceptingPlayers()) {
+                  whole += uuid.toString()+","+
+                           session.totalPlayers()+","+
+                           session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
+                           session.getRules().getProperty(Properties.VOTING_DURATION)+","+
+                           session.getRules().getProperty(Properties.ALLOW_INVL_VOTES)+":";
+                }
+              }
+              response = whole;    
+            }
+            break;
+          }
+          case DISC: 
+          {
+            System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
+            
+            server.getDatabase().removePlayer(player.getID());
+            sender.pipeline().remove(this);
+            sender.close();
+            
+            response = "bye";
+            break;
+          }
+          default:
+          {
+            //the rest of the server requests are only available while in a session
+            errorCode = ServerResponses.NOT_IN_SESS;
+            break;
+          }
         }
         
-        if (teamIDParsingFailed) {
-          System.out.println("---FAILED TO PARSE ID");
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
-        }
-        else {    
-          System.out.println("----parsing----");
-          SessionRules rules = SessionRules.parseFromString(arguments.stream().collect(Collectors.joining(":")));
-          System.out.println("----parsing done!!!----");
-
-          if (rules != null) {            
-            Session newSession = new Session(server, rules);        
-            database.addSession(newSession);
-            
-            System.out.println("---SESSION CREATED AND ADDED");
-
-            System.out.println(" USER: "+player.getID()+" created a session with ID: "+newSession.getSessionID());
-
-            sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.getName()+":"+newSession.getSessionID().toString()+":"+
-                sender.attr(teamAttribute).get());
-
-            sender.pipeline().removeLast();
-            sender.pipeline().addLast("shandler", newSession);
-
-            System.out.println(" USER: "+player.getID()+" created a session with ID: "+newSession.getSessionID()+" and has been moved");
-
-            server.runSession(newSession);
-          }
-          else {
-            System.out.println("---FAILED TO PARSE RULES");
-            StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
-          }
-        }       
-      }
-      else {
-        System.out.println("mismatch aargs! "+arguments.size());
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CSESS.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.SES.getReqName())) {
-      if (arguments.size() == ServerRequest.SES.argAmount()) {
-        
-        if (database.getAllSessionIDS().isEmpty()) {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.NO_SESS));
+        if (errorCode < 0) {
+          //means error was encountered
+          StringAndIOUtils.writeAndFlush(sender, 
+               requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), errorCode));
         }
         else {
-          String whole = "";
-          for(UUID uuid : database.getAllSessionIDS()) {
-            Session session = database.findSession(uuid);
-            if (session != null && session.isAcceptingPlayers()) {
-              whole += uuid.toString()+","+
-                       session.totalPlayers()+","+
-                       session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
-                       session.getRules().getProperty(Properties.VOTING_DURATION)+","+
-                       session.getRules().getProperty(Properties.ALLOW_INVL_VOTES)+":";
-            }
-          }
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
-        }     
+          //no error was encountered. Result string has been created
+          StringAndIOUtils.writeAndFlush(sender, requestIdentifier+":"+request.getName()+":"+response);
+        }
+        
       }
       else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.WRONG_ARGS));
+        //invalid amount of args provided. Send error
+        StringAndIOUtils.writeAndFlush(sender, 
+            requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), ServerResponses.WRONG_ARGS));
       }
-    }
-    else if (first.equals(ServerRequest.DISC.getReqName())) {
-      System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
-      
-      server.getDatabase().removePlayer(player.getID());
-      sender.pipeline().remove(this);
-      sender.close();
     }
     else {
-      String isolatedCommandName = first.substring(1).toUpperCase();
-      /*
-       * check if command prefix is an actual valid command in the first place
-       */
-      try {
-        ServerRequest request = ServerRequest.valueOf(isolatedCommandName);
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, request.getName(), ServerResponses.NOT_IN_SESS));
-      } catch (IllegalArgumentException e) {
-        // Not a valid command....
-        StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, "!"+first, ServerResponses.UNKNOWN));
-      }
+      //no such request exists
+      String errorResponse = String.format(ServerResponses.BAD_REQUEST, requestIdentifier, ServerResponses.UNKNOWN);
+      System.out.println("--CLIENT: "+player.getName()+" sent an unknow request: "+split[1]);
+      StringAndIOUtils.writeAndFlush(sender, errorResponse);
     }
   }  
 }

@@ -38,7 +38,7 @@ public class Vote {
   
   @Override
   public String toString() {
-    return fileOrigin+String.valueOf(rankOrigin)+">"+fileDest+String.valueOf(rankDest);
+    return fileOrigin+String.valueOf(rankOrigin)+">"+fileDest+String.valueOf(rankDest)+" by "+voter.getName();
   }
 
   public int getFileOrigin() {

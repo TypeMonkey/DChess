@@ -157,10 +157,26 @@ public class DefaultBoardTests {
     try {
       pawn.moveTo(board.querySquare(3, 'b'));
       
+      assertTrue(!pawn.possibleDestinations().contains(board.querySquare(2, 'b')));
+      
       assertTrue(pawn.getCurrentSquare().equals(board.querySquare(3, 'b')));
       assertTrue(pawn == board.querySquare(3, 'b').getUnit());
     } catch (InvalidMove e) {
       fail("Actually a valid move!");
+    }
+    
+    pawn = (Pawn) board.querySquare(2, 'h').getUnit();
+    try {
+      pawn.moveTo(board.querySquare(4, 'h'));
+    } catch (InvalidMove e) {
+      fail("Actually a valid move! "+pawn.possibleDestinations());
+    }
+    
+    try {
+      pawn.moveTo(board.querySquare(3, 'h'));
+      fail("Actually an invalid move!");
+    } catch (InvalidMove e) {
+      assertTrue(true);
     }
     
     pawn = (Pawn) board.querySquare(2, 'f').getUnit();
