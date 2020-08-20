@@ -67,5 +67,5 @@ public interface ServerResponses {
   
   //Sent when a vote is decided. The arguments correspond to decided unit movement on the board
   public static final String RESULT = "result";
-  public static final String RESULT_MSG = RESULT+":%c:%d:%c:%d";
+  public static final String RESULT_MSG = RESULT+":%d:%c:%d:%c";
 }

@@ -46,6 +46,9 @@ public class ChessClient extends Application{
   @Override
   public void start(Stage primaryStage) throws Exception {
     uiStage = primaryStage;
+    
+    uiStage.setTitle("DChess v1");
+    
     workerPool = new NioEventLoopGroup();
 
     //load config file and read IP and Port values
@@ -134,7 +137,7 @@ public class ChessClient extends Application{
     final Scene scene = new Scene(stackPane);
     System.out.println("----CHANGING TO ENTRANCE");
     uiStage.setScene(scene);
-        
+            
     //now show our UI
     uiStage.show();   
   }
@@ -151,6 +154,9 @@ public class ChessClient extends Application{
     final Scene scene = new Scene(stackPane);
     System.out.println("----CHANGING TO BROWSER");
     uiStage.setScene(scene);
+    
+    //set screen title to include username
+    uiStage.setTitle(uiStage.getTitle()+" - "+userName);
     
     //now show our UI
     uiStage.show();

@@ -57,12 +57,12 @@ public class GameEntranceController {
           invalidUsername = true;
         }
         else {
+          client.setUserName(userName);
           PendingRequest changeName = new PendingRequest(ServerRequest.CUSER, userName);
           client.sendRequest(changeName, new Reactor() {
             
             @Override
             public void react(PendingRequest request, String... results) {
-              client.setUserName(userName);
               //change to game browser
               try {
                 client.showBrowser();
