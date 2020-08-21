@@ -277,7 +277,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           else {
             sendSignallTeam2(ServerResponses.VOTE_END);
           }
-          msgEveryone(String.format(ServerResponses.SERVER_MSG, "---> Processing votes! <---"));
+          msgEveryone(String.format(ServerResponses.SERVER_MSG, "Processing votes!"));
 
           //decide on move based on plurality
           if (!voterMap.isEmpty()) {
@@ -290,7 +290,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             
             voteCounter.entrySet().stream().map(x -> new VoteCounter(x.getKey(), x.getValue())).collect(Collectors.toCollection(() -> voteQueue));
             
-            msgEveryone(String.format(ServerResponses.SERVER_MSG, "---> Votes processed! <---"));
+            msgEveryone(String.format(ServerResponses.SERVER_MSG, "Votes processed!"));
             
             VoteCounter mostPopular = voteQueue.poll();
             System.out.println(" MOST POPULAR: "+mostPopular.vote.getVoter().getName()+" | "+mostPopular.vote);

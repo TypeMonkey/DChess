@@ -145,6 +145,7 @@ public class GameBrowserController {
    * Initialized the GameBroswer UI
    * @throws IOException 
    */
+  @SuppressWarnings("unchecked")
   private void init(){
     //set custom styles
     createSessionBox.setStyle("-fx-padding: 10;" + 

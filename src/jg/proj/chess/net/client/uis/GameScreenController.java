@@ -181,6 +181,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     };
   }
   
+  @SuppressWarnings("unchecked")
   public void init() {       
     //voteNowDisplay should be blank
     voteNowDisplay.setText("");
@@ -231,6 +232,7 @@ public class GameScreenController implements SignalListener, MessageListener{
             Text text = new Text(mess);
             text.setWrappingWidth(chatListDisplay.getPrefWidth());
             chatListDisplay.getItems().add(text);
+            clearVoteButton.fire();
           }
           
           @Override
@@ -240,6 +242,7 @@ public class GameScreenController implements SignalListener, MessageListener{
         };
         
         client.sendRequest(voteRequest, reactor);
+        clearVoteButton.fire();
       }
     });
     
@@ -331,7 +334,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     chatClearButton.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent event) {
-        chatInput.clear();;
+        chatInput.clear();
       }
     }); 
     
@@ -359,6 +362,9 @@ public class GameScreenController implements SignalListener, MessageListener{
         return new SimpleIntegerProperty(param.getValue().getVoteCount());
       }
     });
+    
+    voteTallyTable.getColumns().clear();
+    voteTallyTable.getColumns().addAll(voteColumn, voteCountCol);
     
     makeBoard();  
     
@@ -412,6 +418,8 @@ public class GameScreenController implements SignalListener, MessageListener{
       //swap from and to images 
       visibleBoard[fromFile - 1][fromRank - 'A'].setPicture(Color.TRANSPARENT);
       visibleBoard[destFile - 1][destRank - 'A'].setPicture(unitFromSquare);
+      
+      clearVoteButton.fire();
     }
     else if (messageType.equals(ServerResponses.SERV)) {
       updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()), Color.PURPLE);
@@ -708,7 +716,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       for(int c = 0; c<8; c++) {
         Rectangle outlineSquare = new Rectangle(46, 46);
         outlineSquare.setStroke(Color.BLACK);            
-        Color squareColor = rowGreyOut ? Color.GREY : Color.TRANSPARENT;        
+        final Color squareColor = rowGreyOut ? Color.GREY : Color.TRANSPARENT;        
         outlineSquare.setFill(squareColor);
         rowGreyOut = !rowGreyOut;       
         outlineSquare.setStrokeWidth(3);
@@ -762,7 +770,7 @@ public class GameScreenController implements SignalListener, MessageListener{
               voteChoice.setFromChoice(null);
               voteChoice.setToChoice(null);
             }
-
+            
             if (voteChoice.getFromChoice() == null) {
               Square pickedSquare = board.querySquare(squareFile, squareRank);
               System.out.println("---first choice!!!"+pickedSquare+" | "+pickedSquare.getUnit().getType());
