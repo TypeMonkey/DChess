@@ -79,35 +79,20 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   private final SessionRules rules;
   
   /**
+   * Current status of this session.
+   */
+  private volatile SessionStatus status;
+  
+  /**
    * Round count
    */
   private volatile int currentRound;  
   
   /**
-   * Whether the session is active (hasn't ended)
-   */
-  private volatile boolean running;
-  
-  /**
    * Whether it's currently team one's turn
    */
   private volatile boolean teamOneTurn;
-  
-  /**
-   * Whether this session is currently accepting votes
-   * from either team
-   */
-  private volatile boolean currentlyVoting;
-  
-  /**
-   * Whether this session has started
-   */
-  private volatile boolean hasStarted;
-  
-  /**
-   * Whether this session is currently accepting players
-   */
-  private volatile boolean acceptingPlayers;
+ 
   
   public Session(GameServer server, SessionRules rules){
     this.server = server;
@@ -174,25 +159,24 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   @Override
   public void run() {
-    if (!running) {
-      running = true;
+    if (status == null) {
+      status = SessionStatus.RUNNING;
 
       //Wait until both teams reach the minimum size
       final int minTeamSize = (int) rules.getProperty(Properties.MIN_TEAM_COUNT);
       if (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
         msgEveryone(String.format(ServerResponses.SERVER_MSG, "----> WAITING FOR MORE PLAYERS <----"));
-        acceptingPlayers = true;
+        status = SessionStatus.ACCEPTING;
         while (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
           if (teamOne.size() == 0 && teamTwo.size() == 0) {
             //session has been abandoned.
-            running = false;
+            status = SessionStatus.ENDED;
             break;
           }
         }
-        acceptingPlayers = false;
       }
       
-      hasStarted = true;
+      status = SessionStatus.PLAYING;
       //alert all players that the game has started
       sendSignalAll(ServerResponses.GAME_START);
 
@@ -200,7 +184,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       boolean hasWon = false;
 
       teamOneTurn = true;
-      while (!hasWon && running) {
+      while (!hasWon && status != SessionStatus.ENDED) {
         
         /*
          * Check if either team has no players. The team with no players loose 
@@ -237,7 +221,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           }
           System.out.println(" ---warned them----");
           
-          currentlyVoting = true;
+          status = SessionStatus.VOTING;
           while (System.currentTimeMillis() < projectedEnd) {
             /*
              * Keep iterating through the vote list while the 
@@ -269,7 +253,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           }
           
           //clear out previous votes and signal vote end
-          currentlyVoting = false;
+          status = SessionStatus.PROCESSING;
           votes.clear();
           if (teamOneTurn) {
             sendSignallTeam1(ServerResponses.VOTE_END);
@@ -354,7 +338,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       teamOne.clear();
       teamTwo.clear();
       
-      running = false;  
+      status = SessionStatus.ENDED;  
     }
     
     //remove session from database
@@ -380,7 +364,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
     
     sendSignalAll(ServerResponses.PLAYER_JOINED);
-    if (currentlyVoting) {
+    if (status == SessionStatus.VOTING) {
       if (teamOneTurn && isTeamOne) {      
         StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL_MSG, ServerResponses.VOTE_START));
         System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
@@ -486,7 +470,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
               String whole = "";
               for(UUID uuid : server.getDatabase().getAllSessionIDS()) {
                 Session session = server.getDatabase().findSession(uuid);
-                if (session != null && session.isAcceptingPlayers()) {
+                if (session != null && session.getStatus() == SessionStatus.ACCEPTING) {
                   whole += uuid.toString()+","+
                            session.totalPlayers()+","+
                            session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
@@ -574,7 +558,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           }
           case VOTE:
           {
-            if (currentlyVoting) {
+            if (status == SessionStatus.VOTING) {
               final int currentVotingTeam = teamOneTurn ? 1 : 2;
               final int senderTeam = sender.attr(teamAttribute).get() ? 1 : 2;
               
@@ -709,16 +693,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   }
     
-  public boolean isRunning(){
-    return running;
-  }
-  
-  public boolean isAcceptingPlayers() {
-    return acceptingPlayers;
-  }
-  
-  public boolean hasStarted() {
-    return hasStarted;
+  public SessionStatus getStatus() {
+    return status;
   }
   
   protected Board getBoard(){

@@ -110,7 +110,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
               errorCode = ServerResponses.NO_SESS;
             }
             else if(session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
-                    !session.isAcceptingPlayers()){
+                    session.getStatus() != SessionStatus.ACCEPTING){
               //session doesn't allow late joins or isn't currently accepting players -> send error
               errorCode = ServerResponses.NO_JOIN;
             }
@@ -163,7 +163,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
               String whole = "";
               for(UUID uuid : database.getAllSessionIDS()) {
                 Session session = database.findSession(uuid);
-                if (session != null && session.isAcceptingPlayers()) {
+                if (session != null && session.getStatus() == SessionStatus.ACCEPTING) {
                   whole += uuid.toString()+","+
                            session.totalPlayers()+","+
                            session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
