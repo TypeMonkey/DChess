@@ -392,6 +392,10 @@ public class GameScreenController implements SignalListener, MessageListener{
     if (messageType.equals(ServerResponses.RESULT)) {
       //Apply unit move to both logical board and graphical card
       
+      //clear board first
+      clearVoteButton.fire();
+
+      
       //parse coordinates
       //NOTE: ranks start at 1.
       final int fromFile = Integer.parseInt(messageContent[0]);
@@ -422,9 +426,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       //swap from and to images 
       visibleBoard[fromFile - 1][fromRank - 'A'].setPicture(Color.TRANSPARENT);
       visibleBoard[destFile - 1][destRank - 'A'].setPicture(unitFromSquare);
-      
-      clearVoteButton.fire();
-      
+            
       //clear votes
       voteTallyTable.getItems().clear();
     }
