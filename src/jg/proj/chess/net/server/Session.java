@@ -107,7 +107,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     
     teamOne = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     teamTwo = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-    
   }
   
   public boolean equals(Object obj) {

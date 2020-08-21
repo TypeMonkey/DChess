@@ -212,10 +212,10 @@ public class GameScreenController implements SignalListener, MessageListener{
     });
     
     //add handles for send and clear vote buttons
-    sendVoteButton.setOnMouseClicked(new EventHandler<Event>() {
+    sendVoteButton.setOnAction(new EventHandler<ActionEvent>() {
 
       @Override
-      public void handle(Event event) {
+      public void handle(ActionEvent event) {
         //make send request 
         Square fromSquare = voteChoice.getFromChoice();
         Square toSquare = voteChoice.getToChoice();
@@ -232,7 +232,6 @@ public class GameScreenController implements SignalListener, MessageListener{
             Text text = new Text(mess);
             text.setWrappingWidth(chatListDisplay.getPrefWidth());
             chatListDisplay.getItems().add(text);
-            clearVoteButton.fire();
           }
           
           @Override
@@ -242,15 +241,17 @@ public class GameScreenController implements SignalListener, MessageListener{
         };
         
         client.sendRequest(voteRequest, reactor);
-        clearVoteButton.fire();
       }
     });
     
-    clearVoteButton.setOnMouseClicked(new EventHandler<Event>() {
+    clearVoteButton.setOnAction(new EventHandler<ActionEvent>() {
       @Override
-      public void handle(Event event) {
+      public void handle(ActionEvent event) {
+
         Square fromSquare = voteChoice.getFromChoice();
         Square toSquare = voteChoice.getToChoice();
+        
+        System.out.println("********CLEARING VOTE SELECTION! "+" | "+fromSquare+" > "+toSquare);
         
         GraphicalSquare fromGSquare = visibleBoard[fromSquare.getFile() - 1][fromSquare.getRank() - 'A'];
         GraphicalSquare toGSquare = visibleBoard[toSquare.getFile() - 1][toSquare.getRank() - 'A'];
@@ -263,6 +264,9 @@ public class GameScreenController implements SignalListener, MessageListener{
         
         //reset the highlight of all the fromSquare's possible desinations
         Set<Square> highlighed = fromSquare.getUnit() == null ? new HashSet<>() : fromSquare.getUnit().possibleDestinations();
+        
+        
+        System.out.println("----> RESET ALL: "+highlighed);
         
         for (Square square : highlighed) {
           GraphicalSquare targetGSquare = visibleBoard[square.getFile() - 1][square.getRank() - 'A'];
@@ -420,6 +424,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       visibleBoard[destFile - 1][destRank - 'A'].setPicture(unitFromSquare);
       
       clearVoteButton.fire();
+      
+      //clear votes
+      voteTallyTable.getItems().clear();
     }
     else if (messageType.equals(ServerResponses.SERV)) {
       updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()), Color.PURPLE);
@@ -693,7 +700,7 @@ public class GameScreenController implements SignalListener, MessageListener{
     for(int r = 0; r<8; r++) {
       HBox colFixer = new HBox(3);
       
-      final Label label = new Label(String.valueOf(r));
+      final Label label = new Label(String.valueOf(r + 1));
       label.setStyle("-fx-font-size: 30");
       label.setTextFill(Color.BLACK);
       label.setTextAlignment(TextAlignment.CENTER);
@@ -744,31 +751,7 @@ public class GameScreenController implements SignalListener, MessageListener{
               /*
                * New vote is being made. Reset the board
                */
-              Square firstChoice = voteChoice.getFromChoice();
-              Set<Square> posChoices = firstChoice.getUnit() != null ? 
-                                       firstChoice.getUnit().possibleDestinations() : 
-                                       new HashSet<Square>();
-
-              //go through possible squares and de-highlight them
-              for (Square choiceSquare : posChoices) {
-                GraphicalSquare gSquare = visibleBoard[choiceSquare.getFile() - 1][choiceSquare.getRank() - 'A'];
-                gSquare.getOutline().setFill(gSquare.getOrigialSquareColor());
-                gSquare.getOutline().setStroke(Color.BLACK);
-              }
-              
-              //then de-highlight from and to choices
-              Square fromSquare = voteChoice.getFromChoice();
-              Square toSquare = voteChoice.getToChoice();
-              
-              GraphicalSquare fromGSquare = visibleBoard[fromSquare.getFile() - 1][fromSquare.getRank() - 'A'];
-              GraphicalSquare toGSquare = visibleBoard[toSquare.getFile() - 1][toSquare.getRank() - 'A'];
-              
-              fromGSquare.getOutline().setStroke(Color.BLACK);
-              toGSquare.getOutline().setStroke(Color.BLACK);
-              
-              //now reset VoteChoice object
-              voteChoice.setFromChoice(null);
-              voteChoice.setToChoice(null);
+              clearVoteButton.fire();
             }
             
             if (voteChoice.getFromChoice() == null) {

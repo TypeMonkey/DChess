@@ -168,6 +168,7 @@ public class DefaultBoardTests {
     pawn = (Pawn) board.querySquare(2, 'h').getUnit();
     try {
       pawn.moveTo(board.querySquare(4, 'h'));
+      assertTrue(pawn.getCurrentSquare() == board.querySquare(4, 'h'));
     } catch (InvalidMove e) {
       fail("Actually a valid move! "+pawn.possibleDestinations());
     }
