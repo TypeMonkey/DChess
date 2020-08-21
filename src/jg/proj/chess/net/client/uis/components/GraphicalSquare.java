@@ -21,7 +21,7 @@ public class GraphicalSquare {
     this.orgSqColor = originalSquareColor;
   }
   
-  public Color getOrigialSqaureColor() {
+  public Color getOrigialSquareColor() {
     return orgSqColor;
   }
   

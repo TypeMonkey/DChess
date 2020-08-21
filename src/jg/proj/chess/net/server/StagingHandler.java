@@ -69,7 +69,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
     ServerRequest request = null;
     try {
       //the substring operation is to remove the '~' in front of a request
-      request = ServerRequest.valueOf(split[1].substring(1));
+      request = ServerRequest.valueOf(split[1].substring(1).toUpperCase());
     } catch (IllegalArgumentException e) {
       //leave as is...
     }

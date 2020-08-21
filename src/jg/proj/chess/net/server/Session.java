@@ -244,7 +244,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
              * voting window is still active
              */
             for(Vote vote : votes) {
-              System.out.println(" ---> sorting vote: "+vote);
+             // System.out.println(" ---> sorting vote: "+vote);
               
               if (currentTeam.contains(vote.getVoter().getChannel())) {
                 //make sure to only be sorting votes from the current team
@@ -447,7 +447,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     ServerRequest request = null;
     try {
       //the substring operation is to remove the '~' in front of a request
-      request = ServerRequest.valueOf(split[1].substring(1));
+      request = ServerRequest.valueOf(split[1].substring(1).toUpperCase());
     } catch (IllegalArgumentException e) {
       //leave as is...
     }
@@ -542,6 +542,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             StringAndIOUtils.writeAndFlush(sender, ServerRequest.QUIT.getName());
             sender.pipeline().remove(this);
           
+            response = "bye";
             break;
           }
           case TALLY:
@@ -589,7 +590,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                 
                 Vote vote = new Vote(fromFile, fromRank, destFile, destRank, player);
                 votes.add(vote);
-                response = ServerRequest.VOTE.getName()+":"+vote.toString();
+                response = vote.toString();
                 
                 if (senderTeam == 1) {
                   sendSignallTeam1(ServerResponses.VOTE_RECIEVED);
@@ -631,13 +632,13 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
               mess = mess.substring(0, mess.length() - 1);
             }
             
-            response = ServerRequest.PLIST.getName()+":"+mess;
+            response = mess;
           
             break;
           }
           case UPDATE:
           {
-            response = ServerRequest.UPDATE.getName()+":"+board.parsableToString();
+            response = board.parsableToString();
             break;
           }
           case ALL:
@@ -647,7 +648,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             }
             else {
               String message = Arrays.stream(arguments).collect(Collectors.joining());
-              response = String.format(ServerResponses.ALL_MSG, player.getName(), message);  
+              response = player.getName()+":"+message;  
               
               //message everyone
               msgEveryone(message);
@@ -661,7 +662,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             }
             else {
               String message = Arrays.stream(arguments).collect(Collectors.joining());
-              response = String.format(ServerResponses.TEAM_MSG, player.getName(), message);      
+              response = player.getName()+":"+message;      
               
               if (sender.attr(teamAttribute).get()) {
                 //send to team one

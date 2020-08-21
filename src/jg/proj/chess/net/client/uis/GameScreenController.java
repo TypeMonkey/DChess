@@ -157,6 +157,8 @@ public class GameScreenController implements SignalListener, MessageListener{
         teamOneList.getItems().clear();
         teamTwoList.getItems().clear();
         
+        System.out.println("----PLIST: "+Arrays.toString(results));
+        
         //iterate through user strings
         for (String userEntry : results) {
           String [] values = userEntry.split(",");
@@ -238,6 +240,40 @@ public class GameScreenController implements SignalListener, MessageListener{
         };
         
         client.sendRequest(voteRequest, reactor);
+      }
+    });
+    
+    clearVoteButton.setOnMouseClicked(new EventHandler<Event>() {
+      @Override
+      public void handle(Event event) {
+        Square fromSquare = voteChoice.getFromChoice();
+        Square toSquare = voteChoice.getToChoice();
+        
+        GraphicalSquare fromGSquare = visibleBoard[fromSquare.getFile() - 1][fromSquare.getRank() - 'A'];
+        GraphicalSquare toGSquare = visibleBoard[toSquare.getFile() - 1][toSquare.getRank() - 'A'];
+        
+        fromGSquare.getOutline().setStroke(Color.BLACK);
+        fromGSquare.getOutline().setFill(fromGSquare.getOrigialSquareColor());
+        
+        toGSquare.getOutline().setStroke(Color.BLACK);
+        toGSquare.getOutline().setFill(toGSquare.getOrigialSquareColor());
+        
+        //reset the highlight of all the fromSquare's possible desinations
+        Set<Square> highlighed = fromSquare.getUnit() == null ? new HashSet<>() : fromSquare.getUnit().possibleDestinations();
+        
+        for (Square square : highlighed) {
+          GraphicalSquare targetGSquare = visibleBoard[square.getFile() - 1][square.getRank() - 'A'];
+          targetGSquare.getOutline().setStroke(Color.BLACK);
+          targetGSquare.getOutline().setFill(targetGSquare.getOrigialSquareColor());
+        }
+        
+        //clear the actual votes
+        voteChoice.setFromChoice(null);
+        voteChoice.setToChoice(null);
+        
+        //disable send and clear vote buttons
+        sendVoteButton.setDisable(true);
+        clearVoteButton.setDisable(true);
       }
     });
     
@@ -378,7 +414,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       visibleBoard[destFile - 1][destRank - 'A'].setPicture(unitFromSquare);
     }
     else if (messageType.equals(ServerResponses.SERV)) {
-      updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()));
+      updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()), Color.PURPLE);
     }
     else {
       updateChatList("["+messageType+"] "+messageContent[0]+": "+
@@ -395,7 +431,8 @@ public class GameScreenController implements SignalListener, MessageListener{
       //get player list
       PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
       client.sendRequest(plistRequest, plistReactor);
-      updateChatList("[SERVER] GAME HAS STARTED!!!", Color.GREEN);
+      voteNowDisplay.setText(">>> GAME STARTED <<<");
+      voteNowDisplay.setTextFill(Color.PURPLE);
       break;
     }
     case ServerResponses.VOTE_START:
@@ -444,9 +481,6 @@ public class GameScreenController implements SignalListener, MessageListener{
       //No need to update team 1's UI then
       if (client.getCurrentTeam() == 2) {
         String message = "YOUR TEAM WON!";
-        //update voteNowDisplay to show team2 lost
-        voteNowDisplay.setText(message);
-        voteNowDisplay.setTextFill(Color.GREENYELLOW);
         //update chat to show defeat
         updateChatList("[SERVER] "+message, Color.GREENYELLOW);
       }
@@ -458,9 +492,6 @@ public class GameScreenController implements SignalListener, MessageListener{
       //No need to update team 2's UI then
       if (client.getCurrentTeam() == 1) {
         String message = "YOUR TEAM WON!";
-        //update voteNowDisplay to show team2 lost
-        voteNowDisplay.setText(message);
-        voteNowDisplay.setTextFill(Color.GREENYELLOW);
         //update chat to show defeat
         updateChatList("[SERVER] "+message, Color.GREENYELLOW);
       }
@@ -470,8 +501,6 @@ public class GameScreenController implements SignalListener, MessageListener{
     {
       //update voteNowDisplay and chat to show tied status
       String message = client.getCurrentTeam() == 1 ? "YOUR TEAM IS TIED!" : "TEAM TWO IS TIED!";
-      voteNowDisplay.setText(message);
-      voteNowDisplay.setTextFill(Color.CORNFLOWERBLUE);
       
       //update chatlist
       updateChatList("[SERVER] "+message, Color.CORNFLOWERBLUE);
@@ -481,8 +510,6 @@ public class GameScreenController implements SignalListener, MessageListener{
     {
       //update voteNowDisplay and chat to show tied status
       String message = client.getCurrentTeam() == 2 ? "YOUR TEAM IS TIED!" : "TEAM ONE IS TIED!";
-      voteNowDisplay.setText(message);
-      voteNowDisplay.setTextFill(Color.CORNFLOWERBLUE);
       
       //update chatlist
       updateChatList("[SERVER] "+message, Color.CORNFLOWERBLUE);
@@ -490,12 +517,8 @@ public class GameScreenController implements SignalListener, MessageListener{
     }
     case ServerResponses.TEAM1_OTHER_UNIT:
     {
-      //update voteNowDisplay and chat to show dumb vote
-      String message = client.getCurrentTeam() == 1 ? "YOUR TEAM IS DUMB" : "TEAM ONE IS DUMB";
-      voteNowDisplay.setText(message);
-      
       //update chatlist
-      message = client.getCurrentTeam() == 1 ? 
+      String message = client.getCurrentTeam() == 1 ? 
                  "Your team voted to move a unit that's not theirs. No move made!" : 
                  "Team One voted to move one of your team's units. No move made!";
       Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
@@ -503,13 +526,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       break;
     }
     case ServerResponses.TEAM2_OTHER_UNIT:
-    {
-      //update voteNowDisplay and chat to show dumb vote
-      String message = client.getCurrentTeam() == 2 ? "YOUR TEAM IS DUMB" : "TEAM TWO IS DUMB";
-      voteNowDisplay.setText(message);
-      
+    {  
       //update chatlist
-      message = client.getCurrentTeam() == 2? 
+      String message = client.getCurrentTeam() == 2? 
                 "Your team voted to move a unit that's not theirs. No move made!" : 
                 "Team Two voted to move one of your team's units. No move made!";
       Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
@@ -517,13 +536,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       break;
     }
     case ServerResponses.TEAM1_IDIOT_VOTE:
-    {
-      //update voteNowDisplay and chat to show dumb vote
-      String message = client.getCurrentTeam() == 1 ? "T-T" : "PRAY FOR TEAM 1";
-      voteNowDisplay.setText(message);
-      
+    {      
       //update chatlist
-      message = client.getCurrentTeam() == 1 ? 
+      String message = client.getCurrentTeam() == 1 ? 
                 "Your team voted on an illegal move. No move made!" : 
                 "Team One voted on an illegal move. No move made!";
       Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
@@ -531,13 +546,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       break;
     }
     case ServerResponses.TEAM2_IDIOT_VOTE:
-    {
-      //update voteNowDisplay and chat to show dumb vote
-      String message = client.getCurrentTeam() == 2 ? "T-T" : "PRAY FOR TEAM 1";
-      voteNowDisplay.setText(message);
-      
+    {   
       //update chatlist
-      message = client.getCurrentTeam() == 2 ? 
+      String message = client.getCurrentTeam() == 2 ? 
                 "Your team voted on an illegal move. No move made!" : 
                 "Team Two voted on an illegal move. No move made!";
       Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
@@ -545,13 +556,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       break;
     }
     case ServerResponses.TEAM1_NO_VOTE:
-    {
-      //update voteNowDisplay and chat to show absence of votes
-      String message = client.getCurrentTeam() == 1 ? "NO VOTES??" : "PRAY FOR TEAM 1";
-      voteNowDisplay.setText(message);
-      
+    {    
       //update chatlist
-      message = client.getCurrentTeam() == 1 ? 
+      String message = client.getCurrentTeam() == 1 ? 
                 "Your team sent no votes at all! No move made!" : 
                 "Team One sent no votes at all! No move made!";
       Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
@@ -559,13 +566,9 @@ public class GameScreenController implements SignalListener, MessageListener{
       break;
     }
     case ServerResponses.TEAM2_NO_VOTE:
-    {
-      //update voteNowDisplay and chat to show absence of votes
-      String message = client.getCurrentTeam() == 2 ? "NO VOTES??" : "PRAY FOR TEAM 1";
-      voteNowDisplay.setText(message);
-      
+    {  
       //update chatlist
-      message = client.getCurrentTeam() == 2 ? 
+      String message = client.getCurrentTeam() == 2 ? 
                 "Your team sent no votes at all! No move made!" : 
                 "Team One sent no votes at all! No move made!";
       Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
@@ -590,6 +593,8 @@ public class GameScreenController implements SignalListener, MessageListener{
     {
       //request TALLY 
       Reactor tallyReactor = new Reactor() {
+        
+        //make sure to mark off 
         
         @Override
         public void react(PendingRequest request, String... results) {
@@ -739,7 +744,7 @@ public class GameScreenController implements SignalListener, MessageListener{
               //go through possible squares and de-highlight them
               for (Square choiceSquare : posChoices) {
                 GraphicalSquare gSquare = visibleBoard[choiceSquare.getFile() - 1][choiceSquare.getRank() - 'A'];
-                gSquare.getOutline().setFill(gSquare.getOrigialSqaureColor());
+                gSquare.getOutline().setFill(gSquare.getOrigialSquareColor());
                 gSquare.getOutline().setStroke(Color.BLACK);
               }
               
@@ -760,7 +765,7 @@ public class GameScreenController implements SignalListener, MessageListener{
 
             if (voteChoice.getFromChoice() == null) {
               Square pickedSquare = board.querySquare(squareFile, squareRank);
-              //System.out.println("---first choice!!!"+pickedSquare+" | "+pickedSquare.getUnit().getType());
+              System.out.println("---first choice!!!"+pickedSquare+" | "+pickedSquare.getUnit().getType());
               voteChoice.setFromChoice(pickedSquare);
               //highlight this square as green
               outlineSquare.setStroke(Color.GREEN);

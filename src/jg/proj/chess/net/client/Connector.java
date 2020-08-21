@@ -110,10 +110,9 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     }   
     else {
       UUID identifier = UUID.fromString(split[0]);
-      String req = split[1];
       String [] arguments = split.length <= 2 ? new String[0] : Arrays.copyOfRange(split, 2, split.length);
 
-      //error responses are formatted as such: SERVER_REQ:ERROR:ERROR_CODE
+      //error responses are formatted as such: IDEN:SERVER_REQ:ERROR:ERROR_CODE
       boolean gotError = arguments[0].equals("ERROR");
       
       //now activate appropriate reactors
@@ -122,11 +121,11 @@ public class Connector extends SimpleChannelInboundHandler<String>{
         if (future != null) {
           if (gotError) {
             future.changeStatus(Status.ERROR);
-            Platform.runLater(() -> future.error(Integer.parseInt(split[2])));
+            Platform.runLater(() -> future.error(Integer.parseInt(arguments[1])));
           }
           else {
             future.changeStatus(Status.COMPLETE);
-            Platform.runLater(() -> future.react(Arrays.copyOfRange(split, 1, split.length)));
+            Platform.runLater(() -> future.react(arguments));
           }
         }
         else {
