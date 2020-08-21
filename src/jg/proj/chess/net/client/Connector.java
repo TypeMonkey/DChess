@@ -7,6 +7,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -28,6 +29,7 @@ import io.netty.handler.codec.string.StringEncoder;
 import javafx.application.Platform;
 import jg.proj.chess.net.ArgType;
 import jg.proj.chess.net.ServerRequest;
+import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.utils.StringAndIOUtils;
 
@@ -44,7 +46,7 @@ public class Connector extends SimpleChannelInboundHandler<String>{
   private final EventLoopGroup workerGroup;
   
   //Sent server request map
-  private final Map<ServerRequest, Deque<RequestFuture>> reqMap;
+  private final Map<UUID, RequestFuture> reqMap;
   
   //List of all signal listeners
   private final List<SignalListener> signalListeners;
@@ -80,96 +82,44 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     isConnected = true;
 
     System.out.println("*Connected to server at "+ip+":"+port);
-    
-    /*
-    requestHandler = new RequestHandler(this, mainUI, channel);
-
-    //send a cuser request
-    PendingRequest pendingRequest = new PendingRequest(ServerRequest.CUSER, userName);     
-    RequestFuture cuserFuture = new RequestFuture(pendingRequest, Reactor.BLANK_REACTOR);
-    
-    submitRequest(cuserFuture);
-    System.out.println("*Requesting username change to '"+userName+"'. Waiting for response.....");     
-
-    while(uuid == null);
-    System.out.println("changed! "+userName+" | "+uuid);
-    
-    //change handler
-    channel.pipeline().remove(this);
-    channel.pipeline().addLast("handler",requestHandler)
-          
-    return uuid;
-    */
   }
   
   
 
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
-    String [] split = msg.split(":");
-    String req = split[0];
-    
+    String [] split = msg.split(":"); 
     
     System.out.println("----FROM SERVER: "+msg);
     
-    if (req.equals("signal")) {
+    if (split[0].equals(ServerResponses.SIGNAL)) {
       //alert all signal listeners
       for (SignalListener listener : signalListeners) {
         Platform.runLater(() -> listener.handleSignal(Integer.parseInt(split[1])));
       }
     }
+    else if (split[0].equals(ServerResponses.SERV) || 
+             split[0].equals(ServerResponses.RESULT) ||
+             split[0].equals(ServerResponses.ALL) ||
+             split[0].equals(ServerResponses.TEAM)) {
+      //get subarray from 1 <-> split.length-1
+      String [] mess = Arrays.copyOfRange(split, 1, split.length);
+      for (MessageListener listener : messageListeners) {
+        Platform.runLater(() -> listener.handleMessage(split[0], mess));
+      }
+    }   
     else {
+      UUID identifier = UUID.fromString(split[0]);
+      String req = split[1];
+      String [] arguments = split.length <= 2 ? new String[0] : Arrays.copyOfRange(split, 2, split.length);
+
       //error responses are formatted as such: SERVER_REQ:ERROR:ERROR_CODE
-      boolean gotError = split[1].equals("ERROR");
+      boolean gotError = arguments[0].equals("ERROR");
       
-      if (ServerRequest.ALL.getName().equals(req) || ServerRequest.TEAM.getName().equals(req)) {
-        //actual request
-        ServerRequest request = ServerRequest.valueOf(req.toUpperCase());
-        
-        //get subarray from 1 <-> split.length-1
-        String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
-        System.out.println("----> GIVING: "+Arrays.toString(contentSeq));
-        
-        //alert all message listeners
-        for (MessageListener listener : messageListeners) {
-          Platform.runLater(() -> listener.handleMessage(req, contentSeq));
-        }             
-        
-        if (reqMap.containsKey(request) && reqMap.get(request).size() > 0) {
-          RequestFuture future = reqMap.get(request).removeFirst();
-          if (gotError) {
-            future.changeStatus(Status.ERROR);
-            Platform.runLater(() -> future.error(Integer.parseInt(split[2])));;
-          }
-          else {
-            future.changeStatus(Status.COMPLETE);
-            Platform.runLater(() -> future.react(contentSeq));;
-          }         
-        }      
-      }
-      else if (req.equals("serv")) {
-        //get subarray from 1 <-> split.length-1
-        String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
-        for (MessageListener listener : messageListeners) {
-          Platform.runLater(() -> listener.handleMessage(req, contentSeq));
-        }
-      }
-      else if (req.equals("result")) {
-        //result message
-        
-        //get subarray from 1 <-> split.length-1
-        String [] contentSeq = Arrays.copyOfRange(split, 1, split.length);
-        
-        //alert all message listeners
-        for (MessageListener listener : messageListeners) {
-          Platform.runLater(() -> listener.handleMessage(req, contentSeq));
-        }          
-      }
-      else {
-        //now activate appropriate reactors
-        try {
-          ServerRequest originalRequest = ServerRequest.valueOf(req.toUpperCase());
-          RequestFuture future = reqMap.get(originalRequest).removeFirst();
+      //now activate appropriate reactors
+      try {
+        RequestFuture future = reqMap.remove(identifier);
+        if (future != null) {
           if (gotError) {
             future.changeStatus(Status.ERROR);
             Platform.runLater(() -> future.error(Integer.parseInt(split[2])));
@@ -178,23 +128,20 @@ public class Connector extends SimpleChannelInboundHandler<String>{
             future.changeStatus(Status.COMPLETE);
             Platform.runLater(() -> future.react(Arrays.copyOfRange(split, 1, split.length)));
           }
-        } catch (IllegalArgumentException e) {
-          //should not happen! But just report as a sanity check
-          client.recordException(e);
         }
-      }     
+        else {
+          client.recordException("---UNKNOWN REQ: "+identifier+" | req map: "+reqMap);
+        }
+      } catch (IllegalArgumentException e) {
+        //should not happen! But just report as a sanity check
+        client.recordException(e);
+      }
+
     }
   }
   
   public synchronized void sendRequest(PendingRequest request, Reactor reactor) {
-    if (reqMap.containsKey(request.getRequest())) {
-      reqMap.get(request.getRequest()).add(new RequestFuture(request, reactor));
-    }
-    else {
-      ConcurrentLinkedDeque<RequestFuture> futures = new ConcurrentLinkedDeque<>();
-      futures.addLast(new RequestFuture(request, reactor));
-      reqMap.put(request.getRequest(), futures);
-    }
+    reqMap.put(request.getIdentifier(), new RequestFuture(request, reactor));
     
     //send out request
     System.out.println("----CONNECTOR: SENDING "+request.toString()+" | "+Arrays.toString(request.getArguments())+" | "+Arrays.toString(ArgType.getStringRep(request.getArguments())));

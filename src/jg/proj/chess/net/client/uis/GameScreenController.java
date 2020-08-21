@@ -586,12 +586,6 @@ public class GameScreenController implements SignalListener, MessageListener{
       client.sendRequest(plistRequest, plistReactor);
       break;
     }
-    case ServerResponses.TURN_END:
-      //server should be sending resulting vote right after this
-      //--update voteNowDisplay?
-      
-      
-      break;
     case ServerResponses.VOTE_RECIEVED:
     {
       //request TALLY 

@@ -165,11 +165,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   }
   
   private void sendSignallTeam1(int signal) {
-    msgTeamOne(String.format(ServerResponses.SIGNAL, signal));
+    msgTeamOne(String.format(ServerResponses.SIGNAL_MSG, signal));
   }
   
   private void sendSignallTeam2(int signal) {
-    msgTeamTwo(String.format(ServerResponses.SIGNAL, signal));
+    msgTeamTwo(String.format(ServerResponses.SIGNAL_MSG, signal));
   }
   
   @Override
@@ -382,11 +382,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     sendSignalAll(ServerResponses.PLAYER_JOINED);
     if (currentlyVoting) {
       if (teamOneTurn && isTeamOne) {      
-        StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_START));
+        StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL_MSG, ServerResponses.VOTE_START));
         System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
       }
       else if (!teamOneTurn && !isTeamOne) {
-        StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL, ServerResponses.VOTE_START));    
+        StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL_MSG, ServerResponses.VOTE_START));    
         System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
       }
     }
@@ -476,61 +476,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             response = player.getName()+":"+player.getID();
             break;
           }
-          case JOIN:
-          {
-            UUID sessionUUID = UUID.fromString(arguments[0]);
-            int teamID = Integer.parseInt(arguments[1]);
-            
-            //find the session
-            Session session = server.getDatabase().findSession(sessionUUID);
-            if (session == null) {
-              System.out.println(" -> No session found of ID '"+sessionUUID+"' , req by "+player.getName());
-              errorCode = ServerResponses.NO_SESS;
-            }
-            else if(session.getRules().getProperty(Properties.ALLOW_JOINS_GAME).equals(Boolean.FALSE) ||
-                    !session.isAcceptingPlayers()){
-              //session doesn't allow late joins or isn't currently accepting players -> send error
-              errorCode = ServerResponses.NO_JOIN;
-            }
-            else {
-              //player can join session
-              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());
-              sender.pipeline().removeLast();
-              sender.pipeline().addLast("shandler", session);
-              
-              response = sessionUUID.toString()+":"+sender.attr(teamAttribute).get()+":"+session.getRules();             
-            }
-            break;
-          }
-          case CSESS:
-          {
-            int teamID = Integer.parseInt(arguments[0]);
-            String [] rulesSubArray = Arrays.copyOfRange(arguments, 1, arguments.length);
-            String rulesString = Arrays.stream(rulesSubArray).collect(Collectors.joining(":"));
-            
-            //now parse the rules
-            SessionRules sessionRules = SessionRules.parseFromString(rulesString);
-            if (sessionRules != null) {
-              //no error found in parsing. Continue on
-              
-              //create session and add it to the database
-              Session session = new Session(server, sessionRules);
-              server.getDatabase().addSession(session);
-              
-              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());            
-
-              sender.pipeline().removeLast();
-              sender.pipeline().addLast("shandler", session);
-              server.runSession(session);
-              
-              response = session.getSessionID() + ":" + sender.attr(teamAttribute).get();
-            }
-            else {
-              errorCode = ServerResponses.WRONG_ARGS;
-            }
-            
-            break;
-          }
           case SES:
           {
             if (server.getDatabase().getSessionCount() == 0) {
@@ -557,6 +502,20 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           {
             System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
             
+            //remove them from their team
+            if (teamOne.contains(sender)) {
+              //remove sender from team one
+              System.out.println(" ---->>>> "+player.getName()+" (TEAM ONE) has LEFT!");
+              teamOne.remove(sender);
+            }
+            else {
+              //remove sender from team two
+              System.out.println("[SERVER] "+player.getName()+" (TEAM TWO) has LEFT!");
+              teamTwo.remove(sender);
+            }
+            
+            sendSignalAll(ServerResponses.PLAYER_LEFT);
+            
             server.getDatabase().removePlayer(player.getID());
             sender.pipeline().remove(this);
             sender.close();
@@ -564,10 +523,161 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             response = "bye";
             break;
           }
+          case QUIT:
+          {
+            if (teamOne.contains(sender)) {
+              //remove sender from team one
+              System.out.println(" ---->>>> "+player.getName()+" (TEAM ONE) has LEFT!");
+              teamOne.remove(sender);
+            }
+            else {
+              //remove sender from team two
+              System.out.println("[SERVER] "+player.getName()+" (TEAM TWO) has LEFT!");
+              teamTwo.remove(sender);
+            }
+            
+            sendSignalAll(ServerResponses.PLAYER_LEFT);
+            
+            sender.pipeline().addLast("handler", new StagingHandler(server));    
+            StringAndIOUtils.writeAndFlush(sender, ServerRequest.QUIT.getName());
+            sender.pipeline().remove(this);
+          
+            break;
+          }
+          case TALLY:
+          {
+            if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
+              errorCode = ServerResponses.PRISON_DIL;
+            }
+            else {
+              //Count votes
+              HashMap<Vote, Integer> voteCount = new HashMap<>();
+              ChannelGroup playerTeam = teamOne.contains(sender) ? teamOne : teamTwo;
+              
+              for (Vote vote : votes) {
+                if (playerTeam.contains(vote.getVoter().getChannel())) {
+                  //only count the player's team votes
+                  voteCount.put(vote, voteCount.containsKey(vote) ? voteCount.get(vote) + 1 : 1);
+                }
+              }
+              
+              if (!voteCount.isEmpty()) {
+                //now, concat all votes
+                response = voteCount.entrySet().stream().map(x -> x.getKey().toString() + ">" + x.getValue()).collect(Collectors.joining(":"));               
+              }
+              else {
+                errorCode = ServerResponses.NO_TALLY;
+              }               
+            }
+            break;
+          }
+          case VOTE:
+          {
+            if (currentlyVoting) {
+              final int currentVotingTeam = teamOneTurn ? 1 : 2;
+              final int senderTeam = sender.attr(teamAttribute).get() ? 1 : 2;
+              
+              if (currentVotingTeam == senderTeam) {
+                /*
+                 * If session is currently voting and it's team one turn
+                 * and the sender of this vote is in team one
+                 */
+                int fromFile = Integer.parseInt(arguments[0]);
+                char fromRank = arguments[1].charAt(0);
+                int destFile = Integer.parseInt(arguments[2]);
+                char destRank = arguments[3].charAt(0);
+                
+                Vote vote = new Vote(fromFile, fromRank, destFile, destRank, player);
+                votes.add(vote);
+                response = ServerRequest.VOTE.getName()+":"+vote.toString();
+                
+                if (senderTeam == 1) {
+                  sendSignallTeam1(ServerResponses.VOTE_RECIEVED);
+                }
+                else {
+                  sendSignallTeam2(ServerResponses.VOTE_RECIEVED);
+                }
+              }           
+              else {
+                errorCode = ServerResponses.NO_VOTE;
+              }
+            }
+            else {
+              errorCode = ServerResponses.NO_VOTE;
+            }
+            break;
+          }
+          case PLIST: 
+          {
+            boolean includeUUID = Boolean.parseBoolean(arguments[0].toLowerCase());
+            AttributeKey<Player> playerKey = AttributeKey.valueOf("player");
+            
+            //get team one first, then team two
+            String mess = "";
+            for (Channel channel : teamOne) {
+              Player attachedPlayer = channel.attr(playerKey).get();
+              mess += attachedPlayer.getName()+",true"+(includeUUID ? ","+attachedPlayer.getID() : "");
+              mess += ":";
+            }
+            
+            for (Channel channel : teamTwo) {
+              Player attachedPlayer = channel.attr(playerKey).get();
+              mess += attachedPlayer.getName()+",false"+(includeUUID ? ","+attachedPlayer.getID() : "");
+              mess += ":";
+            }
+            
+            //remove trailing semicolon
+            if (!mess.isEmpty()) {
+              mess = mess.substring(0, mess.length() - 1);
+            }
+            
+            response = ServerRequest.PLIST.getName()+":"+mess;
+          
+            break;
+          }
+          case UPDATE:
+          {
+            response = ServerRequest.UPDATE.getName()+":"+board.parsableToString();
+            break;
+          }
+          case ALL:
+          {
+            if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
+              errorCode = ServerResponses.PRISON_DIL;
+            }
+            else {
+              String message = Arrays.stream(arguments).collect(Collectors.joining());
+              response = String.format(ServerResponses.ALL_MSG, player.getName(), message);  
+              
+              //message everyone
+              msgEveryone(message);
+            }
+            break;
+          }
+          case TEAM:
+          {
+            if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
+              errorCode = ServerResponses.PRISON_DIL;
+            }
+            else {
+              String message = Arrays.stream(arguments).collect(Collectors.joining());
+              response = String.format(ServerResponses.TEAM_MSG, player.getName(), message);      
+              
+              if (sender.attr(teamAttribute).get()) {
+                //send to team one
+                msgTeamOne(message);
+              }
+              else {
+                //send to team two
+                msgTeamTwo(message);
+              }
+            }
+            break;
+          }
           default:
           {
-            //the rest of the server requests are only available while in a session
-            errorCode = ServerResponses.NOT_IN_SESS;
+            //the rest of the server requests are only available while NOT in a session
+            errorCode = ServerResponses.IN_SESS;
             break;
           }
         }
@@ -575,7 +685,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         if (errorCode < 0) {
           //means error was encountered
           StringAndIOUtils.writeAndFlush(sender, 
-               requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), errorCode));
+               requestIdentifier+":"+request.createErrorString(errorCode));
         }
         else {
           //no error was encountered. Result string has been created
@@ -586,7 +696,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       else {
         //invalid amount of args provided. Send error
         StringAndIOUtils.writeAndFlush(sender, 
-            requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), ServerResponses.WRONG_ARGS));
+            requestIdentifier+":"+request.createErrorString(ServerResponses.WRONG_ARGS));
       }
     }
     else {
@@ -597,221 +707,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
   
   }
-  
-  protected void channelRead(ChannelHandlerContext ctx, String msg) throws Exception {
-    Channel sender = ctx.channel();
-    Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
-    System.out.println("FROM: "+ctx.channel().remoteAddress()+" | "+msg);
-   
-    ArrayList<String> arguments = new ArrayList<String>(Arrays.asList(msg.split(":")));
-    String first = arguments.remove(0);
-   
-    System.out.println("   IS COMMAND! "+first);
-         
-    if (first.equals(ServerRequest.CUSER.getReqName())) {
-      if (arguments.size() == ServerRequest.CUSER.argAmount()) {
-        player.setName(arguments.get(0));
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.getName()+":"+arguments.get(0)+":"+player.getID().toString());
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.CUSER.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.TALLY.getReqName())) {
-      //if session is in prisoner's dilemma, send error back
-      if (rules.getProperty(Properties.PRISON_DILEMMA).equals(Boolean.TRUE)) {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.TALLY.createErrorString(ServerResponses.PRISON_DIL));
-      }
-      else {
-        //Count votes
-        HashMap<Vote, Integer> voteCount = new HashMap<>();
-        ChannelGroup playerTeam = teamOne.contains(sender) ? teamOne : teamTwo;
-        
-        for (Vote vote : voteQueue) {
-          if (playerTeam.contains(vote.getVoter().getChannel())) {
-            //only count the player's team votes
-            if (voteCount.containsKey(vote)) {
-              voteCount.put(vote, voteCount.get(vote) + 1);
-            }
-            else {
-              voteCount.put(vote, 1);
-            }
-          }
-        }
-        
-        if (!voteCount.isEmpty()) {
-          //now, concat all votes
-          String tally = "";
-          for (Entry<Vote, Integer> voteCountEntry : voteCount.entrySet()) {
-            tally += voteCountEntry.getKey().toString()+">"+voteCountEntry.getValue()+":";
-          }
-          
-          //if no votes have been received, then just send empty string
-          tally = tally.isEmpty() ? tally : tally.substring(0, tally.length() - 1);
-          
-          //send tally over
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.TALLY.getName()+":"+tally);
-        }
-        else {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.TALLY.createErrorString(ServerResponses.NO_TALLY));
-        }       
-      }
-    }
-    else if (first.equals(ServerRequest.VOTE.getReqName())) {
-      if (arguments.size() == ServerRequest.VOTE.argAmount()) {
-        int fromFile = Integer.parseInt(arguments.remove(0));
-        char fromRank = arguments.remove(0).charAt(0);
-        int destFile = Integer.parseInt(arguments.remove(0));
-        char destRank = arguments.remove(0).charAt(0);
-        
-        Vote vote = new Vote(fromFile, fromRank, destFile, destRank, player);
-        if (currentlyVoting) {
-          voteQueue.put(vote);
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.getName()+":"+vote.toString());
-          
-          //send vote signal to player's team (so they can request their current tally)
-          if (teamOne.contains(sender)) {
-            sendSignallTeam1(ServerResponses.VOTE_RECIEVED);
-          }
-          else {
-            sendSignallTeam2(ServerResponses.VOTE_RECIEVED);
-          }
-        }
-        else {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.createErrorString(ServerResponses.NO_VOTE));
-        }
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.VOTE.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.PLIST.getReqName())) {
-      if (arguments.size() == ServerRequest.PLIST.argAmount()) {
-        boolean includeUUID = Boolean.parseBoolean(arguments.get(0).toLowerCase());
-        AttributeKey<Player> playerKey = AttributeKey.valueOf("player");
-        
-        //get team one first, then team two
-        String mess = "";
-        for (Channel channel : teamOne) {
-          Player attachedPlayer = channel.attr(playerKey).get();
-          mess += attachedPlayer.getName()+",true"+(includeUUID ? ","+attachedPlayer.getID() : "");
-          mess += ":";
-        }
-        
-        for (Channel channel : teamTwo) {
-          Player attachedPlayer = channel.attr(playerKey).get();
-          mess += attachedPlayer.getName()+",false"+(includeUUID ? ","+attachedPlayer.getID() : "");
-          mess += ":";
-        }
-        
-        //remove trailing semicolon
-        if (!mess.isEmpty()) {
-          mess = mess.substring(0, mess.length() - 1);
-        }
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.getName()+":"+mess);
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.PLIST.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.UPDATE.getReqName())) {
-      System.out.println("  ---UPDATING TEAMS!!! ");
-      StringAndIOUtils.writeAndFlush(sender, ServerRequest.UPDATE.getName()+":"+board.parsableToString());
-      System.out.println(" ---SENT BOARD");
-    }
-    else if (first.equals(ServerRequest.DISC.getReqName())) {
-      System.out.println(" ---->>>> "+player.getName()+" (T-ID: "+(teamOne.contains(sender) ? 1 : 2)+") has DISCONNECTED!");
-      
-      if (teamOne.contains(sender)) {
-        //remove sender from team one
-        teamOne.remove(sender);
-      }
-      else {
-        //remove sender from team two
-        teamTwo.remove(sender);
-      }
-      
-      sendSignalAll(ServerResponses.PLAYER_LEFT);
-      server.getDatabase().removePlayer(player.getID());
-      sender.close();
-    }
-    else if (first.equals(ServerRequest.QUIT.getReqName())) {
-      if (teamOne.contains(sender)) {
-        //remove sender from team one
-        System.out.println(" ---->>>> "+player.getName()+" (TEAM ONE) has LEFT!");
-        teamOne.remove(sender);
-      }
-      else {
-        //remove sender from team two
-        System.out.println("[SERVER] "+player.getName()+" (TEAM TWO) has LEFT!");
-        teamTwo.remove(sender);
-      }
-      
-      sendSignalAll(ServerResponses.PLAYER_LEFT);
-      
-      //server.getDatabase().removePlayer(player.getID());
-      sender.pipeline().addLast("handler", new StagingHandler(server));    
-      StringAndIOUtils.writeAndFlush(sender, ServerRequest.QUIT.getName());
-      sender.pipeline().remove(this);
-      //sender.close();
-    }
-    else if (first.equals(ServerRequest.SES.getReqName())) {
-      if (arguments.size() == ServerRequest.SES.argAmount()) {        
-        String whole = "";
-        for(UUID uuid : server.getDatabase().getAllSessionIDS()) {
-          Session session = server.getDatabase().findSession(uuid);
-          if (session != null && session.isAcceptingPlayers()) {
-            whole += uuid.toString()+","+session.totalPlayers()+","+session.getRules().getProperty(Properties.PRISON_DILEMMA)+":";
-          }
-        }
-        
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.getName()+":"+whole);
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.SES.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.ALL.getReqName())) {
-      if (arguments.size() == ServerRequest.ALL.argAmount()) {
-        System.out.println("---> PRISON DIL??? "+rules.getProperty(Properties.PRISON_DILEMMA));
-        if ( (boolean) rules.getProperty(Properties.PRISON_DILEMMA) == true) {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.ALL.createErrorString(ServerResponses.PRISON_DIL));
-        }
-        else {
-          String message = arguments.stream().collect(Collectors.joining());
-          msgEveryone(String.format(ServerResponses.ALL_MSG, player.getName(), message));       
-        }
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.ALL.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else if (first.equals(ServerRequest.TEAM.getReqName())) {
-      if (arguments.size() == ServerRequest.TEAM.argAmount()) {
-        System.out.println("---> PRISON DIL??? "+rules.getProperty(Properties.PRISON_DILEMMA));
-        if ( (boolean) rules.getProperty(Properties.PRISON_DILEMMA) == true) {
-          StringAndIOUtils.writeAndFlush(sender, ServerRequest.TEAM.createErrorString(ServerResponses.PRISON_DIL));
-        }
-        else {
-          String message = arguments.stream().collect(Collectors.joining());
-          
-          if (teamOne.contains(sender)) {
-            msgTeamOne(String.format(ServerResponses.TEAM_MSG, player.getName(), message));
-          }
-          else {
-            msgTeamTwo(String.format(ServerResponses.TEAM_MSG, player.getName(), message));
-          }        
-        }
-      }
-      else {
-        StringAndIOUtils.writeAndFlush(sender, ServerRequest.TEAM.createErrorString(ServerResponses.WRONG_ARGS));
-      }
-    }
-    else {
-      StringAndIOUtils.writeAndFlush(sender, String.format(ServerResponses.BAD_REQUEST, first, ServerResponses.UNKNOWN));
-    }  
-  }
-  
+    
   public boolean isRunning(){
     return running;
   }

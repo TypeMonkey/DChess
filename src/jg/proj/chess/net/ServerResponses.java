@@ -16,9 +16,11 @@ public interface ServerResponses {
   public static final int PRISON_DIL = -9; //all and team msgs are forbidden due to prison dillemma
   public static final int NO_DESCISION = -10; //player's team hasn't decided on a move
   public static final int NO_TALLY = -11; //a tally cannot be formed as no votes have been recieved
+  public static final int IN_SESS = -12; //certain requests cannot be made while the user is in a session
   
   //Server Signal messages
-  public static final String SIGNAL = "signal:%d";
+  public static final String SIGNAL = "signal";
+  public static final String SIGNAL_MSG = SIGNAL+":%d";
   
   public static final int GAME_START = 0; //game has started
   
