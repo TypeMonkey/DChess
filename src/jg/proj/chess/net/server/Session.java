@@ -122,17 +122,13 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   }
   
   private void msgTeamOne(String message){    
-    //message team 1 first
-    for(Channel team1Player : teamOne){
-      StringAndIOUtils.writeAndFlush(team1Player, message);
-    }
+    //message team 1 
+    StringAndIOUtils.writeAndFlushGroup(teamOne, message);
   }
   
   private void msgTeamTwo(String message){    
-    //message team 1 first
-    for(Channel team2Player : teamTwo){
-      StringAndIOUtils.writeAndFlush(team2Player, message);
-    }
+    //message team 2 
+    StringAndIOUtils.writeAndFlushGroup(teamTwo, message);
   }
   
   private void msgEveryone(String message){    
@@ -261,6 +257,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             sendSignallTeam2(ServerResponses.VOTE_END);
           }
           msgEveryone(String.format(ServerResponses.SERVER_MSG, "Processing votes!"));
+          System.out.println("---PROCESSING VOTES!!! "+voterMap);
 
           //decide on move based on plurality
           if (!voterMap.isEmpty()) {
@@ -276,7 +273,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             msgEveryone(String.format(ServerResponses.SERVER_MSG, "Votes processed!"));
             
             VoteCounter mostPopular = voteQueue.poll();
-            System.out.println(" MOST POPULAR: "+mostPopular.vote.getVoter().getName()+" | "+mostPopular.vote);
+            System.out.println(" MOST POPULAR: "+voteQueue);
             if (mostPopular != null) {
               Square square = board.querySquare(mostPopular.vote.getFileOrigin(), mostPopular.vote.getRankOrigin());
               Square destination = board.querySquare(mostPopular.vote.getFileDest(), mostPopular.vote.getRankDest());
@@ -336,6 +333,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       //clear both teams of members
       teamOne.clear();
       teamTwo.clear();
+      
+      teamOne.close();
+      teamTwo.close();
       
       status = SessionStatus.ENDED;  
     }
@@ -402,7 +402,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     Channel playerChannel = ctx.channel();
     Player player = (Player) playerChannel.attr(AttributeKey.valueOf("player")).get();
     player.setSession(null);
-    
+
     boolean isTeamOne = (boolean) playerChannel.attr(AttributeKey.valueOf("teamone")).get();
     if (isTeamOne) {
       teamOne.remove(playerChannel);
@@ -410,13 +410,12 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     else {
       teamTwo.remove(playerChannel);
     }
-        
-    if (server.getDatabase().findPlayer(player.getID()) != null) {
-      //player dropped off unexpectedly. No quit request sent
-      sendSignalAll(ServerResponses.PLAYER_LEFT);
-      msgEveryone(String.format(ServerResponses.SERVER_MSG, player.getName()+" has left the session!"));
-      System.out.println("[SERVER] "+player.getName()+" has left the session!");
-    }
+
+    sendSignalAll(ServerResponses.PLAYER_LEFT);
+
+    //player dropped off unexpectedly. No quit request sent
+    msgEveryone(String.format(ServerResponses.SERVER_MSG, player.getName()+" has left the session!"));
+    System.out.println("[SERVER] "+player.getName()+" has left the session!");
   }
   
   @Override
