@@ -653,6 +653,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             else {
               errorCode = ServerResponses.NO_SESS;
             }
+            break;
           }
           default:
           {

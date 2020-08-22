@@ -197,6 +197,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             else {
               errorCode = ServerResponses.NO_SESS;
             }
+            break;
           }
           default:
           {
