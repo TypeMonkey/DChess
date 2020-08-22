@@ -170,7 +170,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       
       status = SessionStatus.PLAYING;
       //alert all players that the game has started
+      System.out.println("---SIGNALLING GAME START");
       sendSignalAll(ServerResponses.GAME_START);
+      System.out.println("---SIGNALLED GAME START");
 
       //play the game
       boolean hasWon = false;
@@ -191,9 +193,6 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           hasWon = true;
         }
         else {
-          /*
-           * starts a makeshift countdown window for voting
-           */
           final long votingWindow = TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
 
           //voting time window

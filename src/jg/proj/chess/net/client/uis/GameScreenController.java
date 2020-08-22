@@ -217,6 +217,7 @@ public class GameScreenController implements SignalListener, MessageListener{
             Text text = new Text(mess);
             text.setWrappingWidth(chatListDisplay.getPrefWidth());
             chatListDisplay.getItems().add(text);
+            voteNowDisplay.setText("VOTE RECIEVED!");
           }
           
           @Override
@@ -601,6 +602,7 @@ public class GameScreenController implements SignalListener, MessageListener{
         @Override
         public void react(PendingRequest request, String... results) {
           // TODO Auto-generated method stub
+          voteTallyTable.getItems().clear();
           for (String vote : results) {
             String [] split = vote.split(">");
             
