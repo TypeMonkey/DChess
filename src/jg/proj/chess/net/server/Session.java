@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Set;
@@ -63,7 +64,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   /**
    * List to add votes to. Cleared at every vote end
    */
-  private final List<Vote> votes;
+  private final Map<Player, Vote> votes;
   
   /**
    * The rules of this session
@@ -91,7 +92,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     this.rules = rules;
     this.sessionID = UUID.randomUUID();
     
-    votes = new CopyOnWriteArrayList<>();
+    votes = new ConcurrentHashMap<>();
     
     board = new Board(DEFAULT_BOARD_SIZE, DEFAULT_BOARD_SIZE);
     teams = board.initialize(new DefaultBoardPreparer());
@@ -193,14 +194,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           /*
            * starts a makeshift countdown window for voting
            */
-          long timeNow = System.currentTimeMillis();
-          long projectedEnd = timeNow + TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
-
-          //maps a player to their vote
-          ConcurrentHashMap<Player, Vote> voterMap = new ConcurrentHashMap<>();
+          final long votingWindow = TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
 
           //voting time window
-          final Set<Player> currentTeam = teamOneTurn ? teamOne : teamTwo;       
           final int currentTeamID = teamOneTurn ? 1 : 2;
           
           System.out.println("---CURRENT TURN: "+currentTeamID+" | "+teamOneTurn);
@@ -213,59 +209,40 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           System.out.println(" ---warned them----");
           
           status = SessionStatus.VOTING;
-          while (System.currentTimeMillis() < projectedEnd) {
-            /*
-             * Keep iterating through the vote list while the 
-             * voting window is still active
-             */
-            for(Vote vote : votes) {
-             // System.out.println(" ---> sorting vote: "+vote);
-              
-              if (currentTeam.contains(vote.getVoter())) {
-                //make sure to only be sorting votes from the current team
-                
-                Square origin = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
-                Square destination = board.querySquare(vote.getFileDest(), vote.getRankDest());
-                Unit targetUnit = origin.getUnit();
-                
-                //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes              
-                if ( (targetUnit != null && targetUnit.getTeamID() == currentTeamID && targetUnit.possibleDestinations().contains(destination)) || 
-                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {             
-                  voterMap.put(vote.getVoter(), vote);
-                }
-                else {
-                  System.out.println("   NOT A VALID DESTINATION SQUARE");
-                  StringAndIOUtils.writeAndFlush(vote.getVoter().getChannel(), 
-                      String.format(ServerResponses.BAD_REQUEST, ServerRequest.VOTE.getName(), ServerResponses.BAD_VOTE));
-                }        
-              
-              }
-            }
+          
+          //sleep thread for the amount of time the voting window is
+          try {
+            System.out.println("----SLEEPING START FOR V-WINDOW");
+            Thread.sleep(votingWindow);
+            System.out.println("----SLEEPING STOP FOR V-WINDOW");
+          } catch (InterruptedException e1) {
+            e1.printStackTrace();
           }
           
           //clear out previous votes and signal vote end
           status = SessionStatus.PROCESSING;
-          votes.clear();
           if (teamOneTurn) {
             sendSignallTeam1(ServerResponses.VOTE_END);
           }
           else {
             sendSignallTeam2(ServerResponses.VOTE_END);
           }
+          
           msgEveryone(String.format(ServerResponses.SERVER_MSG, "Processing votes!"));
-          System.out.println("---PROCESSING VOTES!!! "+voterMap);
+          System.out.println("---PROCESSING VOTES!!! "+votes);
 
           //decide on move based on plurality
-          if (!voterMap.isEmpty()) {
+          if (!votes.isEmpty()) {
             PriorityQueue<VoteCounter> voteQueue = new PriorityQueue<VoteCounter>((x,y) -> y.votes - x.votes);
             
             HashMap<Vote, Integer> voteCounter = new HashMap<>();
-            for(Vote voteEntry : voterMap.values()) {
+            for(Vote voteEntry : votes.values()) {
                 voteCounter.put(voteEntry, voteCounter.containsKey(voteEntry) ? voteCounter.get(voteEntry) + 1 : 1);             
             }
             
             voteCounter.entrySet().stream().map(x -> new VoteCounter(x.getKey(), x.getValue())).collect(Collectors.toCollection(() -> voteQueue));
             
+            votes.clear(); //now clear the votes map
             msgEveryone(String.format(ServerResponses.SERVER_MSG, "Votes processed!"));
             
             VoteCounter mostPopular = voteQueue.poll();
@@ -531,7 +508,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
               HashMap<Vote, Integer> voteCount = new HashMap<>();
               Set<Player> playerTeam = teamOne.contains(player) ? teamOne : teamTwo;
               
-              for (Vote vote : votes) {
+              for (Vote vote : votes.values()) {
                 if (playerTeam.contains(vote.getVoter())) {
                   //only count the player's team votes
                   voteCount.put(vote, voteCount.containsKey(vote) ? voteCount.get(vote) + 1 : 1);
@@ -565,15 +542,31 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                 char destRank = arguments[3].charAt(0);
                 
                 Vote vote = new Vote(fromFile, fromRank, destFile, destRank, player);
-                votes.add(vote);
-                response = vote.toString();
+
+                //make sure to only be sorting votes from the current team
                 
-                if (senderTeam == 1) {
-                  sendSignallTeam1(ServerResponses.VOTE_RECIEVED);
+                Square origin = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
+                Square destination = board.querySquare(vote.getFileDest(), vote.getRankDest());
+                Unit targetUnit = origin.getUnit();
+                
+                //only consider vote if it's a valid vote, or if the rules allow for no filtering of bad votes              
+                if ( (targetUnit != null && targetUnit.getTeamID() == currentVotingTeam && targetUnit.possibleDestinations().contains(destination)) || 
+                     (rules.getProperty(Properties.ALLOW_INVL_VOTES).equals(Boolean.TRUE)) ) {             
+                  votes.put(vote.getVoter(), vote);
+                  
+                  response = vote.toString();
+                  
+                  if (senderTeam == 1) {
+                    sendSignallTeam1(ServerResponses.VOTE_RECIEVED);
+                  }
+                  else {
+                    sendSignallTeam2(ServerResponses.VOTE_RECIEVED);
+                  }
                 }
                 else {
-                  sendSignallTeam2(ServerResponses.VOTE_RECIEVED);
-                }
+                  System.out.println("   NOT A VALID DESTINATION SQUARE");
+                  errorCode = ServerResponses.BAD_VOTE;
+                }               
               }           
               else {
                 errorCode = ServerResponses.NO_VOTE;
