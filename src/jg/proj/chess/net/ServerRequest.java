@@ -64,6 +64,15 @@ public enum ServerRequest{
       ArgType.INTEGER, ArgType.BOOLEAN, ArgType.INTEGER, ArgType.INTEGER, ArgType.BOOLEAN, ArgType.BOOLEAN),
   
   /**
+   * Requests the current status of a session
+   * 
+   * Argument is the session's UUID
+   * 
+   * Returns: status:sessionUUID:STATUS <- where STATUS is the string representation of a SessionStatus instance
+   */
+  STATUS("status", "~status", 1, "Requests the current status of a session" ,ArgType.STRING),
+  
+  /**
    * Requests the most recent string representation of the current game's baord
    * 
    * Returns: the String that represents the board's most current state
@@ -135,15 +144,6 @@ public enum ServerRequest{
    * Returns: ses:session1UUID,session1PlayerAmnt,session1PrisonersDilemma,voteDuration,invalidVoting:session2UUID,session2PlayerAmnt,session2PrisonersDilemma,voteDuration,invalidVoting
    */
   SES("ses", "~ses", 0 , "Requests the current list of active sessions the server is hosting"),
-  
-  /**
-   * Requests the current status of a session
-   * 
-   * Argument is the session's UUID
-   * 
-   * Returns: status:sessionUUID:STATUS <- where STATUS is the string representation of a SessionStatus instance
-   */
-  STATUS("status", "~status", 1, "Requests the current status of a session" ,ArgType.STRING),
   
   /**
    * Requests a tally of all of the player's current

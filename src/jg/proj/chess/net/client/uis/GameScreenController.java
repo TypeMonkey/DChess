@@ -848,7 +848,10 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       }
     };
     
-    client.sendRequest(new PendingRequest(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString()), statusReactor);
+    System.out.println("---CURRENT SESSION UUID: "+client.getCurrentSession().getSessionID());
+    PendingRequest request = new PendingRequest(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString());
+    
+    client.sendRequest(request, statusReactor);
   }
   
   /**
