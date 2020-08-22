@@ -436,6 +436,7 @@ public class GameScreenController implements SignalListener, MessageListener{
       client.sendRequest(plistRequest, plistReactor);
       voteNowDisplay.setText(">>> GAME STARTED <<<");
       voteNowDisplay.setTextFill(Color.PURPLE);
+      System.out.println("----GAME STARTED SIGNAL RECEIVED: "+client.getUserName());
       break;
     }
     case ServerResponses.VOTE_START:

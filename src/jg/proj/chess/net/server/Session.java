@@ -117,6 +117,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   private void msgTeamOne(String message){    
     //message team 1 
     for(Player player : teamOne) {
+      System.out.println("   SENDING MSG: "+message+"  || TO: "+player.getName());
       StringAndIOUtils.writeAndFlush(player.getChannel(), message);
     }
   }
@@ -124,6 +125,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   private void msgTeamTwo(String message){    
     //message team 2 
     for(Player player : teamTwo) {
+      System.out.println("   SENDING MSG: "+message+"  || TO: "+player.getName());
       StringAndIOUtils.writeAndFlush(player.getChannel(), message);
     }
   }
