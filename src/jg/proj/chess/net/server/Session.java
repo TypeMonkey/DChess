@@ -1,19 +1,14 @@
 package jg.proj.chess.net.server;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -23,10 +18,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.AttributeKey;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import jg.proj.chess.core.Board;
 import jg.proj.chess.core.DefaultBoardPreparer;
 import jg.proj.chess.core.Square;
@@ -65,8 +57,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   /**
    * The teams of this session
    */
-  private final ChannelGroup teamOne;
-  private final ChannelGroup teamTwo;
+  private final Set<Player> teamOne;
+  private final Set<Player> teamTwo;
   
   /**
    * List to add votes to. Cleared at every vote end
@@ -105,8 +97,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     teams = board.initialize(new DefaultBoardPreparer());
     currentRound = 1;
     
-    teamOne = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-    teamTwo = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+    teamOne = Collections.newSetFromMap(new ConcurrentHashMap<Player, Boolean>());
+    teamTwo = Collections.newSetFromMap(new ConcurrentHashMap<Player, Boolean>());
   }
   
   public boolean equals(Object obj) {
@@ -123,12 +115,16 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   private void msgTeamOne(String message){    
     //message team 1 
-    StringAndIOUtils.writeAndFlushGroup(teamOne, message);
+    for(Player player : teamOne) {
+      StringAndIOUtils.writeAndFlush(player.getChannel(), message);
+    }
   }
   
   private void msgTeamTwo(String message){    
     //message team 2 
-    StringAndIOUtils.writeAndFlushGroup(teamTwo, message);
+    for(Player player : teamTwo) {
+      StringAndIOUtils.writeAndFlush(player.getChannel(), message);
+    }
   }
   
   private void msgEveryone(String message){    
@@ -204,7 +200,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           ConcurrentHashMap<Player, Vote> voterMap = new ConcurrentHashMap<>();
 
           //voting time window
-          final ChannelGroup currentTeam = teamOneTurn ? teamOne : teamTwo;       
+          final Set<Player> currentTeam = teamOneTurn ? teamOne : teamTwo;       
           final int currentTeamID = teamOneTurn ? 1 : 2;
           
           System.out.println("---CURRENT TURN: "+currentTeamID+" | "+teamOneTurn);
@@ -225,7 +221,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             for(Vote vote : votes) {
              // System.out.println(" ---> sorting vote: "+vote);
               
-              if (currentTeam.contains(vote.getVoter().getChannel())) {
+              if (currentTeam.contains(vote.getVoter())) {
                 //make sure to only be sorting votes from the current team
                 
                 Square origin = board.querySquare(vote.getFileOrigin(), vote.getRankOrigin());
@@ -333,9 +329,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       //clear both teams of members
       teamOne.clear();
       teamTwo.clear();
-      
-      teamOne.close();
-      teamTwo.close();
+
       
       status = SessionStatus.ENDED;  
     }
@@ -355,11 +349,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     boolean isTeamOne = (boolean) playerChannel.attr(AttributeKey.valueOf("teamone")).get();
     if (isTeamOne) {
       System.out.println(" USER: "+player.getName()+" added to Team One of session "+sessionID);
-      teamOne.add(playerChannel);
+      teamOne.add(player);
     }
     else {
       System.out.println(" USER: "+player.getName()+" added to Team Two of session "+sessionID);
-      teamTwo.add(playerChannel);
+      teamTwo.add(player);
     }
     
     sendSignalAll(ServerResponses.PLAYER_JOINED);
@@ -405,10 +399,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
 
     boolean isTeamOne = (boolean) playerChannel.attr(AttributeKey.valueOf("teamone")).get();
     if (isTeamOne) {
-      teamOne.remove(playerChannel);
+      teamOne.remove(player);
     }
     else {
-      teamTwo.remove(playerChannel);
+      teamTwo.remove(player);
     }
 
     sendSignalAll(ServerResponses.PLAYER_LEFT);
@@ -485,15 +479,15 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             System.out.println(" ---->>>> "+player.getName()+" has DISCONNECTED (staging)!!!!");
             
             //remove them from their team
-            if (teamOne.contains(sender)) {
+            if (teamOne.contains(player)) {
               //remove sender from team one
               System.out.println(" ---->>>> "+player.getName()+" (TEAM ONE) has LEFT!");
-              teamOne.remove(sender);
+              teamOne.remove(player);
             }
             else {
               //remove sender from team two
               System.out.println("[SERVER] "+player.getName()+" (TEAM TWO) has LEFT!");
-              teamTwo.remove(sender);
+              teamTwo.remove(player);
             }
             
             sendSignalAll(ServerResponses.PLAYER_LEFT);
@@ -507,15 +501,15 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           }
           case QUIT:
           {
-            if (teamOne.contains(sender)) {
+            if (teamOne.contains(player)) {
               //remove sender from team one
               System.out.println(" ---->>>> "+player.getName()+" (TEAM ONE) has LEFT!");
-              teamOne.remove(sender);
+              teamOne.remove(player);
             }
             else {
               //remove sender from team two
               System.out.println("[SERVER] "+player.getName()+" (TEAM TWO) has LEFT!");
-              teamTwo.remove(sender);
+              teamTwo.remove(player);
             }
             
             sendSignalAll(ServerResponses.PLAYER_LEFT);
@@ -535,10 +529,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             else {
               //Count votes
               HashMap<Vote, Integer> voteCount = new HashMap<>();
-              ChannelGroup playerTeam = teamOne.contains(sender) ? teamOne : teamTwo;
+              Set<Player> playerTeam = teamOne.contains(player) ? teamOne : teamTwo;
               
               for (Vote vote : votes) {
-                if (playerTeam.contains(vote.getVoter().getChannel())) {
+                if (playerTeam.contains(vote.getVoter())) {
                   //only count the player's team votes
                   voteCount.put(vote, voteCount.containsKey(vote) ? voteCount.get(vote) + 1 : 1);
                 }
@@ -593,19 +587,16 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           case PLIST: 
           {
             boolean includeUUID = Boolean.parseBoolean(arguments[0].toLowerCase());
-            AttributeKey<Player> playerKey = AttributeKey.valueOf("player");
             
             //get team one first, then team two
             String mess = "";
-            for (Channel channel : teamOne) {
-              Player attachedPlayer = channel.attr(playerKey).get();
-              mess += attachedPlayer.getName()+",true"+(includeUUID ? ","+attachedPlayer.getID() : "");
+            for (Player teamPlayer : teamOne) {
+              mess += teamPlayer.getName()+",true"+(includeUUID ? ","+teamPlayer.getID() : "");
               mess += ":";
             }
             
-            for (Channel channel : teamTwo) {
-              Player attachedPlayer = channel.attr(playerKey).get();
-              mess += attachedPlayer.getName()+",false"+(includeUUID ? ","+attachedPlayer.getID() : "");
+            for (Player teamPlayer : teamTwo) {
+              mess += teamPlayer.getName()+",false"+(includeUUID ? ","+teamPlayer.getID() : "");
               mess += ":";
             }
             
