@@ -17,6 +17,7 @@ import jg.proj.chess.utils.StringAndIOUtils;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.SessionRules;
+import jg.proj.chess.net.SessionStatus;
 import jg.proj.chess.net.SessionRules.Properties;
 
 /**
@@ -185,6 +186,17 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             
             response = "bye";
             break;
+          }
+          case STATUS:
+          {
+            UUID sessionID = UUID.fromString(arguments[0]);
+            Session targetSession = database.findSession(sessionID);
+            if (targetSession != null) {
+              response = sessionID.toString()+":"+targetSession.getStatus().toString();
+            }
+            else {
+              errorCode = ServerResponses.NO_SESS;
+            }
           }
           default:
           {

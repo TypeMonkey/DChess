@@ -137,6 +137,15 @@ public enum ServerRequest{
   SES("ses", "~ses", 0 , "Requests the current list of active sessions the server is hosting"),
   
   /**
+   * Requests the current status of a session
+   * 
+   * Argument is the session's UUID
+   * 
+   * Returns: status:sessionUUID:STATUS <- where STATUS is the string representation of a SessionStatus instance
+   */
+  STATUS("status", "~status", 1, "Requests the current status of a session" ,ArgType.STRING),
+  
+  /**
    * Requests a tally of all of the player's current
    * 
    * Returns: "tally:ORIGINAL_SQUARE_COORDINATE > DEST_SQUARE_COORDINATE > VOTE_AMNT : .... other votes

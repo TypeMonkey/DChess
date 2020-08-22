@@ -30,6 +30,7 @@ import jg.proj.chess.core.units.Unit.UnitType;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.SessionRules;
+import jg.proj.chess.net.SessionStatus;
 import jg.proj.chess.net.Vote;
 import jg.proj.chess.net.SessionRules.Properties;
 import jg.proj.chess.utils.StringAndIOUtils;
@@ -641,6 +642,17 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
               }
             }
             break;
+          }
+          case STATUS:
+          {
+            UUID sessionID = UUID.fromString(arguments[0]);
+            Session targetSession = server.getDatabase().findSession(sessionID);
+            if (targetSession != null) {
+              response = sessionID.toString()+":"+targetSession.getStatus().toString();
+            }
+            else {
+              errorCode = ServerResponses.NO_SESS;
+            }
           }
           default:
           {

@@ -21,7 +21,7 @@ import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.Reactor;
 
-public class GameEntranceController {
+public class GameEntranceController implements Displayable{
 
   @FXML
   private StackPane mainStackPane;
@@ -100,6 +100,11 @@ public class GameEntranceController {
         userNameEnterButton.fire();
       }
     });
+  }
+  
+  @Override
+  public void prepare() {
+   
   }
   
   private static GameEntranceController entranceController;

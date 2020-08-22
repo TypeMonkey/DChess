@@ -137,6 +137,9 @@ public class ChessClient extends Application{
     final Scene scene = new Scene(stackPane);
     System.out.println("----CHANGING TO ENTRANCE");
     uiStage.setScene(scene);
+    
+    //call prepare()
+    GameEntranceController.getController().prepare();
             
     //now show our UI
     uiStage.show();   
@@ -158,6 +161,9 @@ public class ChessClient extends Application{
     //set screen title to include username
     uiStage.setTitle(uiStage.getTitle()+" - "+userName);
     
+    //call prepare()
+    GameBrowserController.getController().prepare();
+    
     //now show our UI
     uiStage.show();
   }
@@ -174,6 +180,9 @@ public class ChessClient extends Application{
     final Scene scene = new Scene(stackPane);
     System.out.println("----CHANGING TO SCREEN");
     uiStage.setScene(scene);
+    
+    //call prepare()
+    GameScreenController.getController().prepare();
     
     //now show our UI
     uiStage.show();

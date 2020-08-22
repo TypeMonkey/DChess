@@ -1,9 +1,7 @@
 package jg.proj.chess.net.client.uis;
 
-import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +29,6 @@ import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.SessionRules;
@@ -40,9 +37,8 @@ import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.SessionInfo;
-import jg.proj.chess.net.server.Session;
 
-public class GameBrowserController {
+public class GameBrowserController implements Displayable{
   
   //Left side components
   @FXML
@@ -608,6 +604,11 @@ public class GameBrowserController {
         yesLate.setSelected(false);
       }
     });
+  }
+  
+  @Override
+  public void prepare() {
+   
   }
   
   /**

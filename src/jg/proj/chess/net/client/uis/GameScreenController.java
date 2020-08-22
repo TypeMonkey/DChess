@@ -48,6 +48,7 @@ import jg.proj.chess.core.Square;
 import jg.proj.chess.core.units.InvalidMove;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
+import jg.proj.chess.net.SessionStatus;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.MessageListener;
 import jg.proj.chess.net.client.PendingRequest;
@@ -58,7 +59,7 @@ import jg.proj.chess.net.client.VoteTally;
 import jg.proj.chess.net.client.uis.components.GraphicalSquare;
 import jg.proj.chess.net.client.uis.components.VoteChoice;
 
-public class GameScreenController implements SignalListener, MessageListener{
+public class GameScreenController implements SignalListener, MessageListener, Displayable{
   
   public static final int DEFAULT_BOARD_SIZE = 8;
   public static final double CHAT_LIST_WRAP_WIDTH = 157;
@@ -822,6 +823,32 @@ public class GameScreenController implements SignalListener, MessageListener{
      client.recordException(e);
     }
     
+  }
+  
+  @Override
+  public void prepare() {
+    //get session status
+    Reactor statusReactor = new Reactor() {      
+      @Override
+      public void react(PendingRequest request, String... results) {
+        String status = results[1];
+        SessionStatus sessionStatus = SessionStatus.valueOf(status);
+        if (sessionStatus == SessionStatus.PLAYING) {
+          voteNowDisplay.setText(">>> GAME STARTED <<<");
+          voteNowDisplay.setTextFill(Color.PURPLE);
+        }
+        else {
+          System.out.println("---GAME STATUS from STATUS REQ: "+sessionStatus);
+        }
+      }
+      
+      @Override
+      public void error(PendingRequest request, int errorCode) {
+        client.recordException("ERROR: couldn't find session to get status");
+      }
+    };
+    
+    client.sendRequest(new PendingRequest(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString()), statusReactor);
   }
   
   /**
