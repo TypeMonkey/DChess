@@ -70,7 +70,7 @@ public enum ServerRequest{
    * 
    * Returns: status:sessionUUID:STATUS <- where STATUS is the string representation of a SessionStatus instance
    */
-  STATUS("status", "~status", 1, "Requests the current status of a session" ,ArgType.STRING),
+  STATUS("status", "~status:%s", 1, "Requests the current status of a session" ,ArgType.STRING),
   
   /**
    * Requests the most recent string representation of the current game's baord
