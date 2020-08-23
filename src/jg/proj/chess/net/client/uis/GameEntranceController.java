@@ -20,6 +20,7 @@ import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.Reactor;
+import jg.proj.chess.net.client.ResourceManager;
 
 public class GameEntranceController implements Displayable{
 
@@ -110,14 +111,13 @@ public class GameEntranceController implements Displayable{
   private static GameEntranceController entranceController;
   private static Pane pane;
   
-  public static Pane createUI(String fxmlLocation, ChessClient client) throws IOException {
+  public static Pane createUI(ResourceManager resourceManager, ChessClient client) throws IOException {
     if (pane == null) {
       entranceController = new GameEntranceController(client);    
       
       FXMLLoader uiLoader = new FXMLLoader();
       uiLoader.setController(entranceController);
-      uiLoader.setLocation(new File(fxmlLocation).toURI().toURL());
-      pane = uiLoader.load();
+      pane = uiLoader.load(resourceManager.getResourceAsStream("entranceUI"));
       
       entranceController.init();
       
@@ -128,5 +128,9 @@ public class GameEntranceController implements Displayable{
   
   public static GameEntranceController getController() {
     return entranceController;
+  }
+  
+  public static Pane getPane() {
+    return pane;
   }
 }

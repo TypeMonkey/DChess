@@ -36,6 +36,7 @@ import jg.proj.chess.net.SessionRules.Properties;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.PendingRequest;
 import jg.proj.chess.net.client.Reactor;
+import jg.proj.chess.net.client.ResourceManager;
 import jg.proj.chess.net.client.SessionInfo;
 
 public class GameBrowserController implements Displayable{
@@ -627,14 +628,13 @@ public class GameBrowserController implements Displayable{
   private static GameBrowserController browserController;
   private static Pane pane;
   
-  public static Pane createUI(String fxmlLocation, ChessClient client) throws IOException {
+  public static Pane createUI(ResourceManager resourceManager, ChessClient client) throws IOException {
     if (pane == null) {
       browserController = new GameBrowserController(client);    
       
       FXMLLoader uiLoader = new FXMLLoader();
       uiLoader.setController(browserController);
-      uiLoader.setLocation(new File(fxmlLocation).toURI().toURL());
-      pane = uiLoader.load();
+      pane = uiLoader.load(resourceManager.getResourceAsStream("browserUI"));
       
       browserController.init();
       
@@ -648,5 +648,9 @@ public class GameBrowserController implements Displayable{
   
   public static GameBrowserController getController() {
     return browserController;
+  }
+  
+  public static Pane getPane() {
+    return pane;
   }
 }

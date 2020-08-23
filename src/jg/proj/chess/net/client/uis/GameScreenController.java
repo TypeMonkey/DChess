@@ -175,7 +175,6 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     //prepare logical board
     board.initialize(new DefaultBoardPreparer());
     //set the session uuid
-    sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
     sessionUUIDDisplay.setEditable(false);
     
     //disable send and clear vote buttons by default
@@ -827,6 +826,8 @@ public class GameScreenController implements SignalListener, MessageListener, Di
   
   @Override
   public void prepare() {
+    sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
+    
     //get session status
     Reactor statusReactor = new Reactor() {      
       @Override
@@ -868,14 +869,13 @@ public class GameScreenController implements SignalListener, MessageListener, Di
   private static GameScreenController screenController;
   private static Pane pane;
   
-  public static Pane createUI(String fxmlLocation, ChessClient client) throws IOException {
+  public static Pane createUI(ResourceManager resourceManager, ChessClient client) throws IOException {
     if (pane == null) {
       screenController = new GameScreenController(client);    
       
       FXMLLoader uiLoader = new FXMLLoader();
       uiLoader.setController(screenController);
-      uiLoader.setLocation(new File(fxmlLocation).toURI().toURL());
-      pane = uiLoader.load();
+      pane = uiLoader.load(resourceManager.getResourceAsStream("screenUI"));
       
       screenController.init();
       
@@ -889,5 +889,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
   
   public static GameScreenController getController() {
     return screenController;
+  }
+  
+  public static Pane getPane() {
+    return pane;
   }
 }

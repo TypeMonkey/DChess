@@ -62,14 +62,15 @@ public class ChessClient extends Application{
                               config.getValue(ConfigKey.IP), 
                               Integer.parseInt(config.getValue(ConfigKey.PORT)));   
     connector.connect();
-    //show entrance scene
-    showEntrance();
     
     //load game resources
     loadResources();
+    
+    //show entrance scene
+    showEntrance();
   }
   
-  private void loadResources() {
+  private void loadResources() throws IOException {
     HashSet<ResourceInfo> generalResources = new HashSet<>();
     
     //get all unit images path
@@ -81,18 +82,21 @@ public class ChessClient extends Application{
       generalResources.add(new ResourceInfo(blackImageName, "chesspieces/"+blackImageName+".png"));
     }
     
-    resourceManager = new ResourceManager(generalResources);
+    //load ui files
+    generalResources.add(new ResourceInfo("screenUI", "xmls/GameScreen.fxml"));
+    generalResources.add(new ResourceInfo("entranceUI", "xmls/GameEntrance.fxml"));
+    generalResources.add(new ResourceInfo("browserUI", "xmls/GameBrowser.fxml"));
+    generalResources.add(new ResourceInfo("wigand", "imgs/intro/wigand.jpg"));
     
-    //load all resources in a background thread
-    workerPool.execute(new Runnable() {
-      public void run() {
-        try {
-          resourceManager.loadAllResources();
-        } catch (IOException e) {
-          recordException(e);
-        }
-      }
-    });
+    resourceManager = new ResourceManager(generalResources);
+        
+    //load all resources 
+    resourceManager.loadAllResources();
+    
+    //pre-load all UI screens
+    GameEntranceController.createUI(resourceManager, this);
+    GameBrowserController.createUI(resourceManager, this);
+    GameScreenController.createUI(resourceManager, this);
   }
 
   /**
@@ -131,7 +135,7 @@ public class ChessClient extends Application{
    */
   public void showEntrance() throws IOException {
     //show entrance scene
-    final Pane pane = GameEntranceController.createUI("xmls/GameEntrance.fxml", this);
+    final Pane pane = GameEntranceController.getPane();
     final StackPane stackPane = new StackPane(pane);
     stackPane.setAlignment(Pos.CENTER);
     
@@ -151,7 +155,7 @@ public class ChessClient extends Application{
    * @throws IOException
    */
   public void showBrowser() throws IOException{
-    final Pane pane = GameBrowserController.createUI("xmls/GameBrowser.fxml", this);
+    final Pane pane = GameBrowserController.getPane();
     final StackPane stackPane = new StackPane(pane);
     stackPane.setAlignment(Pos.CENTER);
     
@@ -174,7 +178,7 @@ public class ChessClient extends Application{
    * @throws IOException
    */
   public void showGame() throws IOException{
-    final Pane pane = GameScreenController.createUI("xmls/GameScreen.fxml", this);
+    final Pane pane = GameScreenController.getPane();
     final StackPane stackPane = new StackPane(pane);
     stackPane.setAlignment(Pos.CENTER);
     
