@@ -4,6 +4,7 @@ import javafx.scene.paint.Paint;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -86,6 +87,8 @@ public class GameScreenController implements SignalListener, MessageListener, Di
   private Button sendVoteButton;
   @FXML 
   private Label voteNowDisplay;
+  @FXML 
+  private Label bottomStatusLabel;
   
   //--bottom left components
   @FXML
@@ -128,6 +131,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
   private final Board board;
   private final VoteChoice voteChoice;
   private final Reactor plistReactor;
+  
+  //flags to keep track of game state
+  private volatile boolean isPlayersTeamVoting;
   
   private GameScreenController(ChessClient client) { 
     this.client = client;
@@ -416,6 +422,16 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       //clear votes
       voteTallyTable.getItems().clear();
     }
+    else if (messageType.equals(ServerResponses.TIME)) {
+      long secondsLeft = Long.parseLong(messageContent[0]);
+      
+      String minutes = String.valueOf(secondsLeft / 60);
+      long secondsCalc = secondsLeft % 60;
+      String seconds = secondsCalc >= 0 && secondsCalc <= 9 ? "0"+secondsCalc : String.valueOf(secondsCalc);
+      
+      voteNowDisplay.setText("VOTE TIME LEFT: "+minutes+":"+seconds);
+      voteNowDisplay.setTextFill(isPlayersTeamVoting ? Color.GREENYELLOW : Color.RED);
+    }
     else if (messageType.equals(ServerResponses.SERV)) {
       updateChatList("[SERVER] "+Arrays.stream(messageContent).collect(Collectors.joining()), Color.PURPLE);
     }
@@ -434,49 +450,45 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       //get player list
       PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
       client.sendRequest(plistRequest, plistReactor);
-      voteNowDisplay.setText(">>> GAME STARTED <<<");
-      voteNowDisplay.setTextFill(Color.PURPLE);
+      bottomStatusLabel.setText(">>> GAME STARTED <<<");
+      bottomStatusLabel.setTextFill(Color.PURPLE);
       System.out.println("----GAME STARTED SIGNAL RECEIVED: "+client.getUserName());
       break;
     }
     case ServerResponses.VOTE_START:
     {
       //update voteNowDisplay
-      voteNowDisplay.setText("VOTE NOW");
-      voteNowDisplay.setTextFill(Color.GREENYELLOW);
+      isPlayersTeamVoting = true;
+      bottomStatusLabel.setText("Your team is voting! Place a vote now!");
+      bottomStatusLabel.setTextFill(Color.GREENYELLOW);
       break;
     }
     case ServerResponses.VOTE_END:
     {
       //update voteNowDisplay
-      voteNowDisplay.setText("VOTE END");
-      voteNowDisplay.setTextFill(Color.RED);
+      isPlayersTeamVoting = false;
+      bottomStatusLabel.setText("Your team is done voting! Waiting for results...");
+      bottomStatusLabel.setTextFill(Color.RED);
       break; 
     }
     case ServerResponses.TEAM1_WON:
     {
       String outcomeText = client.getCurrentTeam() == 1 ? "YOUR TEAM WON!" :
                                                           "YOUR TEAM LOST";
-      Color outcomeFont = client.getCurrentTeam() == 1 ? Color.GREENYELLOW : Color.RED;
+      Color outcomeFont = client.getCurrentTeam() == 1 ? Color.CORNFLOWERBLUE : Color.RED;
       //update voteNowDisplay and chat to show victory
-      voteNowDisplay.setText(outcomeText);
-      voteNowDisplay.setTextFill(outcomeFont);
-      
-      //update chatlist
-      updateChatList("[SERVER] "+outcomeText, outcomeFont);    
+      bottomStatusLabel.setText(outcomeText);
+      bottomStatusLabel.setTextFill(outcomeFont);
       break;
     }
     case ServerResponses.TEAM2_WON:
     {
       String outcomeText = client.getCurrentTeam() == 2 ? "YOUR TEAM WON!" :
                                                           "YOUR TEAM LOST";
-      Color outcomeFont = client.getCurrentTeam() == 2 ? Color.GREENYELLOW : Color.RED;
+      Color outcomeFont = client.getCurrentTeam() == 2 ? Color.CORNFLOWERBLUE : Color.RED;
       //update voteNowDisplay and chat to show victory
-      voteNowDisplay.setText(outcomeText);
-      voteNowDisplay.setTextFill(outcomeFont);
-      
-      //update chatlist
-      updateChatList("[SERVER] "+outcomeText, outcomeFont);    
+      bottomStatusLabel.setText(outcomeText);
+      bottomStatusLabel.setTextFill(outcomeFont); 
       break;
     }
     case ServerResponses.TEAM1_DESS:
@@ -484,9 +496,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       //If client is Team 1, then they've already quit the screen.
       //No need to update team 1's UI then
       if (client.getCurrentTeam() == 2) {
-        String message = "YOUR TEAM WON!";
-        //update chat to show defeat
-        updateChatList("[SERVER] "+message, Color.GREENYELLOW);
+        //update status to show defeat
+        bottomStatusLabel.setText("Team 1 desserted the battle! Your team won!");
+        bottomStatusLabel.setTextFill(Color.CORNFLOWERBLUE);
       }
       break;
     }
@@ -495,48 +507,54 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       //If client is Team 2, then they've already quit the screen.
       //No need to update team 2's UI then
       if (client.getCurrentTeam() == 1) {
-        String message = "YOUR TEAM WON!";
-        //update chat to show defeat
-        updateChatList("[SERVER] "+message, Color.GREENYELLOW);
+        //update status to show defeat
+        bottomStatusLabel.setText("Team 2 desserted the battle! Your team won!");
+        bottomStatusLabel.setTextFill(Color.CORNFLOWERBLUE);
       }
       break;
     }
     case ServerResponses.TEAM1_TIED:
     {
       //update voteNowDisplay and chat to show tied status
-      String message = client.getCurrentTeam() == 1 ? "YOUR TEAM IS TIED!" : "TEAM TWO IS TIED!";
-      
-      //update chatlist
-      updateChatList("[SERVER] "+message, Color.CORNFLOWERBLUE);
+      String message = client.getCurrentTeam() == 1 ? 
+                       "Your time is tied on a move! No move is made!" : 
+                       "Team 1 is tied on a move! No move is made!";
+      Color outcomeFont = client.getCurrentTeam() == 2 ? Color.CORNFLOWERBLUE : Color.RED;
+
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(outcomeFont);
       break;
     }
     case ServerResponses.TEAM2_TIED:
     {
       //update voteNowDisplay and chat to show tied status
-      String message = client.getCurrentTeam() == 2 ? "YOUR TEAM IS TIED!" : "TEAM ONE IS TIED!";
-      
-      //update chatlist
-      updateChatList("[SERVER] "+message, Color.CORNFLOWERBLUE);
+      String message = client.getCurrentTeam() == 2 ? 
+          "Your time is tied on a move! No move is made!" : 
+          "Team 2 is tied on a move! No move is made!";
+      Color outcomeFont = client.getCurrentTeam() == 1 ? Color.CORNFLOWERBLUE : Color.RED;
+
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(outcomeFont);
       break;
     }
     case ServerResponses.TEAM1_OTHER_UNIT:
     {
-      //update chatlist
       String message = client.getCurrentTeam() == 1 ? 
                  "Your team voted to move a unit that's not theirs. No move made!" : 
                  "Team One voted to move one of your team's units. No move made!";
-      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
-      updateChatList("[SERVER] "+message, messColor);
+      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.CORNFLOWERBLUE;
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(messColor);
       break;
     }
     case ServerResponses.TEAM2_OTHER_UNIT:
     {  
-      //update chatlist
-      String message = client.getCurrentTeam() == 2? 
+      String message = client.getCurrentTeam() == 2 ? 
                 "Your team voted to move a unit that's not theirs. No move made!" : 
                 "Team Two voted to move one of your team's units. No move made!";
-      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
-      updateChatList("[SERVER] "+message, messColor);
+      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.CORNFLOWERBLUE;
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(messColor);
       break;
     }
     case ServerResponses.TEAM1_IDIOT_VOTE:
@@ -545,8 +563,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       String message = client.getCurrentTeam() == 1 ? 
                 "Your team voted on an illegal move. No move made!" : 
                 "Team One voted on an illegal move. No move made!";
-      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
-      updateChatList("[SERVER] "+message, messColor);
+      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.CORNFLOWERBLUE;
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(messColor);
       break;
     }
     case ServerResponses.TEAM2_IDIOT_VOTE:
@@ -555,8 +574,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       String message = client.getCurrentTeam() == 2 ? 
                 "Your team voted on an illegal move. No move made!" : 
                 "Team Two voted on an illegal move. No move made!";
-      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
-      updateChatList("[SERVER] "+message, messColor);
+      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.CORNFLOWERBLUE;
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(messColor);
       break;
     }
     case ServerResponses.TEAM1_NO_VOTE:
@@ -565,8 +585,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       String message = client.getCurrentTeam() == 1 ? 
                 "Your team sent no votes at all! No move made!" : 
                 "Team One sent no votes at all! No move made!";
-      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.BLUE;
-      updateChatList("[SERVER] "+message, messColor);
+      Color messColor = client.getCurrentTeam() == 1 ? Color.RED : Color.CORNFLOWERBLUE;
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(messColor);
       break;
     }
     case ServerResponses.TEAM2_NO_VOTE:
@@ -575,8 +596,9 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       String message = client.getCurrentTeam() == 2 ? 
                 "Your team sent no votes at all! No move made!" : 
                 "Team One sent no votes at all! No move made!";
-      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.BLUE;
-      updateChatList("[SERVER] "+message, messColor);
+      Color messColor = client.getCurrentTeam() == 2 ? Color.RED : Color.CORNFLOWERBLUE;
+      bottomStatusLabel.setText(message);
+      bottomStatusLabel.setTextFill(messColor);
       break;
     } 
     case ServerResponses.PLAYER_JOINED:

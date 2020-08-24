@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -176,7 +178,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       System.out.println("---SIGNALLING GAME START");
       sendSignalAll(ServerResponses.GAME_START);
       System.out.println("---SIGNALLED GAME START");
-
+      
       //play the game
       boolean hasWon = false;
 
@@ -196,7 +198,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           hasWon = true;
         }
         else {
-          final long votingWindow = TimeUnit.MILLISECONDS.convert(((long) rules.getProperty(Properties.VOTING_DURATION)), TimeUnit.SECONDS);
+          final long votingSeconds = (long) rules.getProperty(Properties.VOTING_DURATION);
 
           //voting time window
           final int currentTeamID = teamOneTurn ? 1 : 2;
@@ -212,14 +214,26 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           
           status = SessionStatus.VOTING;
           
+          //create Timer for voting window countdown
+          Timer timer = new Timer();
+          
           //sleep thread for the amount of time the voting window is
-          try {
-            System.out.println("----SLEEPING START FOR V-WINDOW");
-            Thread.sleep(votingWindow);
-            System.out.println("----SLEEPING STOP FOR V-WINDOW");
-          } catch (InterruptedException e1) {
-            e1.printStackTrace();
-          }
+          System.out.println("----SLEEPING START FOR V-WINDOW");
+          timer.schedule(new TimerTask() {
+            private long execCount = votingSeconds - 1;       
+            @Override
+            public void run() {
+              if (execCount >= 0) {
+                msgEveryone(String.format(ServerResponses.TIME_MSG, execCount));
+                execCount--;
+              }
+              else {
+                timer.cancel();
+              }
+            }
+          }, 1000, 1000);
+          System.out.println("----SLEEPING STOP FOR V-WINDOW");
+          
           
           //clear out previous votes and signal vote end
           status = SessionStatus.PROCESSING;

@@ -68,4 +68,8 @@ public interface ServerResponses {
   //Sent when a vote is decided. The arguments correspond to decided unit movement on the board
   public static final String RESULT = "result";
   public static final String RESULT_MSG = RESULT+":%d:%c:%d:%c";
+  
+  //sent every second during the voting window
+  public static final String TIME = "time";
+  public static final String TIME_MSG = TIME+":%d"; //where the integer argument is the elasped amount of seconds
 }
