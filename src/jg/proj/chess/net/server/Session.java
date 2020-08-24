@@ -14,6 +14,8 @@ import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -215,11 +217,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           status = SessionStatus.VOTING;
           
           //create Timer for voting window countdown
-          Timer timer = new Timer();
+          ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(0);
           
           //sleep thread for the amount of time the voting window is
           System.out.println("----SLEEPING START FOR V-WINDOW");
-          timer.schedule(new TimerTask() {
+          Runnable timerTask = new Runnable() {
             private long execCount = votingSeconds - 1;       
             @Override
             public void run() {
@@ -228,10 +230,16 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                 execCount--;
               }
               else {
-                timer.cancel();
+                executor.shutdown();
               }
             }
-          }, 1000, 1000);
+          };
+          executor.scheduleAtFixedRate(timerTask, 1, 1, TimeUnit.SECONDS);
+          try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+          } catch (InterruptedException e1) {
+            e1.printStackTrace();
+          }
           System.out.println("----SLEEPING STOP FOR V-WINDOW");
           
           

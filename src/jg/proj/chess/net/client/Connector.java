@@ -101,7 +101,8 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     else if (split[0].equals(ServerResponses.SERV) || 
              split[0].equals(ServerResponses.RESULT) ||
              split[0].equals(ServerResponses.ALL) ||
-             split[0].equals(ServerResponses.TEAM)) {
+             split[0].equals(ServerResponses.TEAM) || 
+             split[0].equals(ServerResponses.TIME) ) {
       //get subarray from 1 <-> split.length-1
       String [] mess = Arrays.copyOfRange(split, 1, split.length);
       for (MessageListener listener : messageListeners) {
