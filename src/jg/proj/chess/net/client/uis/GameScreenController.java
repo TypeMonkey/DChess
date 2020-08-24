@@ -33,6 +33,7 @@ import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -40,6 +41,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Callback;
@@ -177,6 +179,17 @@ public class GameScreenController implements SignalListener, MessageListener, Di
   public void init() {       
     //voteNowDisplay should be blank
     voteNowDisplay.setText("");
+    
+    //bottomStatusLabel should be blank
+    bottomStatusLabel.setText("");
+    bottomStatusLabel.setFont(Font.font("Segoe UI", 14));
+    bottomStatusLabel.setStyle(
+        "-fx-padding: 10;" + 
+        "-fx-border-style: solid inside;" + 
+        "-fx-border-width: 2;" +
+        "-fx-border-insets: 5;" + 
+        "-fx-border-radius: 3;" + 
+        "-fx-border-color: grey;");
     
     //prepare logical board
     board.initialize(new DefaultBoardPreparer());
@@ -425,11 +438,13 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     else if (messageType.equals(ServerResponses.TIME)) {
       long secondsLeft = Long.parseLong(messageContent[0]);
       
-      String minutes = String.valueOf(secondsLeft / 60);
+      long minutesCalc = secondsLeft / 60;
+      String minutes = minutesCalc >= 0 && minutesCalc <= 9 ? "0"+minutesCalc : String.valueOf(minutesCalc);
       long secondsCalc = secondsLeft % 60;
       String seconds = secondsCalc >= 0 && secondsCalc <= 9 ? "0"+secondsCalc : String.valueOf(secondsCalc);
       
-      voteNowDisplay.setText("VOTE TIME LEFT: "+minutes+":"+seconds);
+      int votingTeamID = isPlayersTeamVoting ? client.getCurrentTeam() : (client.getCurrentTeam() == 1 ? 2 : 1);
+      voteNowDisplay.setText("TEAM "+votingTeamID+" VOTE TIME: "+minutes+":"+seconds);
       voteNowDisplay.setTextFill(isPlayersTeamVoting ? Color.GREENYELLOW : Color.RED);
     }
     else if (messageType.equals(ServerResponses.SERV)) {
@@ -467,7 +482,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     {
       //update voteNowDisplay
       isPlayersTeamVoting = false;
-      bottomStatusLabel.setText("Your team is done voting! Waiting for results...");
+      bottomStatusLabel.setText("Your team is done voting! Board updated!");
       bottomStatusLabel.setTextFill(Color.RED);
       break; 
     }
@@ -874,7 +889,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     System.out.println("---CURRENT SESSION UUID: "+client.getCurrentSession().getSessionID());
     PendingRequest request = new PendingRequest(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString());
     
-    client.sendRequest(request, statusReactor);
+    client.sendRequest(request, statusReactor); 
   }
   
   /**

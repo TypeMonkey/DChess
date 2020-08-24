@@ -74,7 +74,7 @@
                                     </Button>
                                     <Label fx:id="voteNowDisplay" alignment="CENTER" contentDisplay="CENTER" prefHeight="29.0" prefWidth="221.0" text="VOTE NOW!">
                                        <font>
-                                          <Font size="18.0" />
+                                          <Font size="14.0" />
                                        </font>
                                     </Label>
                                     <Button fx:id="sendVoteButton" mnemonicParsing="false" text="Send Vote">
