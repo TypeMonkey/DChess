@@ -108,12 +108,12 @@ public final class SessionRules {
     /*
      * Load default values
      */
-    defaultMap.put(Properties.PRISON_DILEMMA, true);
-    defaultMap.put(Properties.VOTING_DURATION, 15000);
-    defaultMap.put(Properties.MIN_TEAM_COUNT, 1);
-    defaultMap.put(Properties.ALLOW_INVL_VOTES, false);
-    defaultMap.put(Properties.ALLOW_JOINS_GAME, true);
-    defaultMap.put(Properties.BREAK_AMOUNT, 0);
+    defaultMap.put(Properties.PRISON_DILEMMA, Properties.PRISON_DILEMMA.defaultValue);
+    defaultMap.put(Properties.VOTING_DURATION, Properties.VOTING_DURATION.defaultValue);
+    defaultMap.put(Properties.MIN_TEAM_COUNT, Properties.MIN_TEAM_COUNT.defaultValue);
+    defaultMap.put(Properties.ALLOW_INVL_VOTES, Properties.ALLOW_INVL_VOTES.defaultValue);
+    defaultMap.put(Properties.ALLOW_JOINS_GAME, Properties.ALLOW_JOINS_GAME.defaultValue);
+    defaultMap.put(Properties.BREAK_AMOUNT, Properties.BREAK_AMOUNT.defaultValue);
     
     return defaultMap;
   }
