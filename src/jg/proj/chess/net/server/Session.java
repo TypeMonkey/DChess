@@ -216,32 +216,8 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           
           status = SessionStatus.VOTING;
           
-          //create Timer for voting window countdown
-          ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(0);
-          
-          //sleep thread for the amount of time the voting window is
-          System.out.println("----SLEEPING START FOR V-WINDOW");
-          Runnable timerTask = new Runnable() {
-            private long execCount = votingSeconds - 1;       
-            @Override
-            public void run() {
-              if (execCount >= 0) {
-                msgEveryone(String.format(ServerResponses.TIME_MSG, execCount));
-                execCount--;
-              }
-              else {
-                executor.shutdown();
-              }
-            }
-          };
-          executor.scheduleAtFixedRate(timerTask, 1, 1, TimeUnit.SECONDS);
-          try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-          } catch (InterruptedException e1) {
-            e1.printStackTrace();
-          }
-          System.out.println("----SLEEPING STOP FOR V-WINDOW");
-          
+          //start voting window
+          countDownWindow(votingSeconds, ServerResponses.TIME_MSG, 0);      
           
           //clear out previous votes and signal vote end
           status = SessionStatus.PROCESSING;
@@ -322,6 +298,17 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             System.out.println("[SERVER] TEAM TWO WON!");
           }         
         }
+        
+        
+        //start break window, if the break duration > 0
+        final long breakDuration = (long) rules.getProperty(Properties.BREAK_AMOUNT);
+        if (breakDuration > 0) {
+          status = SessionStatus.BREAKING;
+          sendSignalAll(ServerResponses.BREAK_START);
+          countDownWindow(breakDuration, ServerResponses.BREAK_MSG, 0);
+          sendSignalAll(ServerResponses.BREAK_END);
+        }
+        
         //switch turns
         teamOneTurn = teamOneTurn ? false : true;
         currentRound++;
@@ -338,6 +325,54 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     //remove session from database
     System.out.println("---REMOVED SESSION: "+sessionID);
     server.getDatabase().removeSession(sessionID);
+  }
+  
+  /**
+   * Creates a count down window that blocks the current 
+   * thread until the given amount of seconds has passed.
+   * 
+   * While blocking, messages - according to the given msgFormat - 
+   * will be sent to the designated team at every second with the 
+   * remaining amount of seconds left in this countdown.
+   * 
+   * @param seconds - the amount of seconds this count down should be
+   * @param msgFormat - the String format to use when sending out remaining seconds
+   * @param team - the team to send the messages to (by team ID). 
+   *               If the team ID is anything other than 1 or 2, the messages are sent to everyone
+   */
+  private void countDownWindow(long seconds, String msgFormat, int team) {
+    ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(0);
+    
+    //sleep thread for the amount of time the voting window is
+    System.out.println("----STARTING COUNTDOWN WINDOW USING FORMAT: "+msgFormat);
+    Runnable timerTask = new Runnable() {
+      private long execCount = seconds - 1;       
+      @Override
+      public void run() {
+        if (execCount >= 0) {
+          if (team == 1) {
+            msgTeamOne(String.format(msgFormat, execCount));
+          }
+          else if(team == 2){
+            msgTeamTwo(String.format(msgFormat, execCount));
+          }
+          else {
+            msgEveryone(String.format(msgFormat, execCount));
+          }
+          execCount--;
+        }
+        else {
+          executor.shutdown();
+        }
+      }
+    };
+    executor.scheduleAtFixedRate(timerTask, 1, 1, TimeUnit.SECONDS);
+    try {
+      executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+      System.out.println("----ENDING COUNTDOWN WINDOW USING FORMAT: "+msgFormat);
+    } catch (InterruptedException e1) {
+      e1.printStackTrace();
+    }
   }
   
   @Override

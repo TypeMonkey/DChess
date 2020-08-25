@@ -22,19 +22,19 @@ public final class SessionRules {
      * 
      * If true, prisoner's dilemma is enforced. Else, communication is allowed
      */
-    PRISON_DILEMMA,
+    PRISON_DILEMMA(false),
     
     /**
      * A long property that sets the amount of seconds alloted for voting
      * for team
      */
-    VOTING_DURATION,
+    VOTING_DURATION(15),
     
     /**
      * An int property that sets the minimum amount of players each team must have
      * before the session starts
      */
-    MIN_TEAM_COUNT,
+    MIN_TEAM_COUNT(1),
     
     /**
      * A boolean property that allows for invalid move votes to be casted
@@ -46,7 +46,7 @@ public final class SessionRules {
      * 
      * Else, invalid votes are filtered prior to counting a final result.
      */
-    ALLOW_INVL_VOTES,
+    ALLOW_INVL_VOTES(false),
     
     /**
      * A boolean property that allows for players to join even after
@@ -55,7 +55,22 @@ public final class SessionRules {
      * If true, players are allowed to join mid-game. Else, joining 
      * is disallowed after the game has started
      */
-    ALLOW_JOINS_GAME;
+    ALLOW_JOINS_GAME(true),
+    
+    /**
+     * A long property that sets the amount of seconds to wait before
+     * each turn, as a 'break'/'pause' in between sessions
+     */
+    BREAK_AMOUNT(0);
+    
+    private final Object defaultValue;
+    private Properties(Object defaultValue) {
+      this.defaultValue = defaultValue;
+    }
+    
+    public Object getDefaultValue() {
+      return defaultValue;
+    }
   }
   
   private final Map<Properties, Object> properties;
@@ -79,6 +94,7 @@ public final class SessionRules {
     str += Properties.MIN_TEAM_COUNT+"="+properties.get(Properties.MIN_TEAM_COUNT)+":";
     str += Properties.ALLOW_INVL_VOTES+"="+properties.get(Properties.ALLOW_INVL_VOTES)+":";
     str += Properties.ALLOW_JOINS_GAME+"="+properties.get(Properties.ALLOW_JOINS_GAME)+":";
+    str += Properties.BREAK_AMOUNT+"="+properties.get(Properties.BREAK_AMOUNT)+":";
     return str;
   }
   
@@ -97,6 +113,7 @@ public final class SessionRules {
     defaultMap.put(Properties.MIN_TEAM_COUNT, 1);
     defaultMap.put(Properties.ALLOW_INVL_VOTES, false);
     defaultMap.put(Properties.ALLOW_JOINS_GAME, true);
+    defaultMap.put(Properties.BREAK_AMOUNT, 0);
     
     return defaultMap;
   }
@@ -148,6 +165,9 @@ public final class SessionRules {
             break;
           case ALLOW_JOINS_GAME:
             value = Boolean.parseBoolean(assgn[1].toLowerCase());
+            break;
+          case BREAK_AMOUNT:
+            value = Long.parseLong(assgn[1]);
             break;
           }
 

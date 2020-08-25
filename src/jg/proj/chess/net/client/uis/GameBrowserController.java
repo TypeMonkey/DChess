@@ -107,6 +107,12 @@ public class GameBrowserController implements Displayable{
   @FXML
   private RadioButton randLate;
   
+  //--Turn break choice components
+  @FXML
+  private Label turnBreaksPost;
+  @FXML
+  private TextField turnBreakDurationInput;
+  
   //--seconds for voting input
   @FXML 
   private Label votingDurationPost;
@@ -168,36 +174,45 @@ public class GameBrowserController implements Displayable{
     joinSessionButton.setDisable(true);
     
     //set tooltips texts
-    Tooltip teamTip = new Tooltip("Sets the team you'd join once the session is created");
+    Tooltip teamTip = new Tooltip("Sets the team you'd join once the session is created.");
     teamTip.setWrapText(true);
     teamTip.setStyle("-fx-font-size: 12");
     
     teamPost.setTooltip(teamTip);
    
     Tooltip prisonDilTip = new Tooltip("If enforced, this session will disallow "
-        + "communication between players (be it among or between teams) "
-        + "and won't display vote tallys");
+        + "communication between players (among or between teams) "
+        + "and won't display vote tallys.");
     prisonDilTip.setWrapText(true);
     prisonDilTip.setStyle("-fx-font-size: 12");
     prisonDilTip.setPrefWidth(400);
     
     prisonDilPost.setTooltip(prisonDilTip);
     
-    Tooltip invalidTip = new Tooltip("If allowed, the server will not filter invalid votes" 
+    Tooltip invalidTip = new Tooltip("If allowed, the server will not filter invalid/illegal votes" 
         + " from being counted at the end of the voting process." 
-        + " This means that a team can agree on an invalid move at the end"
-        + "of the voting duration.");
+        + " This means that a team can agree on an invalid/illegal move at the end"
+        + "of the voting duration, causing no actual moves to be made.");
     invalidTip.setWrapText(true);
     invalidTip.setStyle("-fx-font-size: 12");
     invalidTip.setPrefWidth(400);
     
     invalidVotesPost.setTooltip(invalidTip);
     
-    Tooltip lateTip = new Tooltip("Sets whether to allow players to join mid-game.");
+    Tooltip lateTip = new Tooltip("Sets whether to allow players to join mid-game, "
+        + "after the minimum amount of players for both teams have been reach.");
     lateTip.setWrapText(true);
     lateTip.setStyle("-fx-font-size: 12");
+    lateTip.setPrefWidth(400);
     
     lateJoinPost.setTooltip(lateTip);
+    
+    Tooltip turnBreak = new Tooltip("Sets the amount of seconds between each turn, as a sort of break.");
+    turnBreak.setWrapText(true);
+    turnBreak.setStyle("-fx-font-size: 12");
+    turnBreak.setPrefWidth(400);
+    
+    turnBreaksPost.setTooltip(turnBreak);  
     
     //set handlers
     
@@ -322,7 +337,7 @@ public class GameBrowserController implements Displayable{
           voteDurationInput.setText("Duration cannot be blank!");
           voteDuration = null;
         }    
-        else if (!voteDuration.chars().allMatch(Character::isDigit)) {
+        if (!voteDuration.chars().allMatch(Character::isDigit)) {
           voteDurationInput.setText("Duration must be a number!");
           voteDuration = null;
         }
@@ -332,55 +347,73 @@ public class GameBrowserController implements Displayable{
           minPlayerInput.setText("Minimum player amount cannot be blank!");
           minPlayers = null;
         }
-        else if (!minPlayers.chars().allMatch(Character::isDigit)) {
+        if (!minPlayers.chars().allMatch(Character::isDigit)) {
           minPlayerInput.setText("Minimum player amount must be a number!");
           minPlayers = null;
         }
+        
+        String breakDuration = turnBreakDurationInput.getText();
+        if (breakDuration == null || breakDuration.isEmpty()) {
+          //break durations is optional. Default is 0
+          breakDuration = "0";
+        }
+        if(!breakDuration.chars().allMatch(Character::isDigit)){
+          minPlayerInput.setText("Turn break must be a number!");
+          breakDuration = null;
+        }
       
-        if (minPlayers != null && voteDuration != null) {
+        if (minPlayers != null && voteDuration != null && breakDuration != null) {
           //collect all data
-          int vDuration = Integer.parseInt(voteDuration);
+          long vDuration = Long.parseLong(voteDuration);
           int mPlayers = Integer.parseInt(minPlayers);
+          long bDuration = Long.parseLong(breakDuration);
           int teamID = teamOne.isSelected() ? 1 : (teamTwo.isSelected() ? 2 : 3);
           boolean prisDil = yesPrisDil.isSelected();
           boolean allowInvalid = yesInvalVote.isSelected();
           boolean allowLate = yesLate.isSelected();
-          
-          PendingRequest createReq = new PendingRequest(ServerRequest.CSESS, 
-                                                        teamID, 
-                                                        prisDil, 
-                                                        vDuration, 
-                                                        mPlayers, 
-                                                        allowInvalid,
-                                                        allowLate);
-          
-          SessionRules rules = new SessionRules();
-          rules.setProperty(Properties.ALLOW_INVL_VOTES, allowInvalid);
-          rules.setProperty(Properties.ALLOW_JOINS_GAME, allowLate);
-          rules.setProperty(Properties.PRISON_DILEMMA, prisDil);
-          rules.setProperty(Properties.VOTING_DURATION, vDuration);
-          rules.setProperty(Properties.MIN_TEAM_COUNT, mPlayers);
-          
-          Reactor reactor = new Reactor() {
-            public void react(PendingRequest request, String... results) {
-              //TODO: ADD CODE             
-              try {        
-                String uuid = results[0];
-                int teamID = Boolean.parseBoolean(results[1]) ? 1 : 2;
-                client.setCurrentSession(teamID, new SessionInfo(rules, UUID.fromString(uuid), 0));
-                client.showGame();
-              } catch (IOException e) {
-                client.recordException(e);
+          if (vDuration < (long) Properties.VOTING_DURATION.getDefaultValue()) {
+            voteDurationInput.setText("Vote duration must be at least "+Properties.VOTING_DURATION.getDefaultValue()+" seconds!");
+          }
+          else if (mPlayers < (int) Properties.MIN_TEAM_COUNT.getDefaultValue()) {
+            minPlayerInput.setText("Minimum player amount must be at least "+Properties.MIN_TEAM_COUNT.getDefaultValue());
+          }
+          else {
+            PendingRequest createReq = new PendingRequest(ServerRequest.CSESS, 
+                teamID, 
+                prisDil, 
+                vDuration, 
+                mPlayers, 
+                allowInvalid,
+                allowLate);
+
+            SessionRules rules = new SessionRules();
+            rules.setProperty(Properties.ALLOW_INVL_VOTES, allowInvalid);
+            rules.setProperty(Properties.ALLOW_JOINS_GAME, allowLate);
+            rules.setProperty(Properties.PRISON_DILEMMA, prisDil);
+            rules.setProperty(Properties.VOTING_DURATION, vDuration);
+            rules.setProperty(Properties.MIN_TEAM_COUNT, mPlayers);
+            rules.setProperty(Properties.BREAK_AMOUNT, bDuration);
+
+            Reactor reactor = new Reactor() {
+              public void react(PendingRequest request, String... results) {
+                //TODO: ADD CODE             
+                try {        
+                  String uuid = results[0];
+                  int teamID = Boolean.parseBoolean(results[1]) ? 1 : 2;
+                  client.setCurrentSession(teamID, new SessionInfo(rules, UUID.fromString(uuid), 0));
+                  client.showGame();
+                } catch (IOException e) {
+                  client.recordException(e);
+                }
               }
-            }
-            
-            public void error(PendingRequest request, int errorCode) {
-              client.recordException("COULDN'T CREATE SESION!!!");
-            }
-          };
-          
-          client.sendRequest(createReq, reactor);
-                 
+
+              public void error(PendingRequest request, int errorCode) {
+                client.recordException("COULDN'T CREATE SESION!!!");
+              }
+            };
+
+            client.sendRequest(createReq, reactor);
+          }             
         }
       }
       
@@ -417,6 +450,16 @@ public class GameBrowserController implements Displayable{
       }
     });
     
+    //Break duration column
+    TableColumn<SessionInfo, Number> breakDuration = new TableColumn<>("Break Duration (seconds)");
+    breakDuration.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<SessionInfo,Number>, ObservableValue<Number>>() {
+
+      @Override
+      public ObservableValue<Number> call(CellDataFeatures<SessionInfo, Number> param) {
+        return new SimpleIntegerProperty((int) param.getValue().getRules().getProperty(Properties.BREAK_AMOUNT));
+      }
+    });
+    
     //Invalid votes column
     TableColumn<SessionInfo, Boolean> invalVotes = new TableColumn<>("Invalid Votes allowed?");
     invalVotes.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<SessionInfo,Boolean>, ObservableValue<Boolean>>() {
@@ -427,7 +470,7 @@ public class GameBrowserController implements Displayable{
       }
     });
     
-    activeSessionsTable.getColumns().setAll(playerAmnt, prisonDil, voteDuration, invalVotes);
+    activeSessionsTable.getColumns().setAll(playerAmnt, prisonDil, voteDuration, breakDuration, invalVotes);
     
     //add listeners to radio buttons for proper deselection
     setRadioButtonDeselectors();

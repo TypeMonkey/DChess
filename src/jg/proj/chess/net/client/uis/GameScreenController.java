@@ -435,6 +435,17 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       //clear votes
       voteTallyTable.getItems().clear();
     }
+    else if (messageType.equals(ServerResponses.BREAK)) {
+      long secondsLeft = Long.parseLong(messageContent[0]);
+      
+      long minutesCalc = secondsLeft / 60;
+      String minutes = minutesCalc >= 0 && minutesCalc <= 9 ? "0"+minutesCalc : String.valueOf(minutesCalc);
+      long secondsCalc = secondsLeft % 60;
+      String seconds = secondsCalc >= 0 && secondsCalc <= 9 ? "0"+secondsCalc : String.valueOf(secondsCalc);
+      
+      voteNowDisplay.setText("BREAK TIME LEFT: "+minutes+":"+seconds);
+      voteNowDisplay.setTextFill(Color.CORNFLOWERBLUE);
+    }
     else if (messageType.equals(ServerResponses.TIME)) {
       long secondsLeft = Long.parseLong(messageContent[0]);
       
@@ -468,6 +479,18 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       bottomStatusLabel.setText(">>> GAME STARTED <<<");
       bottomStatusLabel.setTextFill(Color.PURPLE);
       System.out.println("----GAME STARTED SIGNAL RECEIVED: "+client.getUserName());
+      break;
+    }
+    case ServerResponses.BREAK_START:
+    {
+      bottomStatusLabel.setText("Take a break! Cooldown! Look outside! Re-strategize!");
+      bottomStatusLabel.setTextFill(Color.GREENYELLOW);
+      break;
+    }
+    case ServerResponses.BREAK_END:
+    {
+      bottomStatusLabel.setText("GET UP! CALL THE BANNERS!");
+      bottomStatusLabel.setTextFill(Color.RED);
       break;
     }
     case ServerResponses.VOTE_START:

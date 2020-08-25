@@ -35,6 +35,11 @@ public enum SessionStatus {
   PROCESSING,
   
   /**
+   * This session is currently in between turns and is on break
+   */
+  BREAKING,
+  
+  /**
    * This session has ended
    */
   ENDED;

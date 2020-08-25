@@ -134,19 +134,25 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             //now parse the rules
             SessionRules sessionRules = SessionRules.parseFromString(rulesString);
             if (sessionRules != null) {
-              //no error found in parsing. Continue on
-              
-              //create session and add it to the database
-              Session session = new Session(server, sessionRules);
-              database.addSession(session);
-              
-              sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());            
+              if ( (long) sessionRules.getProperty(Properties.VOTING_DURATION) <  (long) Properties.VOTING_DURATION.getDefaultValue() ||
+                   (long) sessionRules.getProperty(Properties.MIN_TEAM_COUNT) <  (long) Properties.MIN_TEAM_COUNT.getDefaultValue()) {
+                errorCode = ServerResponses.BAD_ARGS;
+              }
+              else {
+                //no error found in parsing. Continue on
+                
+                //create session and add it to the database
+                Session session = new Session(server, sessionRules);
+                database.addSession(session);
+                
+                sender.attr(teamAttribute).set(teamID == 1 ? true : teamID == 2 ? false : new Random().nextBoolean());            
 
-              sender.pipeline().removeLast();
-              sender.pipeline().addLast("shandler", session);
-              server.runSession(session);
-              
-              response = session.getSessionID() + ":" + sender.attr(teamAttribute).get();
+                sender.pipeline().removeLast();
+                sender.pipeline().addLast("shandler", session);
+                server.runSession(session);
+                
+                response = session.getSessionID() + ":" + sender.attr(teamAttribute).get();
+              }            
             }
             else {
               errorCode = ServerResponses.WRONG_ARGS;

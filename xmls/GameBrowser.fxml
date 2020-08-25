@@ -96,9 +96,9 @@
                               <Font name="Segoe UI Bold" size="35.0" />
                            </font>
                         </Label>
-                        <Label fx:id="teamPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Which team would you like to join?" textAlignment="CENTER">
+                        <Label fx:id="teamPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="34.0" prefWidth="445.0" text="Which team would you like to join?" textAlignment="CENTER">
                            <font>
-                              <Font name="Segoe UI" size="25.0" />
+                              <Font name="Segoe UI" size="20.0" />
                            </font>
                         </Label>
                         <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
@@ -108,9 +108,9 @@
                               <RadioButton fx:id="randomTeam" mnemonicParsing="false" prefHeight="17.0" prefWidth="103.0" text="Random" />
                            </children>
                         </HBox>
-                        <Label fx:id="prisonDilPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Enforce Prisoner's Dillema?" textAlignment="CENTER">
+                        <Label fx:id="prisonDilPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="34.0" prefWidth="445.0" text="Enforce Prisoner's Dillema?" textAlignment="CENTER">
                            <font>
-                              <Font name="Segoe UI" size="25.0" />
+                              <Font name="Segoe UI" size="20.0" />
                            </font>
                         </Label>
                         <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
@@ -120,9 +120,9 @@
                               <RadioButton fx:id="randPrisDil" mnemonicParsing="false" prefHeight="17.0" prefWidth="103.0" text="Random" />
                            </children>
                         </HBox>
-                        <Label fx:id="invalidVotesPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Allow Invalid Votes?" textAlignment="CENTER">
+                        <Label fx:id="invalidVotesPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="34.0" prefWidth="445.0" text="Allow Invalid Votes?" textAlignment="CENTER">
                            <font>
-                              <Font name="Segoe UI" size="25.0" />
+                              <Font name="Segoe UI" size="20.0" />
                            </font>
                         </Label>
                         <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
@@ -132,9 +132,9 @@
                               <RadioButton fx:id="randInvalVote" mnemonicParsing="false" prefHeight="27.0" prefWidth="103.0" text="Random" />
                            </children>
                         </HBox>
-                        <Label fx:id="lateJoinPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Allow Players to Join During Session?" textAlignment="CENTER">
+                        <Label fx:id="lateJoinPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="34.0" prefWidth="445.0" text="Allow Players to Join During Session?" textAlignment="CENTER">
                            <font>
-                              <Font name="Segoe UI" size="25.0" />
+                              <Font name="Segoe UI" size="20.0" />
                            </font>
                         </Label>
                         <HBox alignment="CENTER" cache="true" prefHeight="27.0" prefWidth="445.0">
@@ -144,9 +144,19 @@
                               <RadioButton fx:id="randLate" mnemonicParsing="false" prefHeight="27.0" prefWidth="103.0" text="Random" />
                            </children>
                         </HBox>
+                        <Label fx:id="turnBreaksPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="34.0" prefWidth="459.0" text="How Many Seconds for Turn Breaks?" textAlignment="CENTER">
+                           <font>
+                              <Font name="Segoe UI" size="20.0" />
+                           </font>
+                        </Label>
+                        <TextField fx:id="turnBreakDurationInput" prefHeight="25.0" prefWidth="374.0">
+                           <VBox.margin>
+                              <Insets left="100.0" right="100.0" />
+                           </VBox.margin>
+                        </TextField>
                         <Label fx:id="votingDurationPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="How Many Seconds to Allow For Voting?" textAlignment="CENTER">
                            <font>
-                              <Font name="Segoe UI" size="21.0" />
+                              <Font name="Segoe UI" size="20.0" />
                            </font>
                         </Label>
                         <HBox alignment="CENTER" cache="true" prefHeight="28.0" prefWidth="445.0">
@@ -156,7 +166,7 @@
                         </HBox>
                         <Label fx:id="minPlayerAmntPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="49.0" prefWidth="445.0" text="Minimum Amount of Players Per Team?" textAlignment="CENTER">
                            <font>
-                              <Font name="Segoe UI" size="21.0" />
+                              <Font name="Segoe UI" size="20.0" />
                            </font>
                         </Label>
                         <HBox alignment="CENTER" cache="true" prefHeight="28.0" prefWidth="445.0">

@@ -10,13 +10,14 @@ public interface ServerResponses {
   public static final int NO_ACCPT = -3; //session not accepting players
   public static final int BAD_VOTE = -4; //Vote is invalid
   public static final int NO_VOTE = -5; //voting for player's team isn't allowed at the moment
-  public static final int WRONG_ARGS = -6; //given an insufficient amount of args, or args don't match
+  public static final int WRONG_ARGS = -6; //given an insufficient amount of args, or args don't match expected type
   public static final int NOT_IN_SESS = -7; //player not in session  
   public static final int NO_JOIN = -8; //player can't join session
   public static final int PRISON_DIL = -9; //all and team msgs are forbidden due to prison dillemma
   public static final int NO_DESCISION = -10; //player's team hasn't decided on a move
   public static final int NO_TALLY = -11; //a tally cannot be formed as no votes have been recieved
   public static final int IN_SESS = -12; //certain requests cannot be made while the user is in a session
+  public static final int BAD_ARGS = -13; //the arguments to the request are illegal/invalid
   
   //Server Signal messages
   public static final String SIGNAL = "signal";
@@ -54,6 +55,10 @@ public interface ServerResponses {
     
   public static final int VOTE_RECIEVED = 20; //Someone from the player's team has voted. So, the vote tally has been updated
   
+  public static final int BREAK_START = 21; //The game has started the break window in between turns. Take a rest
+  public static final int BREAK_END = 22; //The game has ended the break window in between turns. Get up!
+
+  
   //first string argument -> user-name , second string argument -> message
   public static final String ALL = "all";
   public static final String ALL_MSG = ALL+":%s:%s";
@@ -71,5 +76,9 @@ public interface ServerResponses {
   
   //sent every second during the voting window
   public static final String TIME = "time";
-  public static final String TIME_MSG = TIME+":%d"; //where the integer argument is the elasped amount of seconds
+  public static final String TIME_MSG = TIME+":%d"; //where the integer argument is the amount of seconds left
+  
+  //sent every second during the break
+  public static final String BREAK = "break";
+  public static final String BREAK_MSG = BREAK+":%d";  //where the integer argument is the amount of seconds left
 }
