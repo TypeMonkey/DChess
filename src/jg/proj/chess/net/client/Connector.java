@@ -3,24 +3,17 @@ package jg.proj.chess.net.client;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 import io.netty.handler.codec.Delimiters;
@@ -28,15 +21,22 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import javafx.application.Platform;
 import jg.proj.chess.net.ArgType;
-import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.client.RequestFuture.Status;
 import jg.proj.chess.utils.StringAndIOUtils;
 
 /**
- * Front end for all network communications with the server
+ * Houses network logic for communication with the server.
+ * 
+ * The network infrastructure for DChess categorizes three main
+ * exchanges between client and server:
+ * 
+ *  -> Signals - numerical values sent to clients, not necessarily at the request of clients
+ *  -> Messages - string messages sent to clients, not necessarily at the request of clients
+ *  -> Requests - string requests sent by clients to the server. The server, assuming a healthy connection,
+ *                will eventually respond to such requests either with a result or an error
+ * 
  * @author Jose
- *
  */
 public class Connector extends SimpleChannelInboundHandler<String>{
 
@@ -56,6 +56,13 @@ public class Connector extends SimpleChannelInboundHandler<String>{
   private Channel channel;
   private boolean isConnected;
   
+  /**
+   * Constructs a Connector
+   * @param client - the ChessClient whose connection is to be managed
+   * @param workerPool - the worker pool to use
+   * @param ip - the IP address of the server
+   * @param port - the port the server is bound on
+   */
   public Connector(ChessClient client, EventLoopGroup workerPool, String ip, int port) {
     this.client = client;
     this.ip = ip;
@@ -66,6 +73,15 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     messageListeners = new ArrayList<>();
   }
   
+  /**
+   * Connects to the server.
+   * 
+   * Note: This method blocks until a connection has been made, or
+   *       a failure occurs in doing so.
+   * 
+   * @throws IOException - an IO exception occurs while attempting a connection
+   * @throws InterruptedException
+   */
   public void connect() throws IOException, InterruptedException{
     Bootstrap bootstrap = new Bootstrap()
         .group(workerGroup)
@@ -102,7 +118,8 @@ public class Connector extends SimpleChannelInboundHandler<String>{
              split[0].equals(ServerResponses.RESULT) ||
              split[0].equals(ServerResponses.ALL) ||
              split[0].equals(ServerResponses.TEAM) || 
-             split[0].equals(ServerResponses.TIME) ) {
+             split[0].equals(ServerResponses.TIME) ||
+             split[0].equals(ServerResponses.BREAK)) {
       //get subarray from 1 <-> split.length-1
       String [] mess = Arrays.copyOfRange(split, 1, split.length);
       for (MessageListener listener : messageListeners) {
@@ -140,7 +157,12 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     }
   }
   
-  public synchronized void sendRequest(PendingRequest request, Reactor reactor) {
+  /**
+   * Sends a request to the server
+   * @param request - the request
+   * @param reactor - the reactor to use when the server responds
+   */
+  public synchronized void sendRequest(RequestBody request, Reactor reactor) {
     reqMap.put(request.getIdentifier(), new RequestFuture(request, reactor));
     
     //send out request
@@ -148,14 +170,26 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     StringAndIOUtils.writeAndFlush(channel, request.toString());
   }
   
+  /**
+   * Adds a SingalListener to this Connector
+   * @param listener - the SignalListener to add
+   */
   public void addSignalListener(SignalListener listener) {
     signalListeners.add(listener);
   }
   
+  /**
+   * Adds a MesssageListener to this Connector
+   * @param listener - the MessageListener to add
+   */
   public void addMessageListener(MessageListener listener) {
     messageListeners.add(listener);
   }
   
+  /**
+   * Shuts down this Connector
+   * @throws InterruptedException - if shutdown threads are interrupted
+   */
   public void shutdown() throws InterruptedException {
     if (isConnected) {
       channel.close().sync();
@@ -165,6 +199,10 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     isConnected = false;
   }
   
+  /**
+   * Retrieves the connection status of this Connector to the server
+   * @return true if successfully connected, false if else
+   */
   public boolean isConnected() {
     return isConnected;
   }

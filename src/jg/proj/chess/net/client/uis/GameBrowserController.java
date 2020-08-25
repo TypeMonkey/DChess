@@ -35,12 +35,12 @@ import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.SessionRules;
 import jg.proj.chess.net.SessionRules.Properties;
 import jg.proj.chess.net.client.ChessClient;
-import jg.proj.chess.net.client.PendingRequest;
+import jg.proj.chess.net.client.RequestBody;
 import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.ResourceManager;
 import jg.proj.chess.net.client.SessionInfo;
 
-public class GameBrowserController implements Displayable{
+public class GameBrowserController implements Preparable{
   
   //Left side components
   @FXML
@@ -223,10 +223,10 @@ public class GameBrowserController implements Displayable{
       @Override
       public void handle(ActionEvent event) {
         
-        client.sendRequest(new PendingRequest(ServerRequest.SES), new Reactor() {
+        client.sendRequest(new RequestBody(ServerRequest.SES), new Reactor() {
           
           @Override
-          public void react(PendingRequest request, String... results) {
+          public void react(RequestBody request, String... results) {
             //clear session list
             activeSessions.clear();
             activeSessMap.clear();
@@ -262,7 +262,7 @@ public class GameBrowserController implements Displayable{
           }
           
           @Override
-          public void error(PendingRequest request, int errorCode) {
+          public void error(RequestBody request, int errorCode) {
             //there should be no error
           }
         });
@@ -301,7 +301,7 @@ public class GameBrowserController implements Displayable{
         Reactor successJoin = new Reactor() {
           
           @Override
-          public void react(PendingRequest request, String... results) {
+          public void react(RequestBody request, String... results) {
             try {
               String uuid = results[0];
               boolean isTeamOne = Boolean.parseBoolean(results[1]);
@@ -318,7 +318,7 @@ public class GameBrowserController implements Displayable{
           }
           
           @Override
-          public void error(PendingRequest request, int errorCode) {
+          public void error(RequestBody request, int errorCode) {
             client.recordException("FAILED TO JOIN SESSION: "+selectedSessionInfo.getSessionID());
             joinSessionButton.setDisable(false);
           }
@@ -331,7 +331,7 @@ public class GameBrowserController implements Displayable{
         int teamNum = teamOneChoice.isSelected() ? 1 : (teamTwoChoice.isSelected() ? 2 : 3);
         
         //send join request
-        client.sendRequest(new PendingRequest(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);      
+        client.sendRequest(new RequestBody(ServerRequest.JOIN, selectedSessionInfo.getSessionID().toString(), teamNum), successJoin);      
       }
       
     });
@@ -392,13 +392,14 @@ public class GameBrowserController implements Displayable{
           }
 
           if (!errorFound) {
-            PendingRequest createReq = new PendingRequest(ServerRequest.CSESS, 
+            RequestBody createReq = new RequestBody(ServerRequest.CSESS, 
                 teamID, 
                 prisDil, 
                 vDuration, 
                 mPlayers, 
                 allowInvalid,
-                allowLate);
+                allowLate,
+                bDuration);
 
             SessionRules rules = new SessionRules();
             rules.setProperty(Properties.ALLOW_INVL_VOTES, allowInvalid);
@@ -409,7 +410,7 @@ public class GameBrowserController implements Displayable{
             rules.setProperty(Properties.BREAK_AMOUNT, bDuration);
 
             Reactor reactor = new Reactor() {
-              public void react(PendingRequest request, String... results) {
+              public void react(RequestBody request, String... results) {
                 //TODO: ADD CODE             
                 try {        
                   String uuid = results[0];
@@ -421,7 +422,7 @@ public class GameBrowserController implements Displayable{
                 }
               }
 
-              public void error(PendingRequest request, int errorCode) {
+              public void error(RequestBody request, int errorCode) {
                 client.recordException("COULDN'T CREATE SESION!!!");
               }
             };

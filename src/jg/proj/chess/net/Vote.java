@@ -2,6 +2,11 @@ package jg.proj.chess.net;
 
 import jg.proj.chess.net.server.Player;
 
+/**
+ * Represents a player's vote
+ * @author Jose
+ *
+ */
 public class Vote {
 
   private final Player voter;
@@ -12,6 +17,14 @@ public class Vote {
   private final int fileDest; 
   private final char rankDest;
   
+  /**
+   * Constructs a Vote
+   * @param fileOrigin - the original file
+   * @param rankOrigin - the original rank
+   * @param fileDest - the destination file
+   * @param rankDest - the destination rank
+   * @param voter - the Player that submitted this vote
+   */
   public Vote(int fileOrigin, char rankOrigin, int fileDest, char rankDest, Player voter) {
     this.fileOrigin = fileOrigin;
     this.rankOrigin = rankOrigin;

@@ -1,9 +1,7 @@
 package jg.proj.chess.net.server;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.UUID;
@@ -90,6 +88,13 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
         AttributeKey<Boolean> teamAttribute = AttributeKey.valueOf("teamone");
         
         int errorCode = 0; //0 means no error was encountered
+        
+        /*
+         * Null response means that the request warrants no response from the server.
+         * 
+         * This is useful for requests such as QUIT or DISC that may cause for
+         * player disconnections. Attempting to write a response may cause IO errors
+         */
         String response = null; 
         
         switch (request) {
@@ -195,7 +200,7 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             sender.pipeline().remove(this);
             sender.close();
             
-            response = "bye";
+            response = null;
             break;
           }
           case STATUS:
@@ -223,10 +228,10 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
           StringAndIOUtils.writeAndFlush(sender, 
                requestIdentifier+":"+String.format(ServerResponses.BAD_REQUEST, request.getName(), errorCode));
         }
-        else {
+        else if (response != null) {
           //no error was encountered. Result string has been created
           StringAndIOUtils.writeAndFlush(sender, requestIdentifier+":"+request.getName()+":"+response);
-        }
+        }   
         
       }
       else {

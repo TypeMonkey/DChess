@@ -54,7 +54,7 @@ import jg.proj.chess.net.ServerResponses;
 import jg.proj.chess.net.SessionStatus;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.MessageListener;
-import jg.proj.chess.net.client.PendingRequest;
+import jg.proj.chess.net.client.RequestBody;
 import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.ResourceManager;
 import jg.proj.chess.net.client.SignalListener;
@@ -62,7 +62,7 @@ import jg.proj.chess.net.client.VoteTally;
 import jg.proj.chess.net.client.uis.components.GraphicalSquare;
 import jg.proj.chess.net.client.uis.components.VoteChoice;
 
-public class GameScreenController implements SignalListener, MessageListener, Displayable{
+public class GameScreenController implements SignalListener, MessageListener, Preparable{
   
   public static final int DEFAULT_BOARD_SIZE = 8;
   public static final double CHAT_LIST_WRAP_WIDTH = 157;
@@ -146,7 +146,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     
     plistReactor = new Reactor() {      
       @Override
-      public void react(PendingRequest request, String... results) {
+      public void react(RequestBody request, String... results) {
         //clear both team lists
         teamOneList.getItems().clear();
         teamTwoList.getItems().clear();
@@ -169,7 +169,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
         }
       }      
       @Override
-      public void error(PendingRequest request, int errorCode) {
+      public void error(RequestBody request, int errorCode) {
         
       }
     };
@@ -223,7 +223,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
         //make send request 
         Square fromSquare = voteChoice.getFromChoice();
         Square toSquare = voteChoice.getToChoice();
-        PendingRequest voteRequest = new PendingRequest(ServerRequest.VOTE, 
+        RequestBody voteRequest = new RequestBody(ServerRequest.VOTE, 
             fromSquare.getFile(), 
             fromSquare.getRank(), 
             toSquare.getFile(), 
@@ -231,7 +231,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
         
         Reactor reactor = new Reactor() {        
           @Override
-          public void react(PendingRequest request, String... results) {
+          public void react(RequestBody request, String... results) {
             String mess = "[SERVER] GOT YOUR VOTE: "+Arrays.stream(results).collect(Collectors.joining(""));
             Text text = new Text(mess);
             text.setWrappingWidth(chatListDisplay.getPrefWidth());
@@ -240,7 +240,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
           }
           
           @Override
-          public void error(PendingRequest request, int errorCode) {
+          public void error(RequestBody request, int errorCode) {
             voteNowDisplay.setText("BAD VOTE! Retry!");
           }
         };
@@ -310,7 +310,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       public void handle(ActionEvent event) {
         String message = chatInput.getText() == null ? "" : chatInput.getText();
         
-        client.sendRequest(new PendingRequest(teamChatButton.isSelected() ? ServerRequest.TEAM : ServerRequest.ALL, message), Reactor.BLANK_REACTOR);
+        client.sendRequest(new RequestBody(teamChatButton.isSelected() ? ServerRequest.TEAM : ServerRequest.ALL, message), Reactor.BLANK_REACTOR);
         
         //now clear the chatInput textarea
         chatInput.clear();
@@ -389,7 +389,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     client.addSignalListener(this);
     
     //send plist request
-    client.sendRequest(new PendingRequest(ServerRequest.PLIST, true), plistReactor);
+    client.sendRequest(new RequestBody(ServerRequest.PLIST, true), plistReactor);
   }
   
   @Override
@@ -474,7 +474,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     case ServerResponses.GAME_START: 
     {
       //get player list
-      PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
+      RequestBody plistRequest = new RequestBody(ServerRequest.PLIST, true);
       client.sendRequest(plistRequest, plistReactor);
       bottomStatusLabel.setText(">>> GAME STARTED <<<");
       bottomStatusLabel.setTextFill(Color.PURPLE);
@@ -642,14 +642,14 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     case ServerResponses.PLAYER_JOINED:
     {
       //get player list
-      PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
+      RequestBody plistRequest = new RequestBody(ServerRequest.PLIST, true);
       client.sendRequest(plistRequest, plistReactor);
       break;
     }
     case ServerResponses.PLAYER_LEFT:
     {
       //get player list
-      PendingRequest plistRequest = new PendingRequest(ServerRequest.PLIST, true);
+      RequestBody plistRequest = new RequestBody(ServerRequest.PLIST, true);
       client.sendRequest(plistRequest, plistReactor);
       break;
     }
@@ -661,7 +661,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
         //make sure to mark off 
         
         @Override
-        public void react(PendingRequest request, String... results) {
+        public void react(RequestBody request, String... results) {
           // TODO Auto-generated method stub
           voteTallyTable.getItems().clear();
           for (String vote : results) {
@@ -682,12 +682,12 @@ public class GameScreenController implements SignalListener, MessageListener, Di
         }
         
         @Override
-        public void error(PendingRequest request, int errorCode) {
+        public void error(RequestBody request, int errorCode) {
           client.recordException("TALLY REQUEST FAILED: "+errorCode);
         }
       };
       
-      client.sendRequest(new PendingRequest(ServerRequest.TALLY), tallyReactor);
+      client.sendRequest(new RequestBody(ServerRequest.TALLY), tallyReactor);
       break;
     }
     }
@@ -891,7 +891,7 @@ public class GameScreenController implements SignalListener, MessageListener, Di
     //get session status
     Reactor statusReactor = new Reactor() {      
       @Override
-      public void react(PendingRequest request, String... results) {
+      public void react(RequestBody request, String... results) {
         String status = results[1];
         SessionStatus sessionStatus = SessionStatus.valueOf(status);
         if (sessionStatus == SessionStatus.PLAYING) {
@@ -904,13 +904,13 @@ public class GameScreenController implements SignalListener, MessageListener, Di
       }
       
       @Override
-      public void error(PendingRequest request, int errorCode) {
+      public void error(RequestBody request, int errorCode) {
         client.recordException("ERROR: couldn't find session to get status");
       }
     };
     
     System.out.println("---CURRENT SESSION UUID: "+client.getCurrentSession().getSessionID());
-    PendingRequest request = new PendingRequest(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString());
+    RequestBody request = new RequestBody(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString());
     
     client.sendRequest(request, statusReactor); 
   }

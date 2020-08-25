@@ -7,12 +7,21 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 /**
- * An implementation for the DChess server
+ * Acts as the front-end for the DChess server
  * 
- * By default, DChess servers are hosted on the port 9999
+ * The network infrastructure for DChess categorizes three main
+ * exchanges between client and server:
+ * 
+ *  -> Signals - numerical values sent to clients, not necessarily at the request of clients
+ *  -> Messages - string messages sent to clients, not necessarily at the request of clients
+ *  -> Requests - string requests sent by clients to the server. The server, assuming a healthy connection,
+ *                will eventually respond to such requests either with a result or an error
+ * 
+ * Note: There's only one instance of GameServer
  * 
  * @author Jose
  *
@@ -27,6 +36,11 @@ public class GameServer {
   private final EventLoopGroup workerThreadPool;
   private final ExecutorService sessionWorkerPool;
   
+  private ServerSocketChannel serverSocket;
+  
+  /**
+   * Constructs a GameServer
+   */
   private GameServer(){
     playerStore = new Database();
 
@@ -46,8 +60,10 @@ public class GameServer {
           .childHandler(new GameServerInitializer(this));
       
       serverBootstrap.option(ChannelOption.SO_REUSEADDR, true);
+
       
-      serverBootstrap.bind(PORT).sync().channel().closeFuture().sync();
+      serverSocket = (ServerSocketChannel) serverBootstrap.bind(PORT).sync().channel();
+      serverSocket.closeFuture();
     } 
     finally {
        workerThreadPool.shutdownGracefully();
@@ -62,14 +78,26 @@ public class GameServer {
     sessionWorkerPool.execute(session);
   }
   
+  /**
+   * Retrieves the database for this server
+   * @return the database for this server
+   */
   public Database getDatabase(){
     return playerStore;
   }
   
+  /**
+   * Shuts down this server
+   */
   public void shutdown(){
+    serverSocket.close().syncUninterruptibly();
     workerThreadPool.shutdownGracefully();
   }
   
+  /**
+   * Retrieves the static instance of this GameServer
+   * @return the static instance of this GameServer
+   */
   public static GameServer getGameServer(){
     return GAME_SERVER;
   }

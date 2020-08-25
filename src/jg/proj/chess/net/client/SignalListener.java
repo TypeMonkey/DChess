@@ -11,6 +11,10 @@ package jg.proj.chess.net.client;
  */
 public interface SignalListener {
 
+  /**
+   * Handles a signal
+   * @param signal - the signal received
+   */
   public void handleSignal(int signal);
   
 }

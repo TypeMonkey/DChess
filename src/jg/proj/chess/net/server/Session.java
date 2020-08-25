@@ -4,16 +4,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +87,11 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
    */
   private volatile boolean teamOneTurn;
  
-  
+  /**
+   * Constructs a Session 
+   * @param server - the GameServer running this Session
+   * @param rules - the SessionRules governing this Session
+   */
   public Session(GameServer server, SessionRules rules){
     this.server = server;
     this.rules = rules;
@@ -119,6 +119,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     return sessionID.hashCode();
   }
   
+  /**
+   * Sends a message to all players in Team 1
+   * @param message - the message to send
+   */
   private void msgTeamOne(String message){    
     //message team 1 
     for(Player player : teamOne) {
@@ -127,6 +131,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
   }
   
+  /**
+   * Sends a message to all players in Team 2
+   * @param message - the message to send
+   */
   private void msgTeamTwo(String message){    
     //message team 2 
     for(Player player : teamTwo) {
@@ -135,6 +143,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     }
   }
   
+  /**
+   * Sends a message to all players in the session
+   * @param message - the message to send
+   */
   private void msgEveryone(String message){    
     //message team 1 first
     msgTeamOne(message);
@@ -143,28 +155,40 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
     msgTeamTwo(message);
   }
   
+  /**
+   * Sends a signal to all players in the session
+   * @param signal - the signal to send
+   */
   private void sendSignalAll(int signal) {
    sendSignallTeam1(signal);
    sendSignallTeam2(signal);
   }
   
+  /**
+   * Sends a signal to all players in Team 1
+   * @param signal - the signal to send
+   */
   private void sendSignallTeam1(int signal) {
     msgTeamOne(String.format(ServerResponses.SIGNAL_MSG, signal));
   }
   
+  /**
+   * Sends a signal to all players in Team 2
+   * @param signal - the signal to send
+   */
   private void sendSignallTeam2(int signal) {
     msgTeamTwo(String.format(ServerResponses.SIGNAL_MSG, signal));
   }
   
   @Override
   public void run() {
-    if (status == null) {
+    if (status != SessionStatus.ENDED) {
       status = SessionStatus.RUNNING;
 
       //Wait until both teams reach the minimum size
       final int minTeamSize = (int) rules.getProperty(Properties.MIN_TEAM_COUNT);
       if (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
-        msgEveryone(String.format(ServerResponses.SERVER_MSG, "----> WAITING FOR MORE PLAYERS <----"));
+        msgEveryone(String.format(ServerResponses.SERVER_MSG, "WAITING FOR MORE PLAYERS!"));
         status = SessionStatus.ACCEPTING;
         while (teamOne.size() < minTeamSize || teamTwo.size() < minTeamSize) {
           if (teamOne.size() == 0 && teamTwo.size() == 0) {
@@ -175,6 +199,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         }
       }
       
+      //change Session status to Playing
       status = SessionStatus.PLAYING;
       //alert all players that the game has started
       System.out.println("---SIGNALLING GAME START");
@@ -200,12 +225,14 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           hasWon = true;
         }
         else {
+          //retrieve the amount of seconds set for voting
           final long votingSeconds = (long) rules.getProperty(Properties.VOTING_DURATION);
 
-          //voting time window
+          //retrieve the current voting team's ID
           final int currentTeamID = teamOneTurn ? 1 : 2;
           
           System.out.println("---CURRENT TURN: "+currentTeamID+" | "+teamOneTurn);
+          //signal the voting team that their vote has started
           if (teamOneTurn) {
             sendSignallTeam1(ServerResponses.VOTE_START);
           }
@@ -216,7 +243,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           
           status = SessionStatus.VOTING;
           
-          //start voting window
+          //start voting window. Send messages to all players
           countDownWindow(votingSeconds, ServerResponses.TIME_MSG, 0);      
           
           //clear out previous votes and signal vote end
@@ -233,6 +260,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
 
           //decide on move based on plurality
           if (!votes.isEmpty()) {
+            //creates a Max heap based on vote count
             PriorityQueue<VoteCounter> voteQueue = new PriorityQueue<VoteCounter>((x,y) -> y.votes - x.votes);
             
             HashMap<Vote, Integer> voteCounter = new HashMap<>();
@@ -377,7 +405,9 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   @Override
   public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-    //tell everyone in the session that someone joined
+    /*
+     * Player has joined the session
+     */
     Channel playerChannel = ctx.channel();
     Player player = (Player) playerChannel.attr(AttributeKey.valueOf("player")).get();
     player.setSession(this);    
@@ -392,8 +422,14 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       teamTwo.add(player);
     }
     
+    //Send a signal to all players that a new player has joined
     sendSignalAll(ServerResponses.PLAYER_JOINED);
+    
     if (status == SessionStatus.VOTING) {
+      /*
+       * If the new player's team is voting, send them the 
+       * VOTE_START signal.
+       */
       if (teamOneTurn && isTeamOne) {      
         StringAndIOUtils.writeAndFlush(playerChannel, String.format(ServerResponses.SIGNAL_MSG, ServerResponses.VOTE_START));
         System.out.println("-----> "+player.getName()+"'s team IS CURRENTLY VOTING <-----");
@@ -428,11 +464,13 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
   
   @Override
   public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-    //tell everyone in the session that someone left
     Channel playerChannel = ctx.channel();
     Player player = (Player) playerChannel.attr(AttributeKey.valueOf("player")).get();
     player.setSession(null);
 
+    /*
+     * Remove the player from their team 
+     */
     boolean isTeamOne = (boolean) playerChannel.attr(AttributeKey.valueOf("teamone")).get();
     if (isTeamOne) {
       teamOne.remove(player);
@@ -441,16 +479,15 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
       teamTwo.remove(player);
     }
 
+    //Send a singla to everyone that a player has left
     sendSignalAll(ServerResponses.PLAYER_LEFT);
 
-    //player dropped off unexpectedly. No quit request sent
     msgEveryone(String.format(ServerResponses.SERVER_MSG, player.getName()+" has left the session!"));
     System.out.println("[SERVER] "+player.getName()+" has left the session!");
   }
   
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
-
     Channel sender = ctx.channel();
     Player player = (Player) sender.attr(AttributeKey.valueOf("player")).get();
     
@@ -479,6 +516,13 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
         AttributeKey<Boolean> teamAttribute = AttributeKey.valueOf("teamone");
         
         int errorCode = 0; //0 means no error was encountered
+        
+        /*
+         * Null response means that the request warrants no response from the server.
+         * 
+         * This is useful for requests such as QUIT or DISC that may cause for
+         * player disconnections. Attempting to write a response may cause IO errors
+         */
         String response = null; 
         
         switch (request) {
@@ -536,7 +580,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             sender.pipeline().remove(this);
             sender.close();
             
-            response = "bye";
+            response = null;
             break;
           }
           case QUIT:
@@ -558,7 +602,7 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
             StringAndIOUtils.writeAndFlush(sender, ServerRequest.QUIT.getName());
             sender.pipeline().remove(this);
           
-            response = "bye";
+            response = null;
             break;
           }
           case TALLY:
@@ -729,11 +773,10 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
           StringAndIOUtils.writeAndFlush(sender, 
                requestIdentifier+":"+request.createErrorString(errorCode));
         }
-        else {
+        else if (response != null) {
           //no error was encountered. Result string has been created
           StringAndIOUtils.writeAndFlush(sender, requestIdentifier+":"+request.getName()+":"+response);
-        }
-        
+        }     
       }
       else {
         //invalid amount of args provided. Send error

@@ -1,16 +1,13 @@
 package jg.proj.chess.net.client;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Scanner;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.Delimiters;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -226,7 +223,7 @@ public class ChessClient extends Application{
    connector.addMessageListener(listener);
   }
   
-  public void sendRequest(PendingRequest request, Reactor reactor) {
+  public void sendRequest(RequestBody request, Reactor reactor) {
     System.out.println("---REQUEST SUBMITTED: "+request+" | "+Arrays.toString(request.getArguments()));   
     connector.sendRequest(request, reactor);  
   }

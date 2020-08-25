@@ -18,11 +18,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.ChessClient;
-import jg.proj.chess.net.client.PendingRequest;
+import jg.proj.chess.net.client.RequestBody;
 import jg.proj.chess.net.client.Reactor;
 import jg.proj.chess.net.client.ResourceManager;
 
-public class GameEntranceController implements Displayable{
+public class GameEntranceController implements Preparable{
 
   @FXML
   private StackPane mainStackPane;
@@ -59,11 +59,11 @@ public class GameEntranceController implements Displayable{
         }
         else {
           client.setUserName(userName);
-          PendingRequest changeName = new PendingRequest(ServerRequest.CUSER, userName);
+          RequestBody changeName = new RequestBody(ServerRequest.CUSER, userName);
           client.sendRequest(changeName, new Reactor() {
             
             @Override
-            public void react(PendingRequest request, String... results) {
+            public void react(RequestBody request, String... results) {
               //change to game browser
               try {
                 client.showBrowser();
@@ -73,7 +73,7 @@ public class GameEntranceController implements Displayable{
             }
             
             @Override
-            public void error(PendingRequest request, int errorCode) {
+            public void error(RequestBody request, int errorCode) {
               userNameInput.setText("SERVER ERROR TO CUSER: "+errorCode);
               invalidUsername = true;
             }

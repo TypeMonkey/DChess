@@ -20,5 +20,4 @@ public class NonNullHashSet<E> extends HashSet<E>{
     return super.add(e);
   }
 
-  
 }

@@ -1,33 +1,40 @@
 package jg.proj.chess.net;
 
-import java.util.Arrays;
-
 /**
  * A collection of supported requests 
  * that can be processed by a DChess server.
  * 
- * Note: All responses are prepended with their request name (even when an error occurs)
- *       ex: If a csess request was sent, the server will respond with "csess:RESULTS_SUBSTRING".
- *           If a join request was sent with an invalid UUID, the server will send back: "join:ERROR:ERROR_MESSAGE"
- *           
- *       This note doesn't apply to QUIT.
- *       
- * Note: The server will send to clients server responses that it never requested.
- *       These requests are called "Voluntary".
- *       
- *       Such requests are TEAM and ALL. They are sent when a new message is sent by a 
- *       team member or someone in session , respectively.
- *       
- *       Say Player A is connected to a session and is in Team 1. They then send a TEAM/ALL request. 
- *       
- *       Then, the Server sends a TEAM/ALL response to all members of the A's team/session containing
- *       A's message - include A themself. 
+ * The network infrastructure for DChess categorizes three main
+ * exchanges between client and server:
+ * 
+ *  -> Signals - numerical values sent to clients, not necessarily at the request of clients
+ *  -> Messages - string messages sent to clients, not necessarily at the request of clients
+ *  -> Requests - string requests sent by clients to the server. The server, assuming a healthy connection,
+ *                will eventually respond to such requests either with a result or an error
+ *                
+ * Server requests should be formatted as such when sending to the server:
+ *    
+ *    <REQUEST_ID>:~<REQUEST_NAME>:<REQUEST_ARG1>:<REQUEST_ARG2>:....
+ *    
+ *    REQUEST_ID - a unique string ID that the client uses to track request status
+ *    REQUEST_NAME - the name of the request being made. The '~' must be placed before the request name
+ *    REQUEST_ARG(s) - the arguments provided with this request
+ * 
+ * Server responses are then formatted as such:
+ * 
+ *    <REQUEST_ID>:<REQUEST_NAME>:<REQUEST_RESULT1>:<REQUEST_RESULT2>:....
+ *    
+ *    REQUEST_ID - the unique string ID originally attached to the original request
+ *    REQUEST_NAME - the name of the request this response is for
+ *    REQUEST_RESULT(s) - the results of this requests
+ *    
+ * There are requests that shouldn't expect a response from the server.
+ *   * Currently, such requests are the QUIT and DISC requests
+ * 
  * @author Jose
  */
 public enum ServerRequest{
-  
-  
-  
+
   /**
    * Joins a session with the provided UUID and team ID
    * 
@@ -111,7 +118,7 @@ public enum ServerRequest{
   
   /**
    * Quits the current session
-   * Returns: The same request, or error if the player isn't in a session
+   * Returns: nothing. Assume that once this request is sent, the player is removed from their current session, if such exists.
    */
   QUIT("quit", "~quit", 0 ,"Quits the current session"),
   
