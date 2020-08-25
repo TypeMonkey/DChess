@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -237,13 +238,21 @@ public class GameBrowserController implements Displayable{
               UUID uuid = UUID.fromString(values[0]);
               int playerAmnt = Integer.parseInt(values[1]);
               boolean prisonDilemma = Boolean.parseBoolean(values[2]);
-              int voteDuration = Integer.parseInt(values[3]);
+              long voteDuration = Long.parseLong(values[3]);
               boolean invalidVoting = Boolean.parseBoolean(values[4]);
+              long breakAmount = Long.parseLong(values[5]);
+              boolean lateGameJoin = Boolean.parseBoolean(values[6]);
+              int minTeamCount = Integer.parseInt(values[7]);
+
               
               SessionRules rules = new SessionRules();
               rules.setProperty(Properties.PRISON_DILEMMA, prisonDilemma);
               rules.setProperty(Properties.VOTING_DURATION, voteDuration);
               rules.setProperty(Properties.ALLOW_INVL_VOTES, invalidVoting);
+              rules.setProperty(Properties.BREAK_AMOUNT, breakAmount);
+              rules.setProperty(Properties.ALLOW_JOINS_GAME, lateGameJoin);
+              rules.setProperty(Properties.MIN_TEAM_COUNT, minTeamCount);
+
               
               SessionInfo info = new SessionInfo(rules, uuid, playerAmnt);
               activeSessions.add(info); 
@@ -451,7 +460,7 @@ public class GameBrowserController implements Displayable{
 
       @Override
       public ObservableValue<Number> call(CellDataFeatures<SessionInfo, Number> param) {
-        return new SimpleIntegerProperty((int) param.getValue().getRules().getProperty(Properties.VOTING_DURATION));
+        return new SimpleLongProperty((Long) param.getValue().getRules().getProperty(Properties.VOTING_DURATION));
       }
     });
     
@@ -461,7 +470,7 @@ public class GameBrowserController implements Displayable{
 
       @Override
       public ObservableValue<Number> call(CellDataFeatures<SessionInfo, Number> param) {
-        return new SimpleIntegerProperty((int) param.getValue().getRules().getProperty(Properties.BREAK_AMOUNT));
+        return new SimpleLongProperty((long) param.getValue().getRules().getProperty(Properties.BREAK_AMOUNT));
       }
     });
     
