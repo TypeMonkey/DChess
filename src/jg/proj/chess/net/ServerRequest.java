@@ -61,7 +61,7 @@ public enum ServerRequest{
       + "MIN_TEAM_COUNT=%d:"
       + "ALLOW_INVL_VOTES=%b:"
       + "ALLOW_JOINS_GAME=%b:"
-      + "BREAK_AMOUNT=%d", 6,"Creates a session",
+      + "BREAK_AMOUNT=%d", 7,"Creates a session",
       ArgType.INTEGER, ArgType.BOOLEAN, ArgType.INTEGER, ArgType.INTEGER, ArgType.BOOLEAN, ArgType.BOOLEAN, ArgType.INTEGER),
   
   /**
