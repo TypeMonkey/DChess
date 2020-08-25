@@ -371,13 +371,18 @@ public class GameBrowserController implements Displayable{
           boolean prisDil = yesPrisDil.isSelected();
           boolean allowInvalid = yesInvalVote.isSelected();
           boolean allowLate = yesLate.isSelected();
+          
+          boolean errorFound = false;
           if (vDuration < (long) Properties.VOTING_DURATION.getDefaultValue()) {
             voteDurationInput.setText("Vote duration must be at least "+Properties.VOTING_DURATION.getDefaultValue()+" seconds!");
+            errorFound = true;
           }
-          else if (mPlayers < (int) Properties.MIN_TEAM_COUNT.getDefaultValue()) {
+          if (mPlayers < (int) Properties.MIN_TEAM_COUNT.getDefaultValue()) {
             minPlayerInput.setText("Minimum player amount must be at least "+Properties.MIN_TEAM_COUNT.getDefaultValue());
+            errorFound = true;
           }
-          else {
+
+          if (!errorFound) {
             PendingRequest createReq = new PendingRequest(ServerRequest.CSESS, 
                 teamID, 
                 prisDil, 
@@ -413,7 +418,7 @@ public class GameBrowserController implements Displayable{
             };
 
             client.sendRequest(createReq, reactor);
-          }             
+          }
         }
       }
       

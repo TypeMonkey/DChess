@@ -135,7 +135,8 @@ public class StagingHandler extends SimpleChannelInboundHandler<String> {
             SessionRules sessionRules = SessionRules.parseFromString(rulesString);
             if (sessionRules != null) {
               if ( (long) sessionRules.getProperty(Properties.VOTING_DURATION) <  (long) Properties.VOTING_DURATION.getDefaultValue() ||
-                   (long) sessionRules.getProperty(Properties.MIN_TEAM_COUNT) <  (long) Properties.MIN_TEAM_COUNT.getDefaultValue()) {
+                   (int) sessionRules.getProperty(Properties.MIN_TEAM_COUNT) <  (int) Properties.MIN_TEAM_COUNT.getDefaultValue()) {
+                System.out.println("---BAD ARGS FOR CSESS: "+sessionRules);
                 errorCode = ServerResponses.BAD_ARGS;
               }
               else {

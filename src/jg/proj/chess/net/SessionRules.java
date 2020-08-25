@@ -28,7 +28,7 @@ public final class SessionRules {
      * A long property that sets the amount of seconds alloted for voting
      * for team
      */
-    VOTING_DURATION(15),
+    VOTING_DURATION(15L),
     
     /**
      * An int property that sets the minimum amount of players each team must have
@@ -61,7 +61,7 @@ public final class SessionRules {
      * A long property that sets the amount of seconds to wait before
      * each turn, as a 'break'/'pause' in between sessions
      */
-    BREAK_AMOUNT(0);
+    BREAK_AMOUNT(0L);
     
     private final Object defaultValue;
     private Properties(Object defaultValue) {
