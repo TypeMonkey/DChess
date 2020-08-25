@@ -27,3 +27,6 @@
 
 #Whitelist server.jar
 !server.jar
+
+#Whitelist client.jar
+!client.jar

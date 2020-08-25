@@ -109,6 +109,8 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
   private TableView<VoteTally> voteTallyTable;
   @FXML
   private ListView<Text> chatListDisplay;
+  @FXML 
+  private Button quitSessionButton;
   
   //--bottom right components
   @FXML
@@ -191,17 +193,10 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
         "-fx-border-radius: 3;" + 
         "-fx-border-color: grey;");
     
-    //prepare logical board
-    board.initialize(new DefaultBoardPreparer());
     //set the session uuid
     sessionUUIDDisplay.setEditable(false);
     
-    //disable send and clear vote buttons by default
-    sendVoteButton.setDisable(true);
-    clearVoteButton.setDisable(true);
-    
     //set chat to sent to team by default
-    teamChatButton.fire();
     teamChatButton.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent event) {
@@ -289,6 +284,22 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
       }
     });
     
+    //handle for quitting session
+    quitSessionButton.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent event) {
+        // TODO Auto-generated method stub       
+        client.sendRequest(new RequestBody(ServerRequest.QUIT), Reactor.BLANK_REACTOR);
+        
+        try {
+          client.showBrowser();
+        } catch (IOException e) {
+          client.recordException(e);
+        }
+      }     
+    });
+    
+    
     //set style 
     voteTallyPost.setStyle("-fx-padding: 2;" + 
         "-fx-border-style: solid inside;" + 
@@ -346,9 +357,7 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
         chatInput.clear();
       }
     }); 
-    
-    sessionUUIDDisplay.setEditable(false);
-    
+        
     //set tallyVote columns
     TableColumn<VoteTally, String> voteColumn = new TableColumn<>("Vote");
     voteColumn.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<VoteTally,String>, ObservableValue<String>>() {
@@ -374,9 +383,7 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
     
     voteTallyTable.getColumns().clear();
     voteTallyTable.getColumns().addAll(voteColumn, voteCountCol);
-    
-    makeBoard();  
-    
+        
     /*
      * When sending "all" or "team" messages, provide BLANK Reactor instance
      * instead of writing out a manual reactor. 
@@ -386,10 +393,7 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
     
     //add this as listeners
     client.addMessageListener(this);
-    client.addSignalListener(this);
-    
-    //send plist request
-    client.sendRequest(new RequestBody(ServerRequest.PLIST, true), plistReactor);
+    client.addSignalListener(this);    
   }
   
   @Override
@@ -399,7 +403,6 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
       
       //clear board first
       clearVoteButton.fire();
-
       
       //parse coordinates
       //NOTE: ranks start at 1.
@@ -887,6 +890,20 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
   @Override
   public void prepare() {
     sessionUUIDDisplay.setText(client.getCurrentSession().getSessionID().toString());
+    teamChatButton.fire();
+    
+    //disable send and clear vote buttons by default
+    sendVoteButton.setDisable(true);
+    clearVoteButton.setDisable(true);
+    
+    //prepare logical board
+    board.initialize(new DefaultBoardPreparer());
+    
+    //makes the board
+    makeBoard();
+    
+    //send plist request
+    client.sendRequest(new RequestBody(ServerRequest.PLIST, true), plistReactor);
     
     //get session status
     Reactor statusReactor = new Reactor() {      
@@ -913,6 +930,7 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
     RequestBody request = new RequestBody(ServerRequest.STATUS, client.getCurrentSession().getSessionID().toString());
     
     client.sendRequest(request, statusReactor); 
+    
   }
   
   /**

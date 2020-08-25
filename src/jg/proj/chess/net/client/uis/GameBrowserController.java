@@ -166,14 +166,6 @@ public class GameBrowserController implements Preparable{
         "-fx-border-radius: 3;" + 
         "-fx-border-color: grey;");
     
-    //disable team buttons
-    randTeamChoice.setDisable(true);
-    teamOneChoice.setDisable(true);
-    teamTwoChoice.setDisable(true);
-
-    //disable join button
-    joinSessionButton.setDisable(true);
-    
     //set tooltips texts
     Tooltip teamTip = new Tooltip("Sets the team you'd join once the session is created.");
     teamTip.setWrapText(true);
@@ -490,12 +482,6 @@ public class GameBrowserController implements Preparable{
     //add listeners to radio buttons for proper deselection
     setRadioButtonDeselectors();
     
-    //set default create session values
-    randomTeam.fire();
-    noPrisDil.fire();
-    noInvalVote.fire();
-    yesLate.fire();
-    
     //add row selection listerer
     activeSessionsTable.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<SessionInfo>() {
 
@@ -516,11 +502,6 @@ public class GameBrowserController implements Preparable{
         joinSessionButton.setDisable(false);
       }
     });
-
-    
-    //get session list from server
-    refreshButton.fire();
-
   }
   
   private void setRadioButtonDeselectors() {
@@ -667,7 +648,23 @@ public class GameBrowserController implements Preparable{
   
   @Override
   public void prepare() {
-   
+    //get session list from server
+    refreshButton.fire();
+    setRadioButtonDeselectors();
+    
+    //disable team buttons
+    randTeamChoice.setDisable(true);
+    teamOneChoice.setDisable(true);
+    teamTwoChoice.setDisable(true);
+
+    //disable join button
+    joinSessionButton.setDisable(true);
+    
+    //set default create session values
+    randomTeam.fire();
+    noPrisDil.fire();
+    noInvalVote.fire();
+    yesLate.fire();
   }
   
   /**
@@ -681,6 +678,8 @@ public class GameBrowserController implements Preparable{
     activeSessMap.put(info.getSessionID(), info);
     
     activeSessionsTable.getItems().add(info);
+    
+    
   }
   
   private static GameBrowserController browserController;

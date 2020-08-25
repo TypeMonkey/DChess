@@ -185,7 +185,7 @@
                         </HBox>
                         <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="1">
                            <children>
-                              <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="25.0" prefWidth="91.0" text="Quit Session" textAlignment="CENTER">
+                              <Button fx:id="quitSessionButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="25.0" prefWidth="91.0" text="Quit Session" textAlignment="CENTER">
                                  <font>
                                     <Font name="Segoe UI Bold" size="11.0" />
                                  </font>
