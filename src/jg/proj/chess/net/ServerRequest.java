@@ -60,8 +60,9 @@ public enum ServerRequest{
       + "VOTING_DURATION=%d:"
       + "MIN_TEAM_COUNT=%d:"
       + "ALLOW_INVL_VOTES=%b:"
-      + "ALLOW_JOINS_GAME=%b", 6,"Creates a session",
-      ArgType.INTEGER, ArgType.BOOLEAN, ArgType.INTEGER, ArgType.INTEGER, ArgType.BOOLEAN, ArgType.BOOLEAN),
+      + "ALLOW_JOINS_GAME=%b:"
+      + "BREAK_AMOUNT=%d", 6,"Creates a session",
+      ArgType.INTEGER, ArgType.BOOLEAN, ArgType.INTEGER, ArgType.INTEGER, ArgType.BOOLEAN, ArgType.BOOLEAN, ArgType.INTEGER),
   
   /**
    * Requests the current status of a session
