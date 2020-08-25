@@ -503,10 +503,14 @@ public class Session extends SimpleChannelInboundHandler<String> implements Runn
                            session.totalPlayers()+","+
                            session.getRules().getProperty(Properties.PRISON_DILEMMA)+","+
                            session.getRules().getProperty(Properties.VOTING_DURATION)+","+
-                           session.getRules().getProperty(Properties.ALLOW_INVL_VOTES)+":";
+                           session.getRules().getProperty(Properties.ALLOW_INVL_VOTES)+","+
+                           session.getRules().getProperty(Properties.BREAK_AMOUNT)+","+
+                           session.getRules().getProperty(Properties.ALLOW_JOINS_GAME)+","+
+                           session.getRules().getProperty(Properties.MIN_TEAM_COUNT)+":";
                 }
               }
-              response = whole;    
+              
+              response = whole.substring(0, whole.length() - 1); //remove the last colon    
             }
             break;
           }
