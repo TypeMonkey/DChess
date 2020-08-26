@@ -53,18 +53,16 @@ public class GameServer {
    * @throws InterruptedException
    */
   public void start() throws InterruptedException{
-    try {
-      ServerBootstrap serverBootstrap = new ServerBootstrap()
-          .group(workerThreadPool)
-          .channel(NioServerSocketChannel.class)
-          .childHandler(new GameServerInitializer(this));
-      
-      serverBootstrap.option(ChannelOption.SO_REUSEADDR, true);
+    ServerBootstrap serverBootstrap = new ServerBootstrap()
+        .group(workerThreadPool)
+        .channel(NioServerSocketChannel.class)
+        .childHandler(new GameServerInitializer(this));
 
-      
-      serverSocket = (ServerSocketChannel) serverBootstrap.bind(PORT).sync().channel();
-      serverSocket.closeFuture();
-    } 
+    serverBootstrap.option(ChannelOption.SO_REUSEADDR, true);
+
+
+    serverSocket = (ServerSocketChannel) serverBootstrap.bind(PORT).sync().channel();
+    serverSocket.closeFuture();
   }
   
   /**
