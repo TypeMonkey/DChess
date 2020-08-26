@@ -27,6 +27,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.TableColumn.CellDataFeatures;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -133,14 +136,12 @@ public class GameBrowserController implements Preparable{
     
   private final ChessClient client;
   private final Map<UUID, SessionInfo> activeSessMap;
-  private final ObservableList<SessionInfo> activeSessions;
   
   //variables for flags and temporary values
   private SessionInfo selectedSessionInfo;
   
   private GameBrowserController(ChessClient client) {
     this.client = client;
-    activeSessions = FXCollections.observableArrayList();
     activeSessMap = new HashMap<>();
   }
   
@@ -165,6 +166,9 @@ public class GameBrowserController implements Preparable{
         "-fx-border-insets: 5;" + 
         "-fx-border-radius: 3;" + 
         "-fx-border-color: grey;");
+    
+    //default message for empty session
+    activeSessionsTable.setPlaceholder(new Label("No sessions found."));
     
     //set tooltips texts
     Tooltip teamTip = new Tooltip("Sets the team you'd join once the session is created.");
@@ -220,8 +224,8 @@ public class GameBrowserController implements Preparable{
           @Override
           public void react(RequestBody request, String... results) {
             //clear session list
-            activeSessions.clear();
             activeSessMap.clear();
+            activeSessionsTable.getItems().clear();
             
             //each string in results array represent the information of each active session
                         
@@ -247,7 +251,6 @@ public class GameBrowserController implements Preparable{
 
               
               SessionInfo info = new SessionInfo(rules, uuid, playerAmnt);
-              activeSessions.add(info); 
               activeSessMap.put(uuid, info);    
               activeSessionsTable.getItems().add(info);
             }
@@ -255,7 +258,9 @@ public class GameBrowserController implements Preparable{
           
           @Override
           public void error(RequestBody request, int errorCode) {
-            //there should be no error
+            //error occurs when no sessions are found
+            activeSessionsTable.getItems().clear();
+            activeSessionsTable.setPlaceholder(new Label("No sessions found."));
           }
         });
         
@@ -271,17 +276,62 @@ public class GameBrowserController implements Preparable{
         try {
           UUID uuid = UUID.fromString(rawUUID);
 
+          activeSessionsTable.getItems().clear();
+          System.out.println("----cleared sessions!!!");
           if (activeSessMap.containsKey(uuid)) {
-            ObservableList<SessionInfo> temp = FXCollections.observableArrayList(activeSessions);          
-            activeSessions.clear();
             
-            activeSessions.add(activeSessMap.get(uuid));
+            SessionInfo sessionInfo = activeSessMap.get(uuid);
+            
+            activeSessionsTable.getItems().add(sessionInfo);
+            activeSessionsTable.requestFocus();
+            activeSessionsTable.getSelectionModel().select(0);
+            activeSessionsTable.getFocusModel().focus(0);
           }  
+          else {
+            activeSessionsTable.setPlaceholder(new Label("No such session found!"));
+          }
           
         } catch (IllegalArgumentException e) {
-          //bad uuid, do nothing
+          //bad uuid, do notihing
         }
       }
+    });
+    
+    //add handle code for sessionUUIDInput
+    sessionUUIDInput.setOnKeyPressed(new EventHandler<KeyEvent>() {
+
+      @Override
+      public void handle(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER) {
+          searchSessionButton.fire();
+        }
+        else{
+          String currentInput = sessionUUIDInput.getText();
+          if (currentInput == null || currentInput.trim().isEmpty()) {
+            refreshButton.fire();
+          }
+        }
+      }
+    });
+    
+    sessionUUIDInput.setOnMouseClicked(new EventHandler<MouseEvent>() {
+      @Override
+      public void handle(MouseEvent event) {
+        String currentInput = sessionUUIDInput.getText();
+        if (currentInput == null || currentInput.trim().isEmpty()) {
+          refreshButton.fire();
+        }
+      }    
+    });
+    
+    sessionUUIDInput.focusedProperty().addListener(new ChangeListener<Boolean>() {
+      @Override
+      public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+        String currentInput = sessionUUIDInput.getText();
+        if (currentInput == null || currentInput.trim().isEmpty()) {
+          refreshButton.fire();
+        }
+      }      
     });
     
     //join session handle
@@ -674,7 +724,6 @@ public class GameBrowserController implements Preparable{
     //DEV_CODE: 
     System.out.println("---dummy sessions");
     SessionInfo info = new SessionInfo(new SessionRules(), UUID.randomUUID(), 15);
-    activeSessions.add(info);
     activeSessMap.put(info.getSessionID(), info);
     
     activeSessionsTable.getItems().add(info);

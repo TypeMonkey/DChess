@@ -83,7 +83,6 @@ public class ChessClient extends Application{
     generalResources.add(new ResourceInfo("screenUI", "xmls/GameScreen.fxml"));
     generalResources.add(new ResourceInfo("entranceUI", "xmls/GameEntrance.fxml"));
     generalResources.add(new ResourceInfo("browserUI", "xmls/GameBrowser.fxml"));
-    generalResources.add(new ResourceInfo("wigand", "imgs/intro/wigand.jpg"));
     
     resourceManager = new ResourceManager(generalResources);
         
@@ -228,6 +227,10 @@ public class ChessClient extends Application{
     connector.sendRequest(request, reactor);  
   }
   
+  /**
+   * Shuts down the worker pool and Connector
+   */
+  @Override
   public void stop() throws InterruptedException {
     connector.shutdown();
     workerPool.shutdownGracefully().sync();

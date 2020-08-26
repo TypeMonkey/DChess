@@ -108,6 +108,11 @@ public class Connector extends SimpleChannelInboundHandler<String>{
     
     System.out.println("----FROM SERVER: "+msg);
     
+    /*
+     * Signals and messages have no identifier at the beginning of the 
+     * response.
+     */
+    
     if (split[0].equals(ServerResponses.SIGNAL)) {
       //alert all signal listeners
       for (SignalListener listener : signalListeners) {

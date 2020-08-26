@@ -12,7 +12,7 @@
          <children>
             <Pane fx:id="entrancePane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="303.0" prefWidth="600.0">
                <children>
-                  <VBox layoutX="9.0" layoutY="7.0" prefHeight="303.0" prefWidth="583.0">
+                  <VBox fx:id="entranceVBox" layoutX="9.0" layoutY="7.0" prefHeight="303.0" prefWidth="583.0">
                      <children>
                         <Label fx:id="democChessPost" alignment="CENTER" contentDisplay="CENTER" prefHeight="85.0" prefWidth="584.0" text="DemocraticChess">
                            <font>
@@ -46,7 +46,7 @@
                               </VBox>
                            </children>
                         </HBox>
-                        <Label fx:id="creditsPost" alignment="BOTTOM_CENTER" contentDisplay="CENTER" prefHeight="85.0" prefWidth="583.0" text="Developed by Jose Guaro" />
+                        
                      </children>
                   </VBox>
                </children>

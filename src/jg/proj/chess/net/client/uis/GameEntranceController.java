@@ -10,12 +10,18 @@ import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.text.TextFlow;
 import jg.proj.chess.net.ServerRequest;
 import jg.proj.chess.net.client.ChessClient;
 import jg.proj.chess.net.client.RequestBody;
@@ -37,7 +43,7 @@ public class GameEntranceController implements Preparable{
   @FXML
   private Button userNameEnterButton;
   @FXML 
-  private Label creditsPost;
+  private VBox entranceVBox;
   
   //--FLAG VARIABLES
   private boolean invalidUsername;
@@ -49,7 +55,24 @@ public class GameEntranceController implements Preparable{
     this.client = client;
   }
   
-  private void init() {
+  private void init() {    
+    //text for credits
+    Text creditIntro = new Text("Developed by");
+    Hyperlink authorLink = new Hyperlink("TypeMonkey");
+    
+    authorLink.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent event) {
+        client.getHostServices().showDocument("https://github.com/TypeMonkey");
+        authorLink.setVisited(false);
+      }
+    });
+    
+    TextFlow creditsFlow = new TextFlow(creditIntro, authorLink);
+    creditsFlow.setPadding(new Insets(20, 20, 20, 20));
+    creditsFlow.setTextAlignment(TextAlignment.CENTER);
+    entranceVBox.getChildren().add(creditsFlow);
+    
     userNameEnterButton.setOnAction(new EventHandler<ActionEvent>() {
       public void handle(ActionEvent event) {
         String userName = userNameInput.getText();
