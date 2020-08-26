@@ -65,9 +65,6 @@ public class GameServer {
       serverSocket = (ServerSocketChannel) serverBootstrap.bind(PORT).sync().channel();
       serverSocket.closeFuture();
     } 
-    finally {
-       workerThreadPool.shutdownGracefully();
-    }
   }
   
   /**
