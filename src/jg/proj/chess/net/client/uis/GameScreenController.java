@@ -29,6 +29,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
@@ -192,6 +193,15 @@ public class GameScreenController implements SignalListener, MessageListener, Pr
         "-fx-border-insets: 5;" + 
         "-fx-border-radius: 3;" + 
         "-fx-border-color: grey;");
+    
+    //Set sessionUUID tooltip
+    Tooltip sessUUIDInfo = new Tooltip("This is the unique ID for your session that "
+                                     + "you can give to other players to join your game.");
+    sessUUIDInfo.setWrapText(true);
+    sessUUIDInfo.setStyle("-fx-font-size: 12");
+    sessUUIDInfo.setPrefWidth(400);
+    
+    sessionUUIDDisplay.setTooltip(sessUUIDInfo);
     
     //set the session uuid
     sessionUUIDDisplay.setEditable(false);
