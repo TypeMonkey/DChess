@@ -11,6 +11,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -63,12 +64,18 @@ public class ChessClient extends Application{
     //load game resources
     loadResources();
     
+    //set app icon
+    uiStage.getIcons().add(new Image(resourceManager.getResourceAsStream("appIcon")));
+    
     //show entrance scene
     showEntrance();
   }
   
   private void loadResources() throws IOException {
     HashSet<ResourceInfo> generalResources = new HashSet<>();
+    
+    //add icon as a resource too
+    generalResources.add(new ResourceInfo("appIcon", "icon.png"));
     
     //get all unit images path
     for (UnitType unitType : UnitType.values()) {

@@ -30,3 +30,6 @@
 
 #Whitelist client.jar
 !client.jar
+
+#Whitelist icon.png
+!icon.png
