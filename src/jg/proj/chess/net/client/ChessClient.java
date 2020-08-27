@@ -245,6 +245,6 @@ public class ChessClient extends Application{
   }
 
   public static void main(String[] args) {
-    launch(args);  
+    launch("config.txt");  
   }
 }
