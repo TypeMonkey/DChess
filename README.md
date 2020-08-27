@@ -44,6 +44,8 @@ Current roadmap for DChess:
 	- **_Plan_** : Allow for players to develop their own custom games, in the form of mods.
 3. __Beyond Plurality__ - The only supported mode of voting is by plurality (First Past the Post), but there are so many interesting voting methods! 
 	- **_Plan_** : Implement a small set of voting systems for users to choose from, as well as allowing custom voting systems.
+4. __Interactable Server__ - The server currently doesn't have much ability for interaction - other than responding to client requests and sending signals. 
+	- **_Plan_** : Allow for server hosts to input server side commands to better manage said servers. Also, allow for more intricate record keeping and statistics for analysis.
 
 ## Credits
 The chess pieces used in the client GUI is sourced from [CBurnett's](https://en.wikipedia.org/wiki/User:Cburnett) work on chess pieces, which can be see [here](https://en.wikipedia.org/wiki/Chess_piece#Number_of_pieces).
