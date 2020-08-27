@@ -30,6 +30,10 @@ package jg.proj.chess.net;
  *    
  * There are requests that shouldn't expect a response from the server.
  *   * Currently, such requests are the QUIT and DISC requests
+ *     - The client should assume that once these requests are sent to the server,
+ *       they're fulfilled.
+ *   * Such responses often mean that the connection between client and server will severed
+ *     so further communication between the two is futile.
  * 
  * @author Jose
  */

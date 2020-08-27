@@ -1,48 +1,56 @@
-# DChess
+![](https://raw.githubusercontent.com/TypeMonkey/DChess/master/icon.png)
+# DemocraticChess (DChess)
 
-*A modification of the classical game with a sprinkle of good ole' democracy*
+*A democratized take on the classical game of chess*
 
-## Why? Why would you make this?
-I recently read about Garry Kasparov and [his famous game of chess that was played over the Internet](http://https://en.wikipedia.org/wiki/Kasparov_versus_the_World)
+## Motivation
+I recently read about Garry Kasparov and [his famous game of chess that was played over the Internet](https://en.wikipedia.org/wiki/Kasparov_versus_the_World)
 
-Now, my skills in chess are laughable. But my dedication to act out my most useless and asinine of programming ideas are not much so. And so, when I read this story, I couldn't but have an urge to make it a reality.
+My skills in chess are laughable. But my dedication to act out my most useless and asinine of programming ideas are not much so. And so, when I read this story, I took great inspiration.
 
-_And I totally didn't work on this project for two weeks straight, on four hour night of sleep, just so I can fill my resume with projects to hopefully get a job after this year. I'm definitely not desperate for a job and this is definitely not my **_final_** year at UCSD and definitely am not panicking at my lack of career options_
-
-## How does DChess work?
+## Structure
 DChess is structured into two distinct parts: `core` and `net`
 
-The `core` component of DChess is just the "chess" part of DChess. It stores the code that manages the movements of units, as well as the current board information.
+The `core` component of DChess houses the chess logic of DChess. It stores the code that manages the movements of units, as well as the current board information.
 
-The `net` component of DChess is the network code that allows for multiple players of the same team to vote on a move.
+The `net` component of DChess is the network code that allows for multiple players of the same team to vote on a move. It's split further into subcomponents of `server` and `client`. 
 
-When a player connects to a DChess server, they are given two options: **join a game session** or **create a game session**
+The `client` subcomponent contains client-side network code, as well as the client's graphical user interface. The `server` subcomponent contains the server-side network code. There's nothing stopping anyone from hosting their own DChess server.
 
-Each game session is given a unique identifier, in the form of a [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) , that can be used as a sort of "invite" code to allow players to join a session.
+Currently, a DChess server is hosted on the IP `35.163.164.101` at port `9999`.
 
-Currently, there's only **one** DChess server which runs on Amazon Lightsail, and is tied to the IP Address **35.166.15.181** and port **9999**.
-
-## How does a DChess game play out?
+## Gameplay
 It's the exact same rules as chess, but instead of a classical one-vs-one scenario, a team of multiple players control a team on the chess board.
 
-To move a unit per turn, players on each team must vote on a move for a unit. The move that gets the most votes is the move that will be implemented at the end of the turn. 
+To move a unit per turn, players on each team must vote on a move for a unit. The move that gets the most votes is the move that will be implemented at the end of the turn. If there's a ties, then no move is made for that turn.
 
-Oh, and there's a time limit per turn (minimum of 15 seconds at default if no time limit is explicitly set when a session is created). If there's no vote from either team that is the plurality vote by the end of the limit, then no move will be implemented at the end of the turn. If no vote has been received by the end of the limit, then no move will be implemented.
+There's a time limit for vote submissions for the current voting team (minimum of 15 seconds). If a plurality vote isn't reached by the end of this time limit, no move is made for that turn. If no vote has been received by the end of the limit, then no move will be implemented.
+
+Game sessions can also be setup to have a break in-between turns, acting as a moment for teams to strategize and reflect on life choices.
 
 ## Dependencies and System Requirements
-DChess would not be possible without [Netty 4.1](https://github.com/netty/netty) and would not be remotely playable without [JUnit 4](https://junit.org/junit4/)
+DChess would not be possible without [Netty 4.1](https://github.com/netty/netty) and would not be remotely playable without [JUnit 4](https://junit.org/junit4/) - as well as their respective dependencies.
 
-DChess requires a Java Runtime Environment of 1.8 or above. 
+DChess requires a Java Runtime Environment of 1.8. The [client installer](https://github.com/TypeMonkey/DChess-Installer) installs the DChess client with a compliant JDK so this requirement is already taken care of.
 
-## Roadmap and the Future
-I will be releasing the compiled, runnable jars for the client and server versions of DChess on October 12.
+## Releases
+Binaries are [available](https://github.com/TypeMonkey/DChess-Installer/releases) for the DChess client (v1.0). Every future version will have a corresponding installer, posted as a release for the above respository. 
 
-As for the roadmap for DChess, there are still a lot of ideas I'd like to implement to really expand on the voting aspect, as well as ideas to extend classical chess. For now though, I will focus largely on bug fixes and server-side performance adjustments.
+## Roadmap
+Current roadmap for DChess:
+1. __Core Development__ - Currently, the chess logic in `core` can only check for the win condition: killing of the enemy king. But, it cannot detect check, checkmates, and tie conditions. 
+	- **_Plan_** : Use an established Chess API instead of developing my own. 
+2. __More Than Chess__ - The name implies that the game is only democratizing chess, but the same can easily be done with other classics like checkers. 
+	- **_Plan_** : Allow for players to develop their own custom games, in the form of mods.
+3. __Beyond Plurality__ - The only supported mode of voting is by plurality (First Past the Post), but there are so many interesting voting methods! 
+	- **_Plan_** : Implement a small set of voting systems for users to choose from, as well as allowing custom voting systems.
+
+ 
 
 ## Contact
-DChess is maintained and was created by Jose Guaro.
+DChess is maintained and created by Jose Guaro.
 
-If you have any concerns regarding DChess or would just like to reach out, feel free to contact me at [jguaro@ucsd.edu](jguaro@ucsd.edu).
+If you have any concerns regarding DChess or would just like to reach out, feel free to contact me at [anothertypemonkey@gmail.com](anothertypemonkey@gmail.com).
 
 
 
