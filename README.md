@@ -38,14 +38,15 @@ Binaries are [available](https://github.com/TypeMonkey/DChess-Installer/releases
 
 ## Roadmap
 Current roadmap for DChess:
-1. __Core Development__ - Currently, the chess logic in `core` can only check for the win condition: killing of the enemy king. But, it cannot detect check, checkmates, and tie conditions. 
+1. __Core Development__ - Currently, the chess logic in `core` can only check for the win condition: killing of the enemy king. But, it cannot detect checks, checkmates, and ties. 
 	- **_Plan_** : Use an established Chess API instead of developing my own. 
 2. __More Than Chess__ - The name implies that the game is only democratizing chess, but the same can easily be done with other classics like checkers. 
 	- **_Plan_** : Allow for players to develop their own custom games, in the form of mods.
 3. __Beyond Plurality__ - The only supported mode of voting is by plurality (First Past the Post), but there are so many interesting voting methods! 
 	- **_Plan_** : Implement a small set of voting systems for users to choose from, as well as allowing custom voting systems.
 
- 
+## Credits
+The chess pieces used in the client GUI is sourced from [CBurnett's](https://en.wikipedia.org/wiki/User:Cburnett) work on chess pieces, which can be see [here](https://en.wikipedia.org/wiki/Chess_piece#Number_of_pieces).
 
 ## Contact
 DChess is maintained and created by Jose Guaro.

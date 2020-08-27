@@ -4,6 +4,9 @@
 #Whitelist README
 !README.md
 
+#Whitelist LICENSE
+!LICENSE
+
 # Whitelist .gitignore
 !.gitignore
 
@@ -21,6 +24,9 @@
 
 #Whitelist chess piece images
 !/chesspieces/**
+
+#Whitelist licenses
+!/licenses/**
 
 #Whitelist config.txt
 !config.txt
